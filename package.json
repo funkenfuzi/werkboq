@@ -1,0 +1,22 @@
+{
+  "name": "werkboq",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Werkboq – Auftrags- und Baustellendokumentation für österreichische Handwerksbetriebe. Kern (Basic) + Fachmodule.",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=apps/web",
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "server": "node server/start.mjs",
+    "einrichten": "node server/einrichten.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

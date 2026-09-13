@@ -1,0 +1,30 @@
+# Abhängigkeiten
+node_modules/
+
+# Build
+dist/
+build/
+*.tsbuildinfo
+
+# PocketBase – Binary und Daten nie einchecken
+server/pocketbase
+server/pocketbase.exe
+server/pb_data/
+server/pb_public/
+server/*.zip
+
+# Umgebung
+.env
+.env.*
+!.env.example
+
+# Betriebssystem / Editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Logs
+*.log
+npm-debug.log*

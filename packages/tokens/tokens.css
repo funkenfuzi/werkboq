@@ -1,0 +1,160 @@
+/*
+ * Werkboq Design-Tokens
+ * ---------------------
+ * Einzige Quelle für Farben, Schrift und Abstände in Kern und Modulen.
+ * Module verwenden ausschließlich diese Variablen, nie eigene Hex-Werte.
+ *
+ * Farbschema: Funkenfuzi. Schrift: Barlow.
+ * Hellmodus ist Standard; Dunkelmodus über prefers-color-scheme oder
+ * data-theme="dark" am <html>-Element (data-theme="light" erzwingt hell).
+ *
+ * HINWEIS: Die konkreten Funkenfuzi-Farbwerte bitte mit der Marken-tokens.css
+ * abgleichen und hier eintragen – die Werte unten sind Platzhalter im
+ * passenden Farbraum (Orange/Anthrazit), keine verbindliche Markenfarbe.
+ */
+
+@import url("https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Barlow+Semi+Condensed:wght@600;700&display=swap");
+
+:root {
+  color-scheme: light;
+
+  /* --- Schrift --- */
+  --wb-font-sans: "Barlow", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --wb-font-display: "Barlow Semi Condensed", "Barlow", system-ui, sans-serif;
+  --wb-font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  --wb-text-xs: 0.75rem;
+  --wb-text-sm: 0.875rem;
+  --wb-text-md: 1rem;
+  --wb-text-lg: 1.125rem;
+  --wb-text-xl: 1.375rem;
+  --wb-text-2xl: 1.75rem;
+  --wb-leading: 1.5;
+
+  /* --- Markenfarben (Funkenfuzi) --- */
+  --wb-brand-500: #f28c1e;      /* Funken-Orange */
+  --wb-brand-600: #d9770f;
+  --wb-brand-700: #b45f08;
+  --wb-brand-100: #fdebd6;
+  --wb-ink-900: #1f2328;        /* Anthrazit */
+  --wb-ink-700: #3a4149;
+  --wb-ink-500: #6b7480;
+
+  /* --- Semantische Flächen & Text --- */
+  --wb-bg: #f6f5f2;
+  --wb-surface: #ffffff;
+  --wb-surface-2: #f0eeea;
+  --wb-border: #d9d6d0;
+  --wb-border-strong: #b8b3ab;
+  --wb-text: var(--wb-ink-900);
+  --wb-text-muted: var(--wb-ink-500);
+  --wb-text-inverse: #ffffff;
+
+  --wb-accent: var(--wb-brand-500);
+  --wb-accent-hover: var(--wb-brand-600);
+  --wb-accent-active: var(--wb-brand-700);
+  --wb-accent-soft: var(--wb-brand-100);
+  --wb-accent-text: #ffffff;
+
+  /* --- Statusfarben (Leiterfarben-Metapher) --- */
+  --wb-status-ok: #2e8b57;       /* PE grün */
+  --wb-status-ok-soft: #dff3e6;
+  --wb-status-warn: #e0b100;     /* PE gelb */
+  --wb-status-warn-soft: #fbf3cf;
+  --wb-status-error: #c9342b;    /* L rot */
+  --wb-status-error-soft: #f9dcda;
+  --wb-status-info: #2f6db5;     /* N blau */
+  --wb-status-info-soft: #dce8f7;
+  --wb-status-neutral: #7d7d7d;  /* L grau */
+  --wb-status-neutral-soft: #ebebeb;
+
+  /* --- Abstände --- */
+  --wb-space-1: 0.25rem;
+  --wb-space-2: 0.5rem;
+  --wb-space-3: 0.75rem;
+  --wb-space-4: 1rem;
+  --wb-space-5: 1.5rem;
+  --wb-space-6: 2rem;
+  --wb-space-8: 3rem;
+
+  /* --- Radien, Schatten, Bedienelemente --- */
+  --wb-radius-sm: 4px;
+  --wb-radius-md: 8px;
+  --wb-radius-lg: 12px;
+  --wb-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.08);
+  --wb-shadow-md: 0 4px 12px rgb(0 0 0 / 0.10);
+  --wb-touch-min: 44px;   /* Mindestgröße Tap-Ziele am Tablet */
+  --wb-focus-ring: 0 0 0 3px color-mix(in srgb, var(--wb-accent) 45%, transparent);
+}
+
+/* Dunkelmodus per Systemeinstellung (wenn nicht explizit hell erzwungen) */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --wb-bg: #16181b;
+    --wb-surface: #1f2226;
+    --wb-surface-2: #282c31;
+    --wb-border: #363b42;
+    --wb-border-strong: #4a515a;
+    --wb-text: #ecebe8;
+    --wb-text-muted: #a3a9b1;
+    --wb-text-inverse: #16181b;
+    --wb-accent-soft: #3d2a14;
+    --wb-status-ok-soft: #1f3a2a;
+    --wb-status-warn-soft: #3b3417;
+    --wb-status-error-soft: #3f1f1d;
+    --wb-status-info-soft: #1c2c40;
+    --wb-status-neutral-soft: #2e2e2e;
+    --wb-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+    --wb-shadow-md: 0 4px 12px rgb(0 0 0 / 0.5);
+  }
+}
+
+/* Dunkelmodus explizit erzwungen */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --wb-bg: #16181b;
+  --wb-surface: #1f2226;
+  --wb-surface-2: #282c31;
+  --wb-border: #363b42;
+  --wb-border-strong: #4a515a;
+  --wb-text: #ecebe8;
+  --wb-text-muted: #a3a9b1;
+  --wb-text-inverse: #16181b;
+  --wb-accent-soft: #3d2a14;
+  --wb-status-ok-soft: #1f3a2a;
+  --wb-status-warn-soft: #3b3417;
+  --wb-status-error-soft: #3f1f1d;
+  --wb-status-info-soft: #1c2c40;
+  --wb-status-neutral-soft: #2e2e2e;
+  --wb-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
+  --wb-shadow-md: 0 4px 12px rgb(0 0 0 / 0.5);
+}
+
+/* Basis */
+html {
+  font-family: var(--wb-font-sans);
+  font-size: 16px;
+  line-height: var(--wb-leading);
+  background: var(--wb-bg);
+  color: var(--wb-text);
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--wb-bg);
+  color: var(--wb-text);
+}
+
+h1, h2, h3 {
+  font-family: var(--wb-font-display);
+  font-weight: 600;
+  line-height: 1.2;
+  margin: 0 0 var(--wb-space-3);
+}
+
+*:focus-visible {
+  outline: none;
+  box-shadow: var(--wb-focus-ring);
+}

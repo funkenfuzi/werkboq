@@ -1,0 +1,12 @@
+{
+  "name": "@werkboq/tokens",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Design-Tokens (Farben, Schrift, Abstände) für alle Werkboq-Oberflächen – Hell- und Dunkelmodus",
+  "main": "tokens.css",
+  "exports": {
+    ".": "./tokens.css",
+    "./tokens.css": "./tokens.css"
+  },
+  "files": ["tokens.css"]
+}
