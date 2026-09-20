@@ -338,3 +338,119 @@
     gap: var(--wb-space-4);
   }
 }
+
+/* --- Positionen und Summen --- */
+.wb-tabelle--positionen td { vertical-align: top; }
+
+.wb-tabelle--positionen .wb-zellname small {
+  display: block;
+  color: var(--wb-text-muted);
+  font-size: var(--wb-text-xs);
+  margin-top: 2px;
+}
+
+.wb-punkt {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex: none;
+  margin-top: 6px;
+  background: var(--wb-text-muted);
+}
+
+.wb-punkt--leistung { background: var(--wb-brand); }
+.wb-punkt--material { background: var(--wb-accent); }
+.wb-punkt--fremdleistung { background: #8a6fd1; }
+.wb-punkt--sonstiges { background: var(--wb-text-muted); }
+
+.ist-verrechnet td { opacity: 0.62; }
+
+.wb-zelle--betont { font-weight: 600; }
+
+/*
+ * Aufstellung unter den Positionen: Netto je Steuersatz, Steuer, Gesamt.
+ * Heißt bewusst nicht "wb-summen" — so heißt schon die Wochensumme in der
+ * Zeiterfassung. Zwei Bausteine, ein Klassenname, und der eine verstellt
+ * dem anderen das Layout; genau das ist hier einmal passiert.
+ */
+.wb-aufstellung {
+  margin: var(--wb-space-4) 0 0 auto;
+  width: min(320px, 100%);
+  font-size: var(--wb-text-sm);
+}
+
+.wb-aufstellung > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--wb-space-5);
+  padding: 2px 0;
+}
+
+.wb-aufstellung dt {
+  color: var(--wb-text-muted);
+}
+
+.wb-aufstellung dd {
+  margin: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.wb-aufstellung__gesamt {
+  margin-top: var(--wb-space-2);
+  padding-top: var(--wb-space-2) !important;
+  border-top: 2px solid var(--wb-text);
+}
+
+.wb-aufstellung__gesamt dt,
+.wb-aufstellung__gesamt dd {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--wb-text);
+}
+
+/* --- Artikelsuche in der Positionsmaske --- */
+.wb-artikelsuche { position: relative; }
+
+.wb-artikelsuche input {
+  font: inherit;
+  width: 100%;
+  min-height: var(--wb-touch-min);
+  padding: var(--wb-space-2) var(--wb-space-3);
+  border: 1px solid var(--wb-border-strong);
+  border-radius: var(--wb-radius-md);
+  background: var(--wb-surface);
+  color: var(--wb-text);
+  box-sizing: border-box;
+}
+
+.wb-artikelsuche__liste {
+  list-style: none;
+  margin: 2px 0 0;
+  padding: 0;
+  border: 1px solid var(--wb-border-strong);
+  border-radius: var(--wb-radius-md);
+  background: var(--wb-surface);
+  overflow: hidden;
+}
+
+.wb-artikelsuche__liste button {
+  display: grid;
+  grid-template-columns: 90px 1fr auto;
+  gap: var(--wb-space-3);
+  align-items: baseline;
+  width: 100%;
+  padding: var(--wb-space-2) var(--wb-space-3);
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.wb-artikelsuche__liste button:hover {
+  background: var(--wb-brand-soft);
+}
+
+.wb-artikelsuche__liste li + li { border-top: 1px solid var(--wb-border); }

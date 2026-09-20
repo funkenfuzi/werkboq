@@ -32,6 +32,10 @@ const MODULSYMBOLE: Record<string, SymbolName> = {
   pruefung: "pruefung",
   uhr: "uhr",
   kalender: "kalender",
+  katalog: "katalog",
+  beleg: "beleg",
+  geld: "geld",
+  vertrag: "vertrag",
 };
 
 export function App() {

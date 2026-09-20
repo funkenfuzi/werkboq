@@ -7,6 +7,8 @@ export * from "./modul/dienste";
 export * from "./modul/bausteine";
 export * from "./ui/Symbol";
 export * from "./werkzeug/zeitrechnung";
+export * from "./werkzeug/geld";
+export * from "./werkzeug/fehler";
 export * from "./daten/typen";
 export * from "./daten/client";
 export * from "./daten/offline";

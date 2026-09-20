@@ -26,9 +26,38 @@ export type AuftragsstundenDienst = (
   auftragId: string,
 ) => Promise<{ gesamt: number; verrechenbar: number }>;
 
+/**
+ * Eine Position, wie sie ein Baustein an einen anderen weiterreicht.
+ * Beträge in Cent, netto. `quelle` ist die Kennung beim liefernden Baustein
+ * — der Empfänger merkt sich damit, woher eine übernommene Zeile stammt,
+ * ohne den Datensatz selbst zu kennen.
+ */
+export interface Fremdposition {
+  pos: number;
+  art: string;
+  bezeichnung: string;
+  beschreibung: string;
+  menge: number;
+  einheit: string;
+  einzelpreis: number;
+  rabatt: number;
+  ustsatz: number;
+  betrag: number;
+  quelle: string;
+}
+
+/** Positionen eines Auftrags mit Summen, aus dem Baustein Material. */
+export type AuftragspositionenDienst = (auftragId: string) => Promise<{
+  positionen: Fremdposition[];
+  netto: number;
+  ust: number;
+  brutto: number;
+}>;
+
 export interface Dienste {
   tagesstunden: TagesstundenDienst;
   auftragsstunden: AuftragsstundenDienst;
+  auftragspositionen: AuftragspositionenDienst;
 }
 
 const angeboten = new Map<keyof Dienste, unknown>();

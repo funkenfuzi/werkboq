@@ -1,6 +1,5 @@
 import type { WerkboqModul } from "@werkboq/core";
 import { PruefberichteSeite } from "./seiten/Pruefberichte";
-import { AuftragElektroReiter } from "./erweiterungen/AuftragElektroReiter";
 import { ELEKTRO_COLLECTIONS } from "./daten/collections";
 
 /**
@@ -29,9 +28,10 @@ export const modulElektro: WerkboqModul = {
     },
   ],
 
-  erweiterungen: {
-    "auftrag.abschnitt": AuftragElektroReiter,
-  },
+  // Der Block in der Auftragsakte ist noch ein Platzhalter und deshalb nicht
+  // angemeldet: ein Kasten, in dem "folgt in der nächsten Scheibe" steht,
+  // gehört nicht in jede Akte. Kommt mit Scheibe 5 zurück.
+  // erweiterungen: { "auftrag.abschnitt": AuftragElektroReiter },
 
   initialisieren: () => {
     // Platz für Offline-Handler, Voreinstellungen usw.

@@ -1,8 +1,8 @@
 {
-  "name": "@werkboq/core",
+  "name": "@werkboq/baustein-material",
   "version": "0.1.0",
   "private": true,
-  "description": "Werkboq Basic – Kern: Modulschnittstelle, Datenmodell, PocketBase-Client, Offline-Warteschlange, Benutzer und Rechte",
+  "description": "Werkboq Baustein Material – Leistungs- und Materialkatalog, Positionen am Auftrag",
   "type": "module",
   "main": "src/index.ts",
   "types": "src/index.ts",
@@ -14,12 +14,11 @@
     "test": "tsx --test test/*.test.ts"
   },
   "dependencies": {
-    "pocketbase": "^0.21.5",
+    "@werkboq/core": "*",
     "react": "^18.3.1"
   },
   "devDependencies": {
     "@types/react": "^18.3.12",
-    "tsx": "^4.23.15",
     "typescript": "^5.6.3"
   }
 }

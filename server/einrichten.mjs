@@ -265,6 +265,47 @@ const BAUSTEINE = [
     ],
     indexes: ["CREATE INDEX idx_termine_datum ON termine (datum)"],
   },
+  {
+    // Leistungs- und Materialkatalog. Preise als Cent in ganzen Zahlen:
+    // Fließkomma und Geld vertragen sich nicht.
+    name: "artikel",
+    schema: [
+      { name: "nummer", type: "text", required: true, options: { max: 20 } },
+      { name: "bezeichnung", type: "text", required: true },
+      { name: "art", type: "select", required: true, options: { maxSelect: 1, values: ["leistung", "material", "fremdleistung", "sonstiges"] } },
+      { name: "einheit", type: "text", required: true, options: { max: 12 } },
+      { name: "preis", type: "number", required: true, options: { min: 0, noDecimal: true } },
+      { name: "einkauf", type: "number", options: { min: 0, noDecimal: true } },
+      { name: "ustsatz", type: "number", required: true, options: { min: 0, max: 100, noDecimal: true } },
+      { name: "beschreibung", type: "text" },
+      { name: "aktiv", type: "bool" },
+    ],
+    indexes: [
+      "CREATE UNIQUE INDEX idx_artikel_nummer ON artikel (nummer)",
+      "CREATE INDEX idx_artikel_aktiv ON artikel (aktiv)",
+    ],
+  },
+  {
+    // Positionen am Auftrag. Preis und Steuersatz werden beim Einfügen aus
+    // dem Katalog KOPIERT, nicht verknüpft — ein späterer Preiswechsel darf
+    // einen halbfertigen Auftrag nicht rückwirkend verteuern.
+    name: "positionen",
+    schema: [
+      { name: "auftrag", type: "relation", required: true, options: { collectionId: "auftraege", maxSelect: 1, cascadeDelete: true } },
+      { name: "pos", type: "number", required: true, options: { min: 0, noDecimal: true } },
+      { name: "artikel", type: "relation", options: { collectionId: "artikel", maxSelect: 1 } },
+      { name: "art", type: "select", required: true, options: { maxSelect: 1, values: ["leistung", "material", "fremdleistung", "sonstiges"] } },
+      { name: "bezeichnung", type: "text", required: true },
+      { name: "beschreibung", type: "text" },
+      { name: "menge", type: "number", required: true },
+      { name: "einheit", type: "text", required: true, options: { max: 12 } },
+      { name: "einzelpreis", type: "number", required: true, options: { noDecimal: true } },
+      { name: "rabatt", type: "number", options: { min: 0, max: 100 } },
+      { name: "ustsatz", type: "number", required: true, options: { min: 0, max: 100, noDecimal: true } },
+      { name: "verrechnet", type: "bool" },
+    ],
+    indexes: ["CREATE INDEX idx_positionen_auftrag ON positionen (auftrag, pos)"],
+  },
 ];
 
 /** Modul-Collections: jedes Modul liefert seine in <modul>/src/daten/collections.ts;
