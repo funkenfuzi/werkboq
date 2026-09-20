@@ -450,6 +450,7 @@ try {
    * also kostet der zweite Durchgang bei einer fertigen Datenbank nichts.
    */
   const zurueckgestellt = new Set();
+  let angelegt = 0;
 
   for (const durchgang of [1, 2]) {
     for (const c of alle) {
@@ -467,16 +468,28 @@ try {
         }
         schema.push(f);
       }
-      const id = await collectionAbgleichen({ ...standardRegeln, ...c, schema }, durchgang === 1);
+      // Gemeldet wird im ersten Durchgang. Der zweite hängt nur noch
+      // zurückgestellte Verknüpfungen an und schweigt, sonst stünde jede
+      // Collection zweimal da.
+      const vorher = ids.has(c.name);
+      const id = await collectionAbgleichen({ ...standardRegeln, ...c, schema }, durchgang === 2);
+      if (!vorher) angelegt++;
       ids.set(c.name, id);
     }
     if (zurueckgestellt.size === 0) break;
-    if (durchgang === 1 && zurueckgestellt.size > 0) {
+    if (durchgang === 1) {
       console.log(
-        `Zweiter Durchgang für Verknüpfungen auf sich selbst: ${[...zurueckgestellt].join(", ")}`,
+        `Verknüpfungen auf sich selbst werden nachgezogen: ${[...zurueckgestellt].join(", ")}`,
       );
     }
   }
+
+  // Immer eine Zeile, auch wenn sich nichts geändert hat. Ein Lauf, der
+  // schweigt, ist von einem Lauf, der nichts getan hat, nicht zu
+  // unterscheiden — und genau das verunsichert zu Recht.
+  console.log(
+    `${alle.length} Collections geprüft, ${angelegt} neu angelegt, ${alle.length - angelegt} unverändert.`,
+  );
 
   // Ersten Anwendungsbenutzer anlegen, falls gewünscht und noch keiner da ist
   await erstenBenutzerAnlegen();
