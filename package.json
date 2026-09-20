@@ -14,7 +14,8 @@
     "lint": "npm run lint --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "server": "node server/start.mjs",
-    "einrichten": "node server/einrichten.mjs"
+    "einrichten": "node server/einrichten.mjs",
+    "entwicklung-weg": "node server/entwicklung-weg.mjs"
   },
   "engines": {
     "node": ">=20"

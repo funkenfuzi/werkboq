@@ -29,20 +29,58 @@ scripts/
 
 ```bash
 npm install
-cp .env.example .env          # PB_ADMIN_EMAIL / PB_ADMIN_PASSWORD eintragen
-npm run server                # PocketBase auf http://127.0.0.1:8090
+cp .env.example .env          # Zugangsdaten eintragen, siehe unten
+npm run server                # PocketBase auf http://127.0.0.1:8095
 ```
 
-Im Admin-UI unter `http://127.0.0.1:8090/_/` einmalig den Admin anlegen (dieselben
-Zugangsdaten wie in der `.env`), dann in einem zweiten Terminal:
+Werkboq läuft bewusst auf **Port 8095**, nicht auf dem PocketBase-Standard 8090 —
+damit eine andere lokal laufende PocketBase nicht versehentlich getroffen wird.
+
+Im Admin-UI unter `http://127.0.0.1:8095/_/` einmalig den Admin anlegen, mit
+denselben Zugangsdaten, die in der `.env` unter `PB_ADMIN_*` stehen. Dann in einem
+zweiten Terminal:
 
 ```bash
-npm run einrichten            # Collections anlegen / abgleichen
+npm run einrichten            # Collections anlegen / abgleichen, ersten Benutzer anlegen
 npm run dev                   # Oberfläche auf http://localhost:5173
 ```
 
 `npm run einrichten` ist beliebig oft ausführbar: bestehende Felder bleiben erhalten,
 neue kommen dazu.
+
+### Zwei Arten von Zugangsdaten
+
+Das wird leicht verwechselt. Der **PocketBase-Admin** (`PB_ADMIN_*`) gehört der
+Datenbank und wird nur für das Admin-UI und `einrichten.mjs` gebraucht. In Werkboq
+selbst meldet man sich mit einem **Anwendungsbenutzer** aus der `users`-Collection
+an — den legt `einrichten.mjs` beim ersten Lauf aus `WB_BENUTZER_EMAIL` und
+`WB_BENUTZER_PASSWORT` an, mit allen Bereichen freigeschaltet. Existiert bereits ein
+Benutzer, rührt das Skript die `users`-Collection nicht an.
+
+### Entwicklungszugang
+
+Solange entwickelt wird, ist das Tippen einer E-Mail bei jedem Neuladen lästig.
+Mit `WB_ENTWICKLUNG=ja` in der `.env` legt `einrichten.mjs` deshalb den Zugang
+**adm / adm** an. Er wirkt nur gegen eine PocketBase auf `127.0.0.1` und setzt die
+Passwort-Mindestlänge vorübergehend auf drei Zeichen.
+
+Das Konto trägt intern `entwicklung = true`. Vor jeder echten Inbetriebnahme:
+
+```bash
+npm run entwicklung-weg
+```
+
+Das löscht alle so gekennzeichneten Konten, setzt die Mindestlänge zurück auf acht
+und warnt, falls danach überhaupt kein Benutzer mehr übrig ist. Normale Benutzer
+bleiben unangetastet.
+
+### Schutz vor fremden Datenbanken
+
+`einrichten.mjs` verändert das Schema der PocketBase unter `PB_URL`. Beim ersten Lauf
+legt es die Marker-Collection `werkboq_meta` an. Findet es später eine Datenbank mit
+fremden Collections und ohne diesen Marker, bricht es ab, statt hineinzuschreiben —
+so kann das Skript keine andere Anwendung beschädigen, wenn `PB_URL` einmal falsch
+steht oder auf Port 8095 etwas anderes läuft.
 
 ## Grundsätze
 

@@ -4,13 +4,15 @@
  * Einzige Quelle für Farben, Schrift und Abstände in Kern und Modulen.
  * Module verwenden ausschließlich diese Variablen, nie eigene Hex-Werte.
  *
- * Farbschema: Funkenfuzi. Schrift: Barlow.
+ * Grundlage ist das Funkenfuzi Corporate Design (funkenfuzi.at):
+ * Blau trägt die Oberfläche — Kopfzeile, Navigation, Überschriften.
+ * Orange ist die Handlungsfarbe und bleibt den Hauptaktionen vorbehalten;
+ * wird es dekorativ verstreut, verliert es genau die Wirkung, für die es da ist.
+ * Gelb ist Signalfarbe für Hervorhebungen, nie Fläche und nie Text.
+ *
+ * Schrift: Barlow.
  * Hellmodus ist Standard; Dunkelmodus über prefers-color-scheme oder
  * data-theme="dark" am <html>-Element (data-theme="light" erzwingt hell).
- *
- * HINWEIS: Die konkreten Funkenfuzi-Farbwerte bitte mit der Marken-tokens.css
- * abgleichen und hier eintragen – die Werte unten sind Platzhalter im
- * passenden Farbraum (Orange/Anthrazit), keine verbindliche Markenfarbe.
  */
 
 @import url("https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Barlow+Semi+Condensed:wght@600;700&display=swap");
@@ -31,42 +33,59 @@
   --wb-text-2xl: 1.75rem;
   --wb-leading: 1.5;
 
-  /* --- Markenfarben (Funkenfuzi) --- */
-  --wb-brand-500: #f28c1e;      /* Funken-Orange */
-  --wb-brand-600: #d9770f;
-  --wb-brand-700: #b45f08;
-  --wb-brand-100: #fdebd6;
-  --wb-ink-900: #1f2328;        /* Anthrazit */
-  --wb-ink-700: #3a4149;
-  --wb-ink-500: #6b7480;
+  /* --- Markenfarben (Funkenfuzi CD) --- */
+  --wb-blue: #0058a8;
+  --wb-blue-deep: #003e77;
+  --wb-blue-night: #0b2440;
+  --wb-orange: #f74c00;
+  --wb-orange-deep: #d34100;
+  --wb-yellow: #eee204;
+
+  --wb-ink: #14212e;
+  --wb-ink-soft: #4c5c6b;
+  --wb-ink-on-dark: #ffffff;
+  --wb-ink-on-dark-soft: #b9c8d8;
 
   /* --- Semantische Flächen & Text --- */
-  --wb-bg: #f6f5f2;
+  --wb-bg: #f6f8fb;
   --wb-surface: #ffffff;
-  --wb-surface-2: #f0eeea;
-  --wb-border: #d9d6d0;
-  --wb-border-strong: #b8b3ab;
-  --wb-text: var(--wb-ink-900);
-  --wb-text-muted: var(--wb-ink-500);
+  --wb-surface-2: #eef2f7;
+  --wb-border: #e2e8f0;
+  --wb-border-strong: #c3cddb;
+  --wb-text: var(--wb-ink);
+  --wb-text-muted: var(--wb-ink-soft);
   --wb-text-inverse: #ffffff;
 
-  --wb-accent: var(--wb-brand-500);
-  --wb-accent-hover: var(--wb-brand-600);
-  --wb-accent-active: var(--wb-brand-700);
-  --wb-accent-soft: var(--wb-brand-100);
+  /* Blau: Marke, Navigation, Überschriften */
+  --wb-brand: var(--wb-blue);
+  --wb-brand-hover: var(--wb-blue-deep);
+  --wb-brand-soft: #e3edf8;
+  --wb-brand-text: #ffffff;
+
+  /* Orange: Hauptaktion, sparsam einsetzen */
+  --wb-accent: var(--wb-orange);
+  --wb-accent-hover: var(--wb-orange-deep);
+  --wb-accent-active: #b23700;
+  --wb-accent-soft: #fde8df;
   --wb-accent-text: #ffffff;
 
-  /* --- Statusfarben (Leiterfarben-Metapher) --- */
-  --wb-status-ok: #2e8b57;       /* PE grün */
-  --wb-status-ok-soft: #dff3e6;
-  --wb-status-warn: #e0b100;     /* PE gelb */
-  --wb-status-warn-soft: #fbf3cf;
-  --wb-status-error: #c9342b;    /* L rot */
-  --wb-status-error-soft: #f9dcda;
-  --wb-status-info: #2f6db5;     /* N blau */
-  --wb-status-info-soft: #dce8f7;
-  --wb-status-neutral: #7d7d7d;  /* L grau */
-  --wb-status-neutral-soft: #ebebeb;
+  /* Gelb: Hervorhebung, Marker, Fokus auf Messwerte */
+  --wb-signal: var(--wb-yellow);
+  --wb-signal-soft: #fdf8c2;
+
+  /* --- Statusfarben (Leiterfarben-Metapher) ---
+     Rot ist bewusst dunkler als das Marken-Orange, damit Fehler nicht
+     mit einer Handlungsschaltfläche verwechselt werden. */
+  --wb-status-ok: #1f7a4c;
+  --wb-status-ok-soft: #dcf0e6;
+  --wb-status-warn: #9a6a00;
+  --wb-status-warn-soft: #fbf0cd;
+  --wb-status-error: #c0271c;
+  --wb-status-error-soft: #fadedb;
+  --wb-status-info: var(--wb-blue);
+  --wb-status-info-soft: var(--wb-brand-soft);
+  --wb-status-neutral: #6b7784;
+  --wb-status-neutral-soft: #eaeef3;
 
   /* --- Abstände --- */
   --wb-space-1: 0.25rem;
@@ -81,54 +100,88 @@
   --wb-radius-sm: 4px;
   --wb-radius-md: 8px;
   --wb-radius-lg: 12px;
-  --wb-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.08);
-  --wb-shadow-md: 0 4px 12px rgb(0 0 0 / 0.10);
+  --wb-shadow-sm: 0 1px 2px rgb(11 36 64 / 0.08);
+  --wb-shadow-md: 0 4px 12px rgb(11 36 64 / 0.12);
   --wb-touch-min: 44px;   /* Mindestgröße Tap-Ziele am Tablet */
-  --wb-focus-ring: 0 0 0 3px color-mix(in srgb, var(--wb-accent) 45%, transparent);
+  --wb-focus-ring: 0 0 0 3px color-mix(in srgb, var(--wb-blue) 45%, transparent);
 }
 
 /* Dunkelmodus per Systemeinstellung (wenn nicht explizit hell erzwungen) */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --wb-bg: #16181b;
-    --wb-surface: #1f2226;
-    --wb-surface-2: #282c31;
-    --wb-border: #363b42;
-    --wb-border-strong: #4a515a;
-    --wb-text: #ecebe8;
-    --wb-text-muted: #a3a9b1;
-    --wb-text-inverse: #16181b;
-    --wb-accent-soft: #3d2a14;
-    --wb-status-ok-soft: #1f3a2a;
-    --wb-status-warn-soft: #3b3417;
-    --wb-status-error-soft: #3f1f1d;
-    --wb-status-info-soft: #1c2c40;
-    --wb-status-neutral-soft: #2e2e2e;
-    --wb-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
-    --wb-shadow-md: 0 4px 12px rgb(0 0 0 / 0.5);
+    --wb-bg: var(--wb-blue-night);
+    --wb-surface: #10304f;
+    --wb-surface-2: #17405f;
+    --wb-border: #24496c;
+    --wb-border-strong: #3a6288;
+    --wb-text: var(--wb-ink-on-dark);
+    --wb-text-muted: var(--wb-ink-on-dark-soft);
+    --wb-text-inverse: var(--wb-blue-night);
+
+    --wb-brand: #4e9ae0;
+    --wb-brand-hover: #79b4e9;
+    --wb-brand-soft: #14395c;
+
+    --wb-accent: #ff6a2a;
+    --wb-accent-hover: #ff8a55;
+    --wb-accent-active: #e05418;
+    --wb-accent-soft: #4a2113;
+
+    --wb-signal-soft: #4a4510;
+
+    --wb-status-ok: #4cb883;
+    --wb-status-ok-soft: #143d2b;
+    --wb-status-warn: #d9a520;
+    --wb-status-warn-soft: #443512;
+    --wb-status-error: #f0655a;
+    --wb-status-error-soft: #4a201d;
+    --wb-status-info: #4e9ae0;
+    --wb-status-info-soft: #14395c;
+    --wb-status-neutral: #93a1af;
+    --wb-status-neutral-soft: #2a3b4c;
+
+    --wb-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.45);
+    --wb-shadow-md: 0 4px 12px rgb(0 0 0 / 0.55);
   }
 }
 
 /* Dunkelmodus explizit erzwungen */
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --wb-bg: #16181b;
-  --wb-surface: #1f2226;
-  --wb-surface-2: #282c31;
-  --wb-border: #363b42;
-  --wb-border-strong: #4a515a;
-  --wb-text: #ecebe8;
-  --wb-text-muted: #a3a9b1;
-  --wb-text-inverse: #16181b;
-  --wb-accent-soft: #3d2a14;
-  --wb-status-ok-soft: #1f3a2a;
-  --wb-status-warn-soft: #3b3417;
-  --wb-status-error-soft: #3f1f1d;
-  --wb-status-info-soft: #1c2c40;
-  --wb-status-neutral-soft: #2e2e2e;
-  --wb-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
-  --wb-shadow-md: 0 4px 12px rgb(0 0 0 / 0.5);
+  --wb-bg: var(--wb-blue-night);
+  --wb-surface: #10304f;
+  --wb-surface-2: #17405f;
+  --wb-border: #24496c;
+  --wb-border-strong: #3a6288;
+  --wb-text: var(--wb-ink-on-dark);
+  --wb-text-muted: var(--wb-ink-on-dark-soft);
+  --wb-text-inverse: var(--wb-blue-night);
+
+  --wb-brand: #4e9ae0;
+  --wb-brand-hover: #79b4e9;
+  --wb-brand-soft: #14395c;
+
+  --wb-accent: #ff6a2a;
+  --wb-accent-hover: #ff8a55;
+  --wb-accent-active: #e05418;
+  --wb-accent-soft: #4a2113;
+
+  --wb-signal-soft: #4a4510;
+
+  --wb-status-ok: #4cb883;
+  --wb-status-ok-soft: #143d2b;
+  --wb-status-warn: #d9a520;
+  --wb-status-warn-soft: #443512;
+  --wb-status-error: #f0655a;
+  --wb-status-error-soft: #4a201d;
+  --wb-status-info: #4e9ae0;
+  --wb-status-info-soft: #14395c;
+  --wb-status-neutral: #93a1af;
+  --wb-status-neutral-soft: #2a3b4c;
+
+  --wb-shadow-sm: 0 1px 2px rgb(0 0 0 / 0.45);
+  --wb-shadow-md: 0 4px 12px rgb(0 0 0 / 0.55);
 }
 
 /* Basis */
@@ -152,6 +205,7 @@ h1, h2, h3 {
   font-weight: 600;
   line-height: 1.2;
   margin: 0 0 var(--wb-space-3);
+  color: var(--wb-brand);
 }
 
 *:focus-visible {

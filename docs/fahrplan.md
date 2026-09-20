@@ -29,6 +29,12 @@ Nutzer anlegen, Bereiche zuteilen, PocketBase-Regeln je Bereich schärfen.
 Positionen, Preise, Angebots-PDF mit den österreichischen Pflichtangaben
 (UID, Firmenbuchnummer).
 
+## Vor der ersten echten Inbetriebnahme
+
+- `npm run entwicklung-weg` ausführen: löscht den Zugang adm/adm und setzt die
+  Passwort-Mindestlänge zurück auf acht Zeichen.
+- `WB_ENTWICKLUNG` aus der `.env` der Zielinstallation entfernen.
+
 ## Offene Punkte
 
 - Collection-Definitionen an einer Stelle halten statt in Modul und `einrichten.mjs`
@@ -37,4 +43,3 @@ Positionen, Preise, Angebots-PDF mit den österreichischen Pflichtangaben
 - Konfliktbehandlung beim Nachspielen (derzeit: letzter gewinnt).
 - Desktop-Verpackung (Tauri) und die Frage, ob das Tablet nativ oder als
   installierbare Web-App läuft.
-- Funkenfuzi-Farbwerte in `tokens.css` gegen die Markenvorgabe abgleichen.

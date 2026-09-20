@@ -17,8 +17,20 @@
   font-family: var(--wb-font-display);
   font-size: var(--wb-text-xl);
   font-weight: 700;
-  color: var(--wb-accent);
+  color: var(--wb-brand);
   margin-bottom: var(--wb-space-4);
+}
+
+/* Der Funke im Wortbild — die einzige dekorative Stelle, an der Orange steht. */
+.wb-nav__marke::after {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-left: 3px;
+  border-radius: 50%;
+  background: var(--wb-accent);
+  vertical-align: 0.35em;
 }
 
 .wb-nav a {
@@ -62,6 +74,26 @@
   box-shadow: var(--wb-shadow-md);
 }
 
+.wb-feld {
+  display: grid;
+  gap: var(--wb-space-1);
+}
+
+.wb-feld > span {
+  font-size: var(--wb-text-sm);
+  font-weight: 500;
+  color: var(--wb-text-muted);
+}
+
+.wb-fehler {
+  margin: 0;
+  padding: var(--wb-space-2) var(--wb-space-3);
+  border-radius: var(--wb-radius-md);
+  background: var(--wb-status-error-soft);
+  color: var(--wb-status-error);
+  font-size: var(--wb-text-sm);
+}
+
 .wb-formular input {
   font: inherit;
   min-height: var(--wb-touch-min);
@@ -86,6 +118,21 @@
 
 .wb-button:hover {
   background: var(--wb-accent-hover);
+}
+
+.wb-button:active {
+  background: var(--wb-accent-active);
+}
+
+/* Zweitrangige Aktionen bleiben blau, damit Orange die Hauptaktion markiert. */
+.wb-button--sekundaer {
+  background: transparent;
+  color: var(--wb-brand);
+  border: 1px solid var(--wb-border-strong);
+}
+
+.wb-button--sekundaer:hover {
+  background: var(--wb-brand-soft);
 }
 
 @media (max-width: 720px) {
