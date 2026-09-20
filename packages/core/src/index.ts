@@ -8,6 +8,7 @@ export * from "./modul/bausteine";
 export * from "./ui/Symbol";
 export * from "./werkzeug/zeitrechnung";
 export * from "./werkzeug/geld";
+export * from "./werkzeug/laender";
 export * from "./werkzeug/fehler";
 export * from "./daten/typen";
 export * from "./daten/client";

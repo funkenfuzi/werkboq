@@ -1,4 +1,5 @@
 import {
+  aktuellerRechtsraum,
   pb,
   protokollieren,
   runden,
@@ -6,6 +7,7 @@ import {
   type Basisdatensatz,
   type Betrieb,
   type Kunde,
+  type Rechtsraum,
   type UstSatz,
 } from "@werkboq/core";
 
@@ -26,8 +28,9 @@ import {
  * Datenbestand.
  *
  * Und sie wird festgeschrieben. Ab `festgeschrieben` ändert sich am Beleg
- * nichts mehr — Korrektur heißt Storno per Gutschrift und neuer Beleg. § 132
- * BAO verlangt sieben Jahre Aufbewahrung; Werkboq löscht nichts von selbst.
+ * nichts mehr — Korrektur heißt Storno per Gutschrift und neuer Beleg. Alle
+ * drei Rechtsräume verlangen Aufbewahrung über Jahre (siehe `rechtsraum`);
+ * Werkboq löscht nichts von selbst.
  */
 
 export const BELEGARTEN = ["angebot", "auftragsbestaetigung", "rechnung", "gutschrift"] as const;
@@ -79,11 +82,12 @@ export const STATUS_FARBE: Record<Belegstatus, string> = {
 /**
  * Grund für einen Beleg ohne Umsatzsteuer.
  *
- * "bauleistung" ist der für Elektriker wichtigste Fall: nach § 19 Abs 1a
- * UStG geht die Steuerschuld auf den Empfänger über, wenn die Leistung an
- * einen Unternehmer geht, der selbst mit Bauleistungen beauftragt ist oder
- * üblicherweise solche erbringt. Dann darf keine Umsatzsteuer ausgewiesen
- * werden, und auf der Rechnung muss der Hinweis stehen.
+ * "bauleistung" ist der für Elektriker wichtigste Fall: in Österreich und
+ * Deutschland geht die Steuerschuld auf den Empfänger über, wenn die Leistung
+ * an einen Unternehmer geht, der selbst Bauleistungen erbringt. Dann darf
+ * keine Steuer ausgewiesen werden, und auf der Rechnung muss der Hinweis
+ * stehen. Die Schweiz kennt diesen Übergang nicht — dort fällt der Grund
+ * über `moeglicheGruende` aus der Auswahl.
  */
 export const STEUERFREI_GRUENDE = [
   "keiner",
@@ -94,34 +98,56 @@ export const STEUERFREI_GRUENDE = [
 ] as const;
 export type SteuerfreiGrund = (typeof STEUERFREI_GRUENDE)[number];
 
-export const STEUERFREI_TEXT: Record<SteuerfreiGrund, string> = {
-  keiner: "Umsatzsteuer ausweisen",
-  bauleistung: "Bauleistung — Übergang der Steuerschuld (§ 19 Abs 1a UStG)",
-  kleinunternehmer: "Kleinunternehmer (§ 6 Abs 1 Z 27 UStG)",
-  innergemeinschaftlich: "Innergemeinschaftliche Lieferung (Art 6 Abs 1 UStG)",
-  ausfuhr: "Ausfuhrlieferung (§ 7 UStG)",
-};
-
-/** Satz, der bei Steuerfreiheit auf dem Beleg stehen muss. */
-export const STEUERFREI_HINWEIS: Record<SteuerfreiGrund, string> = {
-  keiner: "",
-  bauleistung:
-    "Übergang der Steuerschuld auf den Leistungsempfänger gemäß § 19 Abs 1a UStG (Bauleistung).",
-  kleinunternehmer:
-    "Umsatzsteuerbefreit — Kleinunternehmer gemäß § 6 Abs 1 Z 27 UStG. Kein Ausweis von Umsatzsteuer.",
-  innergemeinschaftlich:
-    "Steuerfreie innergemeinschaftliche Lieferung. Übergang der Steuerschuld auf den Erwerber.",
-  ausfuhr: "Steuerfreie Ausfuhrlieferung gemäß § 7 UStG.",
-};
-
-/** Bis zu diesem Bruttobetrag genügt die Kleinbetragsrechnung, § 11 Abs 6 UStG. */
-export const KLEINBETRAG_GRENZE = 40000;
-
 /**
- * Ab diesem Bruttobetrag muss die UID des Leistungsempfängers auf der
- * Rechnung stehen, wenn er Unternehmer im Inland ist (§ 11 Abs 1 Z 2 UStG).
+ * Satz, der bei Steuerfreiheit auf dem Beleg stehen muss — je Rechtsraum.
+ *
+ * Die Fundstellen unterscheiden sich: § 19 Abs 1a UStG in Österreich,
+ * § 13b Abs 2 Nr 4 UStG in Deutschland, und in der Schweiz gibt es den
+ * Übergang der Steuerschuld bei Bauleistungen gar nicht.
  */
-export const UID_EMPFAENGER_GRENZE = 1000000;
+export function steuerfreiHinweis(grund: SteuerfreiGrund, raum = aktuellerRechtsraum()): string {
+  switch (grund) {
+    case "keiner":
+      return "";
+    case "bauleistung":
+      return raum.bauleistung.hinweis;
+    case "kleinunternehmer":
+      return raum.kleinunternehmer.hinweis;
+    case "innergemeinschaftlich":
+      return raum.id === "ch"
+        ? "Steuerfreie Ausfuhrlieferung."
+        : "Steuerfreie innergemeinschaftliche Lieferung. Übergang der Steuerschuld auf den Erwerber.";
+    case "ausfuhr":
+      return raum.id === "at"
+        ? "Steuerfreie Ausfuhrlieferung gemäß § 7 UStG."
+        : raum.id === "de"
+          ? "Steuerfreie Ausfuhrlieferung gemäß § 6 UStG."
+          : "Von der Steuer befreite Ausfuhr (Art. 23 MWSTG).";
+  }
+}
+
+/** Welche Befreiungsgründe im jeweiligen Land überhaupt vorkommen. */
+export function moeglicheGruende(raum = aktuellerRechtsraum()): SteuerfreiGrund[] {
+  return STEUERFREI_GRUENDE.filter(
+    (g) => g !== "bauleistung" || raum.bauleistung.moeglich,
+  ).filter((g) => g !== "innergemeinschaftlich" || raum.id !== "ch");
+}
+
+/** Beschriftung eines Befreiungsgrundes im jeweiligen Land. */
+export function grundText(grund: SteuerfreiGrund, raum = aktuellerRechtsraum()): string {
+  switch (grund) {
+    case "keiner":
+      return `${raum.steuerName} ausweisen`;
+    case "bauleistung":
+      return `Bauleistung — Übergang der Steuerschuld (${raum.bauleistung.paragraf})`;
+    case "kleinunternehmer":
+      return `Kleinunternehmer (${raum.kleinunternehmer.paragraf})`;
+    case "innergemeinschaftlich":
+      return "Innergemeinschaftliche Lieferung";
+    case "ausfuhr":
+      return "Ausfuhrlieferung";
+  }
+}
 
 export interface Beleg extends Basisdatensatz {
   belegart: Belegart;
@@ -222,7 +248,7 @@ export interface Belegsummen {
  * Bei Steuerfreiheit wird keine Steuer gerechnet, gleich welcher Satz an der
  * Zeile steht: der Grund liegt am Beleg, nicht an der Position. Sonst je
  * Steuersatz aus der gerundeten Nettosumme — dieselbe Reihenfolge wie im
- * Baustein Material und die, die § 11 UStG voraussetzt.
+ * Baustein Material und die, die die Rechnungsvorschriften voraussetzen.
  */
 export function belegsummen(
   zeilen: Pick<Belegposition, "menge" | "einzelpreis" | "rabatt" | "ustsatz">[],
@@ -257,7 +283,7 @@ export function ueberfaelligSeit(b: Pick<Beleg, "datum" | "zahlungszielTage">, s
 }
 
 /**
- * Was auf diesem Beleg nach § 11 UStG noch fehlt.
+ * Was auf diesem Beleg nach den Rechnungsvorschriften des Rechtsraums fehlt.
  *
  * Gibt Sätze zurück, keine Feldnamen — die Liste steht in der Oberfläche und
  * soll einem Handwerker sagen, was zu tun ist, bevor die Rechnung aus dem
@@ -279,6 +305,7 @@ export function pflichtangaben(
   >,
   betrieb: Betrieb | null,
   zeilenAnzahl: number,
+  raum: Rechtsraum = aktuellerRechtsraum(),
 ): string[] {
   const fehlt: string[] = [];
 
@@ -294,7 +321,10 @@ export function pflichtangaben(
     return fehlt;
   }
 
-  const klein = b.brutto <= KLEINBETRAG_GRENZE && b.steuerfrei === "keiner";
+  const klein =
+    raum.kleinbetragGrenze > 0 &&
+    b.brutto <= raum.kleinbetragGrenze &&
+    b.steuerfrei === "keiner";
 
   if (!String(betrieb.name ?? "").trim()) fehlt.push("Firmenname des Betriebs (Einstellungen).");
   if (!String(betrieb.strasse ?? "").trim() || !String(betrieb.ort ?? "").trim()) {
@@ -304,27 +334,32 @@ export function pflichtangaben(
   if (!b.leistungVon) fehlt.push("Leistungszeitraum oder Tag der Leistung.");
 
   if (klein) {
-    // § 11 Abs 6 UStG: bis 400 EUR brutto genügen Datum, Aussteller, Menge
-    // und Bezeichnung, Zeitraum, Bruttobetrag und Steuersatz.
+    // Kleinbetragsrechnung: Datum, Aussteller, Menge und Bezeichnung,
+    // Zeitraum, Bruttobetrag und Steuersatz genügen.
     return fehlt;
   }
 
   if (!b.nummer) fehlt.push("Fortlaufende Rechnungsnummer.");
-  if (!String(betrieb.uid ?? "").trim()) fehlt.push("UID-Nummer des Betriebs (Einstellungen).");
+  if (!String(betrieb.uid ?? "").trim()) {
+    fehlt.push(`${raum.uidName} des Betriebs (Einstellungen).`);
+  }
   if (!b.empfaengerName.trim()) fehlt.push("Name des Leistungsempfängers.");
   if (!b.empfaengerAnschrift.trim()) fehlt.push("Anschrift des Leistungsempfängers.");
 
   if (b.steuerfrei === "bauleistung" && !String(b.empfaengerUid ?? "").trim()) {
     fehlt.push(
-      "UID des Empfängers — beim Übergang der Steuerschuld muss sie auf der Rechnung stehen.",
+      `${raum.uidName} des Empfängers — beim Übergang der Steuerschuld muss sie auf der Rechnung stehen.`,
     );
   }
   if (
     b.steuerfrei === "keiner" &&
-    b.brutto > UID_EMPFAENGER_GRENZE &&
+    raum.uidEmpfaengerAb > 0 &&
+    b.brutto > raum.uidEmpfaengerAb &&
     !String(b.empfaengerUid ?? "").trim()
   ) {
-    fehlt.push("UID des Empfängers — ab 10.000 € brutto ist sie Pflicht, wenn er Unternehmer ist.");
+    fehlt.push(
+      `${raum.uidName} des Empfängers — ab ${raum.uidEmpfaengerAb / 100} ${raum.waehrungszeichen} brutto ist sie Pflicht, wenn er Unternehmer ist.`,
+    );
   }
 
   return fehlt;

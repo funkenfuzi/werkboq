@@ -27,17 +27,52 @@ export function runden(cent: number): number {
  * Buchhaltung zu Unsinn wird. Österreichische Schreibweise: Punkt für
  * Tausender, Komma für Cent.
  */
-export function alsGeld(cent: number): string {
+export function alsGeld(cent: number, schreibweise: Schreibweise = OESTERREICH): string {
   const negativ = cent < 0;
   const ganz = Math.floor(Math.abs(cent) / 100);
   const rest = Math.abs(cent) % 100;
-  const mitPunkten = String(ganz).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-  return `${negativ ? "-" : ""}${mitPunkten},${String(rest).padStart(2, "0")}`;
+  const mitTrenner = String(ganz).replace(
+    /\B(?=(\d{3})+(?!\d))/g,
+    schreibweise.tausender,
+  );
+  return `${negativ ? "-" : ""}${mitTrenner}${schreibweise.komma}${String(rest).padStart(2, "0")}`;
 }
 
-/** "1.234,56 €" aus Cent. */
-export function alsEuro(cent: number): string {
-  return `${alsGeld(cent)} €`;
+/**
+ * Wie ein Land Zahlen und Geld schreibt.
+ *
+ * Österreich und Deutschland: 1.234,56 €. Die Schweiz: 1’234.56 CHF — mit
+ * Hochkomma als Tausendertrenner und Punkt vor den Rappen. Wer das
+ * verwechselt, schreibt Rechnungen, die im falschen Land befremdlich
+ * aussehen; beim Betrag selbst ist es zum Glück eindeutig.
+ */
+export interface Schreibweise {
+  tausender: string;
+  komma: string;
+  zeichen: string;
+  /** Steht das Währungszeichen vor oder nach dem Betrag? */
+  voran: boolean;
+}
+
+export const OESTERREICH: Schreibweise = { tausender: ".", komma: ",", zeichen: "€", voran: false };
+export const SCHWEIZ: Schreibweise = { tausender: "’", komma: ".", zeichen: "CHF", voran: true };
+
+/**
+ * Betrag mit Währung: "1.234,56 €" oder "CHF 1’234.56".
+ *
+ * Heißt weiterhin alsEuro, weil der Name überall im Code steht und ein
+ * Umbenennen nur Lärm wäre — gemeint ist "Betrag mit Währungszeichen".
+ */
+export function alsEuro(cent: number, schreibweise: Schreibweise = OESTERREICH): string {
+  const betrag = alsGeld(cent, schreibweise);
+  return schreibweise.voran
+    ? `${schreibweise.zeichen} ${betrag}`
+    : `${betrag} ${schreibweise.zeichen}`;
+}
+
+/** Die Schreibweise zu einem Land. */
+export function schreibweiseVon(land: string | undefined | null): Schreibweise {
+  return String(land ?? "").toLowerCase() === "ch" ? SCHWEIZ : OESTERREICH;
 }
 
 /**
@@ -58,7 +93,8 @@ export function alsEuro(cent: number): string {
  * was das bedeutet.
  */
 export function ausGeld(text: string): number {
-  const roh = text.trim().replace(/\s/g, "").replace(/€/g, "");
+  // Hochkomma ist in der Schweiz Tausendertrenner und fliegt immer raus.
+  const roh = text.trim().replace(/\s/g, "").replace(/€/gi, "").replace(/CHF/gi, "").replace(/[’']/g, "");
   if (roh === "") return 0;
 
   let sauber: string;
@@ -77,27 +113,31 @@ export function ausGeld(text: string): number {
   return Number.isFinite(zahl) ? runden(zahl * 100) : NaN;
 }
 
+/**
+ * Betrag für ein Eingabefeld: "1234,56" bzw. "1234.56".
+ *
+ * Ohne Tausendertrenner, damit ein Anwender die Zahl weitertippen kann, ohne
+ * gegen eine Formatierung anzuarbeiten. Das Dezimaltrennzeichen richtet sich
+ * nach dem Land, weil `ausGeld` es so wieder einliest.
+ */
+export function alsEingabe(cent: number, schreibweise: Schreibweise = OESTERREICH): string {
+  return (cent / 100).toFixed(2).replace(".", schreibweise.komma);
+}
+
 /** Menge mit bis zu drei Nachkommastellen, wie sie Handwerker schreiben. */
-export function alsMenge(menge: number): string {
+export function alsMenge(menge: number, schreibweise: Schreibweise = OESTERREICH): string {
   const gerundet = Math.round(menge * 1000) / 1000;
   const [ganz, nach] = Math.abs(gerundet).toFixed(3).split(".");
-  const mitPunkten = String(ganz).replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  const mitTrenner = String(ganz).replace(/\B(?=(\d{3})+(?!\d))/g, schreibweise.tausender);
   const kurz = (nach ?? "").replace(/0+$/, "");
-  return `${gerundet < 0 ? "-" : ""}${mitPunkten}${kurz ? `,${kurz}` : ""}`;
+  return `${gerundet < 0 ? "-" : ""}${mitTrenner}${kurz ? `${schreibweise.komma}${kurz}` : ""}`;
 }
 
 /**
- * Österreichische Umsatzsteuersätze.
- * 20 % ist der Normalsatz; 13 % und 10 % gelten für eigene Listen von
- * Leistungen. 0 % steht für steuerfreie Fälle — Kleinunternehmer,
- * Ausfuhr, innergemeinschaftliche Lieferung, Übergang der Steuerschuld.
+ * Ein Steuersatz in Prozent.
+ *
+ * Bewusst eine Zahl und keine feste Auswahl: welche Sätze gelten, hängt vom
+ * Land ab und steht in werkzeug/laender.ts. Die Schweiz kennt 8.1 %, also
+ * sind auch Nachkommastellen möglich.
  */
-export const UST_SAETZE = [20, 13, 10, 0] as const;
-export type UstSatz = (typeof UST_SAETZE)[number];
-
-export const UST_TEXT: Record<UstSatz, string> = {
-  20: "20 % Normalsatz",
-  13: "13 % ermäßigt",
-  10: "10 % ermäßigt",
-  0: "0 % steuerfrei",
-};
+export type UstSatz = number;

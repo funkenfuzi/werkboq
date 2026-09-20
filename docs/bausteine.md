@@ -33,7 +33,8 @@ Arbeitszeit — deshalb ist der Auftrag dort optional.
 ## Fachmodule
 
 Erweiterungen für ein Gewerk. `art: "fachmodul"`. Derzeit: Elektro
-(Prüfberichte nach OVE E 8101). Später Holz, Sanitär.
+(Prüfberichte nach OVE E 8101, DIN VDE bzw. NIN — je nach
+Rechtsraum). Später Holz, Sanitär.
 
 ## Die drei Regeln
 

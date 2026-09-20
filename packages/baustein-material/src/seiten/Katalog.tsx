@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import {
+  aktuellerRechtsraum,
   alsEuro,
   alsGeld,
   ausGeld,
   fehlersatz,
+  satzText,
+  schreibweiseVon,
   Symbol,
-  UST_SAETZE,
+  zahlText,
   type UstSatz,
 } from "@werkboq/core";
 import {
@@ -32,6 +35,8 @@ import {
  * Ertrag: der Kleinkram kommt vom Großhändler auf die Baustelle.
  */
 export function Katalog() {
+  const raum = aktuellerRechtsraum();
+  const geld = schreibweiseVon(raum.id);
   const [liste, setListe] = useState<Artikel[]>([]);
   const [suche, setSuche] = useState("");
   const [nurArt, setNurArt] = useState<Artikelart | "alle">("alle");
@@ -156,7 +161,7 @@ export function Katalog() {
                 <th scope="col" className="wb-zelle--rechts">Verkauf</th>
                 <th scope="col" className="wb-zelle--rechts">Einkauf</th>
                 <th scope="col" className="wb-zelle--rechts">Spanne</th>
-                <th scope="col" className="wb-zelle--rechts">USt</th>
+                <th scope="col" className="wb-zelle--rechts">{raum.steuerKurz}</th>
                 <th scope="col" aria-label="Aktionen" />
               </tr>
             </thead>
@@ -175,12 +180,12 @@ export function Katalog() {
                   </td>
                   <td>{ARTIKELART_TEXT[a.art]}</td>
                   <td className="wb-zelle--gedaempft">{a.einheit}</td>
-                  <td className="wb-zelle--rechts wb-tabelle__kennung">{alsGeld(a.preis)}</td>
+                  <td className="wb-zelle--rechts wb-tabelle__kennung">{alsGeld(a.preis, geld)}</td>
                   <td className="wb-zelle--rechts wb-tabelle__kennung wb-zelle--gedaempft">
-                    {a.einkauf ? alsGeld(a.einkauf) : "—"}
+                    {a.einkauf ? alsGeld(a.einkauf, geld) : "—"}
                   </td>
                   <td className="wb-zelle--rechts wb-tabelle__kennung">{spanne(a)}</td>
-                  <td className="wb-zelle--rechts wb-tabelle__kennung">{a.ustsatz} %</td>
+                  <td className="wb-zelle--rechts wb-tabelle__kennung">{zahlText(raum, a.ustsatz)} %</td>
                   <td className="wb-zelle--rechts">
                     <button
                       type="button"
@@ -226,8 +231,12 @@ function Artikelmaske({
   beiGespeichert: () => void;
   beiAbbruch: () => void;
 }) {
+  const raum = aktuellerRechtsraum();
+  const geld = schreibweiseVon(raum.id);
   const [werte, setWerte] = useState<ArtikelEingabe>(
-    vorhanden ? { ...LEERER_ARTIKEL, ...vorhanden } : LEERER_ARTIKEL,
+    vorhanden
+      ? { ...LEERER_ARTIKEL, ...vorhanden }
+      : { ...LEERER_ARTIKEL, ustsatz: raum.normalsatz },
   );
   const [verkauf, setVerkauf] = useState(
     vorhanden ? (vorhanden.preis / 100).toFixed(2).replace(".", ",") : "0,00",
@@ -356,14 +365,14 @@ function Artikelmaske({
       </label>
 
       <label className="wb-feld">
-        <span>Umsatzsteuer</span>
+        <span>{raum.steuerName}</span>
         <select
           value={werte.ustsatz}
           onChange={(e) => setWerte({ ...werte, ustsatz: Number(e.target.value) as UstSatz })}
         >
-          {UST_SAETZE.map((s) => (
-            <option key={s} value={s}>
-              {s} %
+          {raum.steuersaetze.map((s) => (
+            <option key={s.satz} value={s.satz}>
+              {satzText(raum, s.satz)}
             </option>
           ))}
         </select>
@@ -372,7 +381,7 @@ function Artikelmaske({
       <div className="wb-feld">
         <span>Brutto</span>
         <output className="wb-dauer">
-          {alsEuro(Math.round((ausGeld(verkauf) || 0) * (1 + werte.ustsatz / 100)))}
+          {alsEuro(Math.round((ausGeld(verkauf) || 0) * (1 + werte.ustsatz / 100)), geld)}
         </output>
       </div>
 

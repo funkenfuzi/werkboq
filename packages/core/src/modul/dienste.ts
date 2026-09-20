@@ -54,10 +54,21 @@ export type AuftragspositionenDienst = (auftragId: string) => Promise<{
   brutto: number;
 }>;
 
+/**
+ * Gibt es schon Daten, die den Rechtsraum festnageln?
+ *
+ * Der Kern muss beim Einrichten wissen, ob das Land noch wählbar ist. Er
+ * darf dafür aber nicht in die Tabellen eines Bausteins schauen — also
+ * fragt er. Wer keinen Beleg kennt, antwortet nicht, und das Land bleibt
+ * änderbar; wer schon eine festgeschriebene Rechnung hat, sagt Nein.
+ */
+export type RechtsraumSperreDienst = () => Promise<{ gesperrt: boolean; grund: string }>;
+
 export interface Dienste {
   tagesstunden: TagesstundenDienst;
   auftragsstunden: AuftragsstundenDienst;
   auftragspositionen: AuftragspositionenDienst;
+  rechtsraumSperre: RechtsraumSperreDienst;
 }
 
 const angeboten = new Map<keyof Dienste, unknown>();

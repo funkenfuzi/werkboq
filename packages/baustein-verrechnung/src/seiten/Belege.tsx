@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { alsEuro, fehlersatz, Symbol } from "@werkboq/core";
+import { aktuellerRechtsraum, alsEuro, fehlersatz, schreibweiseVon, Symbol } from "@werkboq/core";
 import {
   BELEGART_TEXT,
   BELEGARTEN,
@@ -23,6 +23,7 @@ import { offenePosten, type OffenerPosten } from "../daten/zahlungen";
  */
 export function Belege() {
   const navigate = useNavigate();
+  const sw = schreibweiseVon(aktuellerRechtsraum().id);
   const [ansicht, setAnsicht] = useState<"liste" | "offen">(
     () => (localStorage.getItem("wb-belege-ansicht") as "liste" | "offen") ?? "liste",
   );
@@ -73,11 +74,11 @@ export function Belege() {
         <div>
           <h1>Belege</h1>
           <p className="wb-kopf__zahl">
-            {alsEuro(summeOffen)} offen
+            {alsEuro(summeOffen, sw)} offen
             {summeUeberfaellig > 0 && (
               <>
                 {" · "}
-                <strong className="wb-verzug">{alsEuro(summeUeberfaellig)} überfällig</strong>
+                <strong className="wb-verzug">{alsEuro(summeUeberfaellig, sw)} überfällig</strong>
               </>
             )}
           </p>
@@ -188,9 +189,9 @@ export function Belege() {
                       {STATUS_TEXT[b.status]}
                     </span>
                   </td>
-                  <td className="wb-zelle--rechts wb-tabelle__kennung">{alsEuro(b.netto)}</td>
+                  <td className="wb-zelle--rechts wb-tabelle__kennung">{alsEuro(b.netto, sw)}</td>
                   <td className="wb-zelle--rechts wb-tabelle__kennung wb-zelle--betont">
-                    {alsEuro(b.brutto)}
+                    {alsEuro(b.brutto, sw)}
                   </td>
                 </tr>
               ))}
@@ -241,13 +242,13 @@ export function Belege() {
                       )}
                     </td>
                     <td className="wb-zelle--rechts wb-tabelle__kennung">
-                      {alsEuro(p.beleg.brutto)}
+                      {alsEuro(p.beleg.brutto, sw)}
                     </td>
                     <td className="wb-zelle--rechts wb-tabelle__kennung wb-zelle--gedaempft">
-                      {p.bezahlt ? alsEuro(p.bezahlt) : "—"}
+                      {p.bezahlt ? alsEuro(p.bezahlt, sw) : "—"}
                     </td>
                     <td className="wb-zelle--rechts wb-tabelle__kennung wb-zelle--betont">
-                      {alsEuro(p.offen)}
+                      {alsEuro(p.offen, sw)}
                     </td>
                   </tr>
                 ))}

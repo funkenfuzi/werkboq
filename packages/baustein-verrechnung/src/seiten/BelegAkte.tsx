@@ -1,14 +1,18 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
+  aktuellerRechtsraum,
   alsEuro,
+  alsEingabe,
   alsGeld,
   alsMenge,
   ausGeld,
   betriebLaden,
   fehlersatz,
   kundeLaden,
+  schreibweiseVon,
   Symbol,
+  zahlText,
   type Betrieb,
   type Kunde,
 } from "@werkboq/core";
@@ -20,14 +24,13 @@ import {
   belegpositionen,
   faelligAm,
   festschreiben,
+  grundText,
   heute,
-  KLEINBETRAG_GRENZE,
+  moeglicheGruende,
   pflichtangaben,
   STATUS_FARBE,
   STATUS_TEXT,
-  STEUERFREI_HINWEIS,
-  STEUERFREI_TEXT,
-  STEUERFREI_GRUENDE,
+  steuerfreiHinweis,
   statusSetzen,
   stornieren,
   ueberfaelligSeit,
@@ -97,12 +100,21 @@ export function BelegAkte() {
     );
   }
 
-  const fehlt = pflichtangaben(beleg, betrieb, zeilen.length);
+  const raum = aktuellerRechtsraum();
+  const sw = schreibweiseVon(raum.id);
+  const geld = (cent: number) => alsGeld(cent, sw);
+  // alsEuro, nicht selbst zusammengesetzt: in der Schweiz steht CHF voran.
+  const summe = (cent: number) => alsEuro(cent, sw);
+  const fehlt = pflichtangaben(beleg, betrieb, zeilen.length, raum);
   const bezahlt = summeBezahlt(zahlungen);
   const offen = nochOffen(beleg, zahlungen);
   const ueberfaellig = beleg.status === "offen" ? ueberfaelligSeit(beleg) : 0;
   const istRechnung = beleg.belegart === "rechnung";
-  const klein = istRechnung && beleg.brutto <= KLEINBETRAG_GRENZE && beleg.steuerfrei === "keiner";
+  const klein =
+    istRechnung &&
+    raum.kleinbetragGrenze > 0 &&
+    beleg.brutto <= raum.kleinbetragGrenze &&
+    beleg.steuerfrei === "keiner";
 
   async function tu(was: () => Promise<void>) {
     try {
@@ -127,7 +139,7 @@ export function BelegAkte() {
               </>
             )}
           </p>
-          <h1>{alsEuro(beleg.brutto)}</h1>
+          <h1>{summe(beleg.brutto)}</h1>
           <p className="wb-akte__unterzeile">
             <span className={`wb-plakette wb-plakette--${STATUS_FARBE[beleg.status]}`}>
               {STATUS_TEXT[beleg.status]}
@@ -203,7 +215,7 @@ export function BelegAkte() {
         <div className="wb-warnkasten">
           <Symbol name="warnung" groesse={18} />
           <div>
-            <strong>Für eine Rechnung nach § 11 UStG fehlt noch:</strong>
+            <strong>Für eine Rechnung nach {raum.rechnungParagraf} fehlt noch:</strong>
             <ul className="wb-mangelliste">
               {fehlt.map((f) => (
                 <li key={f}>{f}</li>
@@ -215,13 +227,13 @@ export function BelegAkte() {
 
       {klein && fehlt.length === 0 && (
         <p className="wb-hinweis">
-          Kleinbetragsrechnung bis 400 € brutto — nach § 11 Abs 6 UStG genügen hier die
-          vereinfachten Angaben.
+          Kleinbetragsrechnung bis {summe(raum.kleinbetragGrenze)} brutto — nach{" "}
+          {raum.kleinbetragParagraf} genügen hier die vereinfachten Angaben.
         </p>
       )}
 
       {beleg.steuerfrei !== "keiner" && (
-        <p className="wb-hinweis">{STEUERFREI_HINWEIS[beleg.steuerfrei]}</p>
+        <p className="wb-hinweis">{steuerfreiHinweis(beleg.steuerfrei, raum)}</p>
       )}
 
       <section className="wb-block">
@@ -248,7 +260,7 @@ export function BelegAkte() {
                 <th scope="col">Einheit</th>
                 <th scope="col" className="wb-zelle--rechts">Einzel</th>
                 <th scope="col" className="wb-zelle--rechts">Rabatt</th>
-                <th scope="col" className="wb-zelle--rechts">USt</th>
+                <th scope="col" className="wb-zelle--rechts">{raum.steuerKurz}</th>
                 <th scope="col" className="wb-zelle--rechts">Betrag</th>
               </tr>
             </thead>
@@ -260,17 +272,17 @@ export function BelegAkte() {
                     {z.bezeichnung}
                     {z.beschreibung && <small className="wb-unterzeile">{z.beschreibung}</small>}
                   </td>
-                  <td className="wb-zelle--rechts wb-tabelle__kennung">{alsMenge(z.menge)}</td>
+                  <td className="wb-zelle--rechts wb-tabelle__kennung">{alsMenge(z.menge, sw)}</td>
                   <td className="wb-zelle--gedaempft">{z.einheit}</td>
-                  <td className="wb-zelle--rechts wb-tabelle__kennung">{alsGeld(z.einzelpreis)}</td>
+                  <td className="wb-zelle--rechts wb-tabelle__kennung">{geld(z.einzelpreis)}</td>
                   <td className="wb-zelle--rechts wb-tabelle__kennung">
                     {z.rabatt ? `${z.rabatt} %` : "—"}
                   </td>
                   <td className="wb-zelle--rechts wb-tabelle__kennung">
-                    {beleg.steuerfrei === "keiner" ? `${z.ustsatz} %` : "—"}
+                    {beleg.steuerfrei === "keiner" ? `${zahlText(raum, z.ustsatz)} %` : "—"}
                   </td>
                   <td className="wb-zelle--rechts wb-tabelle__kennung wb-zelle--betont">
-                    {alsGeld(z.betrag)}
+                    {geld(z.betrag)}
                   </td>
                 </tr>
               ))}
@@ -283,21 +295,21 @@ export function BelegAkte() {
             .sort((a, b) => Number(b[0]) - Number(a[0]))
             .map(([satz, betrag]) => (
               <div key={satz}>
-                <dt>Netto {satz} %</dt>
-                <dd>{alsEuro(betrag)}</dd>
+                <dt>Netto {zahlText(raum, Number(satz))} %</dt>
+                <dd>{summe(betrag)}</dd>
               </div>
             ))}
           <div>
             <dt>Nettosumme</dt>
-            <dd>{alsEuro(beleg.netto)}</dd>
+            <dd>{summe(beleg.netto)}</dd>
           </div>
           <div>
-            <dt>Umsatzsteuer</dt>
-            <dd>{alsEuro(beleg.ust)}</dd>
+            <dt>{raum.steuerName}</dt>
+            <dd>{summe(beleg.ust)}</dd>
           </div>
           <div className="wb-aufstellung__gesamt">
             <dt>Gesamt</dt>
-            <dd>{alsEuro(beleg.brutto)}</dd>
+            <dd>{summe(beleg.brutto)}</dd>
           </div>
           {beleg.skontoProzent ? (
             <div>
@@ -305,7 +317,7 @@ export function BelegAkte() {
                 abzüglich {beleg.skontoProzent} % Skonto bis{" "}
                 {skontoBis(beleg) && new Date(skontoBis(beleg)!).toLocaleDateString("de-AT")}
               </dt>
-              <dd>{alsEuro(beleg.brutto - skontobetrag(beleg))}</dd>
+              <dd>{summe(beleg.brutto - skontobetrag(beleg))}</dd>
             </div>
           ) : null}
         </dl>
@@ -316,7 +328,7 @@ export function BelegAkte() {
           <div className="wb-block__kopf">
             <h2>Zahlungen</h2>
             <span className="wb-block__summe">
-              {alsEuro(bezahlt)} von {alsEuro(beleg.brutto)} · offen {alsEuro(offen)}
+              {summe(bezahlt)} von {summe(beleg.brutto)} · offen {summe(offen)}
             </span>
           </div>
 
@@ -348,7 +360,7 @@ export function BelegAkte() {
                       <td>{ZAHLUNGSART_TEXT[z.art]}</td>
                       <td className="wb-zelle--gedaempft">{z.notiz || "—"}</td>
                       <td className="wb-zelle--rechts wb-tabelle__kennung wb-zelle--betont">
-                        {alsEuro(z.betrag)}
+                        {summe(z.betrag)}
                       </td>
                       <td className="wb-zelle--rechts">
                         <button
@@ -415,6 +427,7 @@ function Kopfmaske({
   beiGespeichert: () => void;
   beiFehler: (f: string) => void;
 }) {
+  const raum = aktuellerRechtsraum();
   const [werte, setWerte] = useState({
     datum: beleg.datum.slice(0, 10),
     leistungVon: beleg.leistungVon?.slice(0, 10) ?? "",
@@ -436,7 +449,7 @@ function Kopfmaske({
       <>
         <dl className="wb-daten">
           <Fakt begriff="Empfänger" wert={`${beleg.empfaengerName}\n${beleg.empfaengerAnschrift}`} />
-          <Fakt begriff="UID des Empfängers" wert={beleg.empfaengerUid} />
+          <Fakt begriff={`${raum.uidName} des Empfängers`} wert={beleg.empfaengerUid} />
           <Fakt
             begriff="Leistungszeitraum"
             wert={
@@ -450,7 +463,7 @@ function Kopfmaske({
             }
           />
           <Fakt begriff="Zahlungsziel" wert={`${beleg.zahlungszielTage} Tage`} />
-          <Fakt begriff="Steuer" wert={STEUERFREI_TEXT[beleg.steuerfrei]} />
+          <Fakt begriff="Steuer" wert={grundText(beleg.steuerfrei, raum)} />
         </dl>
         <p className="wb-leer wb-notiz">
           Festgeschrieben am {new Date(beleg.festgeschrieben).toLocaleDateString("de-AT")} — ab
@@ -523,29 +536,29 @@ function Kopfmaske({
       </label>
 
       <label className="wb-feld">
-        <span>UID des Empfängers</span>
+        <span>{raum.uidName} des Empfängers</span>
         <input
           type="text"
-          placeholder="ATU………"
+          placeholder={raum.uidPlatzhalter}
           value={werte.empfaengerUid}
           onChange={(e) => setWerte({ ...werte, empfaengerUid: e.target.value })}
         />
       </label>
 
       <label className="wb-feld wb-feld--breit">
-        <span>Umsatzsteuer</span>
+        <span>{raum.steuerName}</span>
         <select
           value={werte.steuerfrei}
           onChange={(e) => setWerte({ ...werte, steuerfrei: e.target.value as SteuerfreiGrund })}
         >
-          {STEUERFREI_GRUENDE.map((g) => (
+          {moeglicheGruende(raum).map((g) => (
             <option key={g} value={g}>
-              {STEUERFREI_TEXT[g]}
+              {grundText(g, raum)}
             </option>
           ))}
         </select>
         <small className="wb-notiz">
-          Bei Übergang der Steuerschuld wird keine Umsatzsteuer ausgewiesen und der Hinweis auf
+          Bei einem Befreiungsgrund wird keine {raum.steuerKurz} ausgewiesen und der Hinweis auf
           den Beleg gedruckt. Ob eine Leistung eine Bauleistung ist, entscheidet nicht das
           Programm.
         </small>
@@ -622,8 +635,9 @@ function Zahlungsmaske({
   beiGebucht: () => void;
   beiFehler: (f: string) => void;
 }) {
+  const sw = schreibweiseVon(aktuellerRechtsraum().id);
   const [datum, setDatum] = useState(heute());
-  const [betrag, setBetrag] = useState((vorschlag / 100).toFixed(2).replace(".", ","));
+  const [betrag, setBetrag] = useState(alsEingabe(vorschlag, sw));
   const [art, setArt] = useState<Zahlungsart>("ueberweisung");
   const [notiz, setNotiz] = useState("");
   const [laeuft, setLaeuft] = useState(false);
@@ -632,7 +646,7 @@ function Zahlungsmaske({
     e.preventDefault();
     const cent = ausGeld(betrag);
     if (Number.isNaN(cent) || cent === 0) {
-      beiFehler("Betrag bitte als Zahl angeben, etwa 1.234,56.");
+      beiFehler(`Betrag bitte als Zahl angeben, etwa ${alsGeld(123456, sw)}.`);
       return;
     }
     setLaeuft(true);

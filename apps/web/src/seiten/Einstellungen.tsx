@@ -1,6 +1,13 @@
 import { useEffect, useState, type FormEvent } from "react";
 import {
+  aktuellerRechtsraum,
   alleMitarbeiter,
+  dienst,
+  LAENDER,
+  RECHTSRAEUME,
+  rechtsraum,
+  rechtsraumSetzen,
+  satzText,
   Symbol,
   betriebLaden,
   betriebSpeichern,
@@ -85,6 +92,10 @@ function Betriebsdaten() {
   const [laedt, setLaedt] = useState(true);
   const [hinweis, setHinweis] = useState<string | null>(null);
   const [fehler, setFehler] = useState<string | null>(null);
+  const [sperre, setSperre] = useState<{ gesperrt: boolean; grund: string }>({
+    gesperrt: false,
+    grund: "",
+  });
 
   useEffect(() => {
     betriebLaden()
@@ -94,6 +105,11 @@ function Betriebsdaten() {
       })
       .catch((e: unknown) => setFehler(e instanceof Error ? e.message : String(e)))
       .finally(() => setLaedt(false));
+
+    // Fragt die Bausteine, ob schon etwas am Recht dieses Landes hängt.
+    // Antwortet niemand, ist noch nichts entstanden und das Land frei.
+    const frage = dienst("rechtsraumSperre");
+    if (frage) frage().then(setSperre).catch(() => undefined);
   }, []);
 
   function feld<K extends keyof BetriebEingabe>(name: K, wert: BetriebEingabe[K]) {
@@ -106,6 +122,9 @@ function Betriebsdaten() {
     try {
       await betriebSpeichern(datensatz.id, werte);
       setDatensatz({ ...datensatz, ...werte });
+      // Damit die Masken sofort mit den richtigen Sätzen arbeiten und nicht
+      // erst nach einem Neuladen.
+      if (werte.rechtsraum) rechtsraumSetzen(werte.rechtsraum);
       setHinweis("Gespeichert.");
       setFehler(null);
     } catch (e: unknown) {
@@ -126,6 +145,7 @@ function Betriebsdaten() {
   }
 
   const fehlend = fehlendeRechnungsangaben({ ...datensatz, ...werte } as Betrieb);
+  const raum = rechtsraum(werte.rechtsraum ?? aktuellerRechtsraum().id);
 
   return (
     <>
@@ -133,13 +153,69 @@ function Betriebsdaten() {
         <p className="wb-warnkasten">
           <Symbol name="warnung" groesse={18} />
           <span>
-            Für Rechnungen fehlt noch: {fehlend.join(", ")}. Nach § 11 UStG müssen Name,
-            Anschrift und UID-Nummer auf jeder Rechnung stehen.
+            Für Rechnungen fehlt noch: {fehlend.join(", ")}. Nach {raum.rechnungParagraf} müssen
+            Name, Anschrift und {raum.uidName} auf jeder Rechnung stehen.
           </span>
         </p>
       )}
 
       <form className="wb-maske" onSubmit={speichern}>
+        <label className="wb-feld wb-feld--breit">
+          <span>Rechtsraum *</span>
+          <select
+            value={werte.rechtsraum ?? "at"}
+            disabled={sperre.gesperrt}
+            onChange={(e) => feld("rechtsraum", e.target.value)}
+          >
+            {LAENDER.map((l) => (
+              <option key={l} value={l}>
+                {RECHTSRAEUME[l].name}
+              </option>
+            ))}
+          </select>
+          <small className="wb-notiz">
+            {sperre.gesperrt ? (
+              <>
+                Festgeschrieben. {sperre.grund} Für einen anderen Rechtsraum braucht es einen
+                eigenen Mandanten.
+              </>
+            ) : (
+              <>
+                Bestimmt Währung, Steuersätze, Pflichtangaben auf der Rechnung, Verzugszinsen und
+                die Normen im Prüfbericht. <strong>Lässt sich später nicht mehr ändern</strong> —
+                sobald die erste Rechnung festgeschrieben ist, hängt sie an diesem Recht.
+              </>
+            )}
+          </small>
+        </label>
+
+        <dl className="wb-daten wb-feld--breit">
+          <div>
+            <dt>Währung</dt>
+            <dd>{raum.waehrungszeichen}</dd>
+          </div>
+          <div>
+            <dt>{raum.steuerName}</dt>
+            <dd>{raum.steuersaetze.map((x) => satzText(raum, x.satz)).join(" · ")}</dd>
+          </div>
+          <div>
+            <dt>Rechnungspflichtangaben</dt>
+            <dd>{raum.rechnungParagraf}</dd>
+          </div>
+          <div>
+            <dt>Aufbewahrung</dt>
+            <dd>{raum.aufbewahrung}</dd>
+          </div>
+          <div>
+            <dt>Elektrotechnische Norm</dt>
+            <dd>{raum.elektroNorm}</dd>
+          </div>
+          <div>
+            <dt>Kasse</dt>
+            <dd>{raum.kasse}</dd>
+          </div>
+        </dl>
+
         <label className="wb-feld wb-feld--breit">
           <span>Firmenname *</span>
           <input type="text" value={werte.name} onChange={(e) => feld("name", e.target.value)} required />
@@ -186,17 +262,22 @@ function Betriebsdaten() {
         </label>
 
         <label className="wb-feld">
-          <span>UID-Nummer</span>
-          <input type="text" placeholder="ATU………" value={werte.uid ?? ""} onChange={(e) => feld("uid", e.target.value)} />
+          <span>{raum.uidName}</span>
+          <input
+            type="text"
+            placeholder={raum.uidPlatzhalter}
+            value={werte.uid ?? ""}
+            onChange={(e) => feld("uid", e.target.value)}
+          />
         </label>
 
         <label className="wb-feld">
-          <span>Firmenbuchnummer</span>
-          <input type="text" placeholder="FN ……… x" value={werte.firmenbuch ?? ""} onChange={(e) => feld("firmenbuch", e.target.value)} />
+          <span>{raum.registerName}nummer</span>
+          <input type="text" value={werte.firmenbuch ?? ""} onChange={(e) => feld("firmenbuch", e.target.value)} />
         </label>
 
         <label className="wb-feld">
-          <span>Firmenbuchgericht</span>
+          <span>{raum.registerName}gericht</span>
           <input type="text" value={werte.gericht ?? ""} onChange={(e) => feld("gericht", e.target.value)} />
         </label>
 

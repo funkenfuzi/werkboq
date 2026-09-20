@@ -1,11 +1,14 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
+  aktuellerRechtsraum,
   alsEuro,
   alsGeld,
   alsMenge,
   betriebLaden,
   fehlersatz,
+  schreibweiseVon,
+  zahlText,
   type Betrieb,
 } from "@werkboq/core";
 import {
@@ -13,8 +16,7 @@ import {
   belegLaden,
   belegpositionen,
   faelligAm,
-  KLEINBETRAG_GRENZE,
-  STEUERFREI_HINWEIS,
+  steuerfreiHinweis,
   type Beleg,
   type Belegposition,
 } from "../daten/belege";
@@ -29,8 +31,9 @@ import { skontoBis, skontobetrag } from "../daten/zahlungen";
  * was hinterher aus dem Drucker kommt.
  *
  * Aufbewahrung: die Daten stehen in der Datenbank und sind ab dem
- * Festschreiben unveränderlich — das ist das, was § 132 BAO sieben Jahre
- * lang verlangt. Das PDF ist eine Darstellung davon, nicht das Original.
+ * Festschreiben unveränderlich — das ist das, was die Aufbewahrungsfrist des
+ * jeweiligen Rechtsraums verlangt. Das PDF ist eine Darstellung davon, nicht
+ * das Original.
  */
 export function BelegDruck() {
   const { id } = useParams<{ id: string }>();
@@ -53,8 +56,16 @@ export function BelegDruck() {
   if (fehler) return <p className="wb-fehler">{fehler}</p>;
   if (!beleg) return <p className="wb-leer">Wird geladen …</p>;
 
+  const raum = aktuellerRechtsraum();
+  const sw = schreibweiseVon(raum.id);
+  const geld = (cent: number) => alsGeld(cent, sw);
+  // alsEuro, nicht selbst zusammengesetzt: in der Schweiz steht CHF voran.
+  const summe = (cent: number) => alsEuro(cent, sw);
   const d = (t?: string) => (t ? new Date(t).toLocaleDateString("de-AT") : "");
-  const klein = beleg.brutto <= KLEINBETRAG_GRENZE && beleg.steuerfrei === "keiner";
+  const klein =
+    raum.kleinbetragGrenze > 0 &&
+    beleg.brutto <= raum.kleinbetragGrenze &&
+    beleg.steuerfrei === "keiner";
   const skonto = skontobetrag(beleg);
 
   return (
@@ -117,13 +128,13 @@ export function BelegDruck() {
             )}
             {betrieb?.uid && (
               <div>
-                <dt>UID</dt>
+                <dt>{raum.uidKurz}</dt>
                 <dd>{betrieb.uid}</dd>
               </div>
             )}
             {beleg.empfaengerUid && (
               <div>
-                <dt>UID Empfänger</dt>
+                <dt>{raum.uidKurz} Empfänger</dt>
                 <dd>{beleg.empfaengerUid}</dd>
               </div>
             )}
@@ -140,7 +151,7 @@ export function BelegDruck() {
               <th className="r">Menge</th>
               <th>Einheit</th>
               <th className="r">Einzelpreis</th>
-              {beleg.steuerfrei === "keiner" && <th className="r">USt</th>}
+              {beleg.steuerfrei === "keiner" && <th className="r">{raum.steuerKurz}</th>}
               <th className="r">Betrag</th>
             </tr>
           </thead>
@@ -152,11 +163,13 @@ export function BelegDruck() {
                   {z.bezeichnung}
                   {z.beschreibung && <small>{z.beschreibung}</small>}
                 </td>
-                <td className="r">{alsMenge(z.menge)}</td>
+                <td className="r">{alsMenge(z.menge, sw)}</td>
                 <td>{z.einheit}</td>
-                <td className="r">{alsGeld(z.einzelpreis)}</td>
-                {beleg.steuerfrei === "keiner" && <td className="r">{z.ustsatz} %</td>}
-                <td className="r">{alsGeld(z.betrag)}</td>
+                <td className="r">{geld(z.einzelpreis)}</td>
+                {beleg.steuerfrei === "keiner" && (
+                  <td className="r">{zahlText(raum, z.ustsatz)} %</td>
+                )}
+                <td className="r">{geld(z.betrag)}</td>
               </tr>
             ))}
           </tbody>
@@ -167,24 +180,27 @@ export function BelegDruck() {
             .sort((a, b) => Number(b[0]) - Number(a[0]))
             .map(([satz, betrag]) => (
               <div key={satz}>
-                <dt>Nettobetrag {beleg.steuerfrei === "keiner" ? `${satz} %` : ""}</dt>
-                <dd>{alsEuro(betrag)}</dd>
+                <dt>
+                  Nettobetrag{" "}
+                  {beleg.steuerfrei === "keiner" ? `${zahlText(raum, Number(satz))} %` : ""}
+                </dt>
+                <dd>{summe(betrag)}</dd>
               </div>
             ))}
           {beleg.steuerfrei === "keiner" && (
             <div>
-              <dt>Umsatzsteuer</dt>
-              <dd>{alsEuro(beleg.ust)}</dd>
+              <dt>{raum.steuerName}</dt>
+              <dd>{summe(beleg.ust)}</dd>
             </div>
           )}
           <div className="gesamt">
             <dt>Gesamtbetrag</dt>
-            <dd>{alsEuro(beleg.brutto)}</dd>
+            <dd>{summe(beleg.brutto)}</dd>
           </div>
         </dl>
 
         {beleg.steuerfrei !== "keiner" && (
-          <p className="wb-druck__pflichthinweis">{STEUERFREI_HINWEIS[beleg.steuerfrei]}</p>
+          <p className="wb-druck__pflichthinweis">{steuerfreiHinweis(beleg.steuerfrei, raum)}</p>
         )}
 
         {beleg.belegart === "rechnung" && (
@@ -194,7 +210,7 @@ export function BelegDruck() {
               <>
                 {" "}
                 Bei Zahlung bis {d(skontoBis(beleg)!)} gewähren wir {beleg.skontoProzent} % Skonto
-                ({alsEuro(beleg.brutto - skonto)}).
+                ({summe(beleg.brutto - skonto)}).
               </>
             )}
             {betrieb?.iban && (
@@ -214,9 +230,9 @@ export function BelegDruck() {
           {[
             [betrieb?.name, betrieb?.inhaber],
             [
-              betrieb?.firmenbuch && `FN ${betrieb.firmenbuch}`,
+              betrieb?.firmenbuch && `${raum.registerName} ${betrieb.firmenbuch}`,
               betrieb?.gericht,
-              betrieb?.uid && `UID ${betrieb.uid}`,
+              betrieb?.uid && `${raum.uidKurz} ${betrieb.uid}`,
             ],
             [betrieb?.iban && `IBAN ${betrieb.iban}`, betrieb?.bic && `BIC ${betrieb.bic}`],
           ]

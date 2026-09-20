@@ -1,22 +1,33 @@
 import { useCallback, useEffect, useState } from "react";
-import { alsEuro, ausGeld, fehlersatz, Symbol, type Kunde } from "@werkboq/core";
+import {
+  aktuellerRechtsraum,
+  alsEingabe,
+  alsEuro,
+  ausGeld,
+  fehlersatz,
+  schreibweiseVon,
+  Symbol,
+  type Kunde,
+  type Rechtsraum,
+} from "@werkboq/core";
 import { faelligAm, ueberfaelligSeit, type Beleg } from "../daten/belege";
 import {
-  BETREIBUNGSKOSTEN_B2B,
+  kostenpauschale,
   MAHNSTUFE_TEXT,
   mahntext,
   mahnungAnlegen,
   mahnungenZuBeleg,
   mahnvorschlag,
   naechsteStufe,
-  VERZUGSZINSEN_B2B,
-  VERZUGSZINSEN_B2C,
+  zinsParagraf,
+  zinssatz,
   type Mahnung,
 } from "../daten/mahnwesen";
 
-/** "10,73" statt "10.73" — auf Deutsch trennt das Komma. */
-function prozent(wert: number): string {
-  return wert.toFixed(2).replace(".", ",");
+/** "10,73" bzw. "10.73" — je nachdem, wie das Land Zahlen schreibt. */
+function prozent(wert: number, raum: Rechtsraum): string {
+  const text = wert.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
+  return raum.komma === "," ? text.replace(".", ",") : text;
 }
 
 /**
@@ -41,6 +52,9 @@ export function Mahnblock({
   offen: number;
   beiAenderung: () => void;
 }) {
+  const raum = aktuellerRechtsraum();
+  const sw = schreibweiseVon(raum.id);
+  const geld = (cent: number) => alsEuro(cent, sw);
   const [mahnungen, setMahnungen] = useState<Mahnung[]>([]);
   const [fehler, setFehler] = useState<string | null>(null);
   const [maske, setMaske] = useState(false);
@@ -74,7 +88,7 @@ export function Mahnblock({
       <div className="wb-block__kopf">
         <h2>Mahnwesen</h2>
         <span className="wb-block__summe">
-          {tage} Tage überfällig · {alsEuro(offen)} offen ·{" "}
+          {tage} Tage überfällig · {geld(offen)} offen ·{" "}
           {unternehmer ? "Unternehmer" : "Verbraucher"}
         </span>
         {stufe && !maske && (
@@ -91,19 +105,27 @@ export function Mahnblock({
         </p>
       )}
 
-      {!kunde?.unternehmer && (
+      {!unternehmer && (
         <p className="wb-leer wb-notiz">
-          Dieser Kunde ist als Verbraucher geführt: Verzugszinsen {VERZUGSZINSEN_B2C} % nach
-          § 1000 ABGB, keine Betreibungskostenpauschale. Mahnspesen müssten gesondert vereinbart
-          und der Höhe nach angemessen sein. Stimmt das nicht, lässt sich der Kunde in seinen
-          Stammdaten als Unternehmer kennzeichnen.
+          Dieser Kunde ist als Verbraucher geführt: Verzugszinsen {prozent(raum.verzugB2C, raum)} %
+          nach {raum.verzugB2CParagraf}, keine Kostenpauschale. Mahnspesen müssten gesondert
+          vereinbart und der Höhe nach angemessen sein. Stimmt das nicht, lässt sich der Kunde in
+          seinen Stammdaten als Unternehmer kennzeichnen.
         </p>
       )}
-      {kunde?.unternehmer && (
+      {unternehmer && (
         <p className="wb-leer wb-notiz">
-          Unternehmer: Verzugszinsen {prozent(VERZUGSZINSEN_B2B)} % nach § 456 UGB
-          (Basiszinssatz plus 9,2 Punkte) und einmalig {alsEuro(BETREIBUNGSKOSTEN_B2B)}{" "}
-          Betreibungskosten nach § 458 UGB.
+          Unternehmer: Verzugszinsen {prozent(raum.verzugB2B, raum)} % nach{" "}
+          {raum.verzugB2BParagraf} — {raum.zinsStand}
+          {raum.betreibungskosten > 0 ? (
+            <>
+              {" "}und einmalig {geld(raum.betreibungskosten)} Betreibungskosten nach{" "}
+              {raum.betreibungskostenParagraf}
+            </>
+          ) : (
+            <> — in {raum.name} ohne Kostenpauschale</>
+          )}
+          .
         </p>
       )}
 
@@ -147,10 +169,10 @@ export function Mahnblock({
                   <td className="wb-tabelle__kennung">
                     {new Date(m.frist).toLocaleDateString("de-AT")}
                   </td>
-                  <td className="wb-zelle--rechts wb-tabelle__kennung">{alsEuro(m.zinsen ?? 0)}</td>
-                  <td className="wb-zelle--rechts wb-tabelle__kennung">{alsEuro(m.spesen ?? 0)}</td>
+                  <td className="wb-zelle--rechts wb-tabelle__kennung">{geld(m.zinsen ?? 0)}</td>
+                  <td className="wb-zelle--rechts wb-tabelle__kennung">{geld(m.spesen ?? 0)}</td>
                   <td className="wb-zelle--rechts wb-tabelle__kennung wb-zelle--betont">
-                    {alsEuro(offen + (m.zinsen ?? 0) + (m.spesen ?? 0))}
+                    {geld(offen + (m.zinsen ?? 0) + (m.spesen ?? 0))}
                   </td>
                 </tr>
               ))}
@@ -188,9 +210,11 @@ function Mahnmaske({
   beiAbbruch: () => void;
   beiFehler: (f: string) => void;
 }) {
-  const vorschlag = mahnvorschlag(beleg, offen, unternehmer, stufe, bisherigeSpesen);
-  const [zinsen, setZinsen] = useState((vorschlag.zinsen / 100).toFixed(2).replace(".", ","));
-  const [spesen, setSpesen] = useState((vorschlag.spesen / 100).toFixed(2).replace(".", ","));
+  const raum = aktuellerRechtsraum();
+  const sw = schreibweiseVon(raum.id);
+  const vorschlag = mahnvorschlag(beleg, offen, unternehmer, stufe, bisherigeSpesen, undefined, raum);
+  const [zinsen, setZinsen] = useState(alsEingabe(vorschlag.zinsen, sw));
+  const [spesen, setSpesen] = useState(alsEingabe(vorschlag.spesen, sw));
   const [frist, setFrist] = useState(vorschlag.frist);
   const [text, setText] = useState(mahntext(stufe, beleg.nummer, beleg.datum, vorschlag.frist));
   const [laeuft, setLaeuft] = useState(false);
@@ -226,9 +250,12 @@ function Mahnmaske({
       <div className="wb-feld wb-feld--breit">
         <span>{MAHNSTUFE_TEXT[stufe]}</span>
         <p className="wb-notiz">
-          {vorschlag.tage} Tage über der Fälligkeit, offen {alsEuro(offen)}. Zinsen gerechnet mit{" "}
-          {prozent(unternehmer ? VERZUGSZINSEN_B2B : VERZUGSZINSEN_B2C)} % taggenau auf 365
-          Tage.
+          {vorschlag.tage} Tage über der Fälligkeit, offen {alsEuro(offen, sw)}. Zinsen
+          gerechnet mit {prozent(zinssatz(unternehmer, raum), raum)} % nach{" "}
+          {zinsParagraf(unternehmer, raum)}, taggenau auf 365 Tage.
+          {kostenpauschale(unternehmer, raum) === 0 && stufe >= 2 && (
+            <> Eine Kostenpauschale sieht {raum.name} hier nicht vor.</>
+          )}
         </p>
       </div>
 

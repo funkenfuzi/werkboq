@@ -190,7 +190,17 @@ Ablauf, Auftragsbestätigung aus dem angenommenen Angebot.
   verschwindet — sonst kann niemand mehr Zugänge vergeben.
 - `WB_ENTWICKLUNG` aus der `.env` der Zielinstallation entfernen.
 
+## Bevor das erste Exemplar in die Schweiz geht
+
+- QR-Rechnung (Swiss QR Code im Zahlteil) — seit Oktober 2022 der Standard.
+  Eine Schweizer Rechnung aus Werkboq ist ohne ihn gültig, aber unüblich.
+
 ## Offene Punkte
+
+- E-Rechnung: ebInterface/Peppol (AT), XRechnung/ZUGFeRD (DE).
+- Basiszinssätze veralten halbjährlich. Sie stehen je Land an einer Stelle
+  (`werkzeug/laender.ts`, Feld `zinsStand` nennt Stand und Quelle); es braucht
+  einen Vorgang, der sie zweimal im Jahr nachzieht.
 
 - Collection-Definitionen an einer Stelle halten statt in Modul und `einrichten.mjs`
   gespiegelt (z. B. `einrichten.mjs` per tsx laufen lassen).

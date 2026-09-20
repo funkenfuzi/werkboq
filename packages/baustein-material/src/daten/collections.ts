@@ -18,7 +18,8 @@ export const MATERIAL_COLLECTIONS: ModulCollection[] = [
       { name: "einheit", type: "text", required: true, options: { max: 12 } },
       { name: "preis", type: "number", required: true, options: { min: 0, noDecimal: true } },
       { name: "einkauf", type: "number", options: { min: 0, noDecimal: true } },
-      { name: "ustsatz", type: "number", required: true, options: { min: 0, max: 100, noDecimal: true } },
+      // Nachkommastellen erlaubt: die Schweiz kennt 8,1 %.
+      { name: "ustsatz", type: "number", required: true, options: { min: 0, max: 100 } },
       { name: "beschreibung", type: "text" },
       { name: "aktiv", type: "bool" },
     ],
@@ -40,7 +41,8 @@ export const MATERIAL_COLLECTIONS: ModulCollection[] = [
       { name: "einheit", type: "text", required: true, options: { max: 12 } },
       { name: "einzelpreis", type: "number", required: true, options: { noDecimal: true } },
       { name: "rabatt", type: "number", options: { min: 0, max: 100 } },
-      { name: "ustsatz", type: "number", required: true, options: { min: 0, max: 100, noDecimal: true } },
+      // Nachkommastellen erlaubt: die Schweiz kennt 8,1 %.
+      { name: "ustsatz", type: "number", required: true, options: { min: 0, max: 100 } },
       { name: "verrechnet", type: "bool" },
     ],
     indexes: ["CREATE INDEX idx_positionen_auftrag ON positionen (auftrag, pos)"],

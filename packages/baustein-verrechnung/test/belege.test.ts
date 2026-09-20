@@ -3,12 +3,18 @@ import { describe, it } from "node:test";
 import {
   belegsummen,
   faelligAm,
-  KLEINBETRAG_GRENZE,
+  grundText,
+  moeglicheGruende,
   pflichtangaben,
+  steuerfreiHinweis,
   ueberfaelligSeit,
   zeilenwert,
 } from "../src/daten/belege";
-import type { Betrieb, UstSatz } from "@werkboq/core";
+import { RECHTSRAEUME, type Betrieb, type UstSatz } from "@werkboq/core";
+
+const AT = RECHTSRAEUME.at;
+const DE = RECHTSRAEUME.de;
+const CH = RECHTSRAEUME.ch;
 
 const z = (menge: number, einzelpreis: number, ustsatz: UstSatz = 20, rabatt = 0) => ({
   menge,
@@ -106,62 +112,167 @@ describe("Fälligkeit", () => {
   });
 });
 
-describe("pflichtangaben nach § 11 UStG", () => {
+describe("pflichtangaben", () => {
   it("findet an einer vollständigen Rechnung nichts zu beanstanden", () => {
-    deepStrictEqual(pflichtangaben(rechnung, betrieb, 3), []);
+    deepStrictEqual(pflichtangaben(rechnung, betrieb, 3, AT), []);
   });
 
   it("verlangt den Leistungszeitraum", () => {
-    const fehlt = pflichtangaben({ ...rechnung, leistungVon: "" }, betrieb, 3);
+    const fehlt = pflichtangaben({ ...rechnung, leistungVon: "" }, betrieb, 3, AT);
     strictEqual(fehlt.some((f) => f.includes("Leistungszeitraum")), true);
   });
 
-  it("verlangt die UID des Betriebs", () => {
-    const fehlt = pflichtangaben(rechnung, { ...betrieb, uid: "" } as Betrieb, 3);
-    strictEqual(fehlt.some((f) => f.includes("UID-Nummer des Betriebs")), true);
-  });
-
-  it("lässt bei der Kleinbetragsrechnung bis 400 € brutto mehr durchgehen", () => {
-    const klein = { ...rechnung, brutto: KLEINBETRAG_GRENZE, empfaengerName: "", empfaengerAnschrift: "" };
-    deepStrictEqual(pflichtangaben(klein, betrieb, 1), []);
-  });
-
-  it("verlangt einen Cent über der Grenze wieder alles", () => {
-    const knapp = {
-      ...rechnung,
-      brutto: KLEINBETRAG_GRENZE + 1,
-      empfaengerName: "",
-      empfaengerAnschrift: "",
-    };
-    const fehlt = pflichtangaben(knapp, betrieb, 1);
-    strictEqual(fehlt.some((f) => f.includes("Name des Leistungsempfängers")), true);
-  });
-
-  it("verlangt bei Bauleistung die UID des Empfängers", () => {
-    const bau = { ...rechnung, steuerfrei: "bauleistung" as const, brutto: 50000 };
-    const fehlt = pflichtangaben(bau, betrieb, 2);
-    strictEqual(fehlt.some((f) => f.includes("UID des Empfängers")), true);
-    deepStrictEqual(pflichtangaben({ ...bau, empfaengerUid: "ATU87654321" }, betrieb, 2), []);
-  });
-
-  it("verlangt ab 10.000 € brutto die UID des Empfängers", () => {
-    const gross = { ...rechnung, brutto: 1000001 };
+  it("verlangt die Steuernummer des Betriebs, und nennt sie beim Namen des Landes", () => {
+    const ohne = { ...betrieb, uid: "" } as Betrieb;
     strictEqual(
-      pflichtangaben(gross, betrieb, 2).some((f) => f.includes("UID des Empfängers")),
+      pflichtangaben(rechnung, ohne, 3, AT).some((f) => f.includes("UID-Nummer des Betriebs")),
       true,
     );
-    strictEqual(pflichtangaben({ ...rechnung, brutto: 1000000 }, betrieb, 2).length, 0);
+    strictEqual(
+      pflichtangaben(rechnung, ohne, 3, DE).some((f) =>
+        f.includes("Umsatzsteuer-Identifikationsnummer des Betriebs"),
+      ),
+      true,
+    );
+    strictEqual(
+      pflichtangaben(rechnung, ohne, 3, CH).some((f) => f.includes("UID / MWST-Nummer")),
+      true,
+    );
   });
 
   it("beanstandet einen Beleg ohne Positionen", () => {
     strictEqual(
-      pflichtangaben(rechnung, betrieb, 0).some((f) => f.includes("keine Positionen")),
+      pflichtangaben(rechnung, betrieb, 0, AT).some((f) => f.includes("keine Positionen")),
       true,
     );
   });
 
   it("misst ein Angebot nicht an den Rechnungsvorschriften", () => {
     const angebot = { ...rechnung, belegart: "angebot" as const, leistungVon: "", nummer: "" };
-    deepStrictEqual(pflichtangaben(angebot, betrieb, 2), []);
+    deepStrictEqual(pflichtangaben(angebot, betrieb, 2, AT), []);
+  });
+});
+
+describe("Kleinbetragsrechnung je Land", () => {
+  const ohneEmpfaenger = { empfaengerName: "", empfaengerAnschrift: "" };
+
+  it("lässt in Österreich bis 400 € brutto die vereinfachten Angaben genügen", () => {
+    strictEqual(AT.kleinbetragGrenze, 40000);
+    const klein = { ...rechnung, ...ohneEmpfaenger, brutto: 40000 };
+    deepStrictEqual(pflichtangaben(klein, betrieb, 1, AT), []);
+  });
+
+  it("zieht in Deutschland die Grenze schon bei 250 € (§ 33 UStDV)", () => {
+    strictEqual(DE.kleinbetragGrenze, 25000);
+    deepStrictEqual(pflichtangaben({ ...rechnung, ...ohneEmpfaenger, brutto: 25000 }, betrieb, 1, DE), []);
+    // Der österreichische Betrag ist in Deutschland schon zu hoch.
+    strictEqual(
+      pflichtangaben({ ...rechnung, ...ohneEmpfaenger, brutto: 40000 }, betrieb, 1, DE).some((f) =>
+        f.includes("Name des Leistungsempfängers"),
+      ),
+      true,
+    );
+  });
+
+  it("kennt die Schweiz gar keine Erleichterung", () => {
+    strictEqual(CH.kleinbetragGrenze, 0);
+    strictEqual(
+      pflichtangaben({ ...rechnung, ...ohneEmpfaenger, brutto: 1000 }, betrieb, 1, CH).some((f) =>
+        f.includes("Name des Leistungsempfängers"),
+      ),
+      true,
+    );
+  });
+
+  it("verlangt einen Cent über der Grenze wieder alles", () => {
+    const knapp = { ...rechnung, ...ohneEmpfaenger, brutto: AT.kleinbetragGrenze + 1 };
+    strictEqual(
+      pflichtangaben(knapp, betrieb, 1, AT).some((f) => f.includes("Name des Leistungsempfängers")),
+      true,
+    );
+  });
+});
+
+describe("Bauleistung und Steuernummer des Empfängers", () => {
+  it("verlangt bei Bauleistung die Steuernummer des Empfängers", () => {
+    const bau = { ...rechnung, steuerfrei: "bauleistung" as const, brutto: 50000 };
+    strictEqual(
+      pflichtangaben(bau, betrieb, 2, AT).some((f) => f.includes("des Empfängers")),
+      true,
+    );
+    deepStrictEqual(pflichtangaben({ ...bau, empfaengerUid: "ATU87654321" }, betrieb, 2, AT), []);
+  });
+
+  it("verlangt in Österreich ab 10.000 € brutto die UID des Empfängers", () => {
+    strictEqual(AT.uidEmpfaengerAb, 1000000);
+    strictEqual(
+      pflichtangaben({ ...rechnung, brutto: 1000001 }, betrieb, 2, AT).some((f) =>
+        f.includes("des Empfängers"),
+      ),
+      true,
+    );
+    strictEqual(pflichtangaben({ ...rechnung, brutto: 1000000 }, betrieb, 2, AT).length, 0);
+  });
+
+  it("kennt Deutschland keine betragsabhängige Grenze", () => {
+    strictEqual(DE.uidEmpfaengerAb, 0);
+    deepStrictEqual(pflichtangaben({ ...rechnung, brutto: 5000000 }, betrieb, 2, DE), []);
+  });
+
+  it("gibt es den Übergang der Steuerschuld in der Schweiz nicht", () => {
+    strictEqual(CH.bauleistung.moeglich, false);
+    strictEqual(moeglicheGruende(CH).includes("bauleistung"), false);
+    strictEqual(moeglicheGruende(AT).includes("bauleistung"), true);
+    strictEqual(moeglicheGruende(DE).includes("bauleistung"), true);
+  });
+
+  it("nennt die innergemeinschaftliche Lieferung nur im EU-Raum", () => {
+    strictEqual(moeglicheGruende(CH).includes("innergemeinschaftlich"), false);
+    strictEqual(moeglicheGruende(DE).includes("innergemeinschaftlich"), true);
+  });
+});
+
+describe("Pflichthinweise je Land", () => {
+  it("nennt für die Bauleistung die Fundstelle des jeweiligen Landes", () => {
+    strictEqual(steuerfreiHinweis("bauleistung", AT).includes("§ 19 Abs 1a UStG"), true);
+    strictEqual(steuerfreiHinweis("bauleistung", DE).includes("§ 13b Abs 2 Nr 4 UStG"), true);
+  });
+
+  it("nennt für den Kleinunternehmer die Fundstelle des jeweiligen Landes", () => {
+    strictEqual(steuerfreiHinweis("kleinunternehmer", AT).includes("§ 6 Abs 1 Z 27 UStG"), true);
+    strictEqual(steuerfreiHinweis("kleinunternehmer", DE).includes("§ 19 UStG"), true);
+    strictEqual(steuerfreiHinweis("kleinunternehmer", CH).includes("Art. 10 Abs 2 MWSTG"), true);
+  });
+
+  it("lässt bei ausgewiesener Steuer keinen Hinweis stehen", () => {
+    strictEqual(steuerfreiHinweis("keiner", AT), "");
+  });
+
+  it("beschriftet die Auswahl mit der Steuer des Landes", () => {
+    strictEqual(grundText("keiner", AT), "Umsatzsteuer ausweisen");
+    strictEqual(grundText("keiner", CH), "Mehrwertsteuer ausweisen");
+  });
+});
+
+describe("Steuersätze je Land", () => {
+  it("rechnet mit dem Schweizer Normalsatz von 8,1 %", () => {
+    // 1.000,00 CHF netto · 8,1 % = 81,00
+    const s = belegsummen([z(1, 100000, CH.normalsatz)]);
+    strictEqual(CH.normalsatz, 8.1);
+    strictEqual(s.netto, 100000);
+    strictEqual(s.ust, 8100);
+    strictEqual(s.brutto, 108100);
+  });
+
+  it("rechnet mit dem deutschen Regelsatz von 19 %", () => {
+    const s = belegsummen([z(1, 100000, DE.normalsatz)]);
+    strictEqual(DE.normalsatz, 19);
+    strictEqual(s.ust, 19000);
+  });
+
+  it("rundet auch bei krummen Sätzen kaufmännisch", () => {
+    // 123,45 CHF · 8,1 % = 9,99945 → 10,00
+    const s = belegsummen([z(1, 12345, 8.1)]);
+    strictEqual(s.ust, 1000);
   });
 });

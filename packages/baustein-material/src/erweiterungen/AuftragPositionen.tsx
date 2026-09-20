@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
 import {
+  aktuellerRechtsraum,
   alsEuro,
   alsGeld,
   alsMenge,
   ausGeld,
+  satzText,
+  schreibweiseVon,
   Symbol,
-  UST_SAETZE,
+  zahlText,
   type ErweiterungsProps,
   type UstSatz,
 } from "@werkboq/core";
@@ -42,6 +45,9 @@ import {
  * irgendwann doppelt.
  */
 export function AuftragPositionen({ datensatzId }: ErweiterungsProps) {
+  // Steuersätze, Währung und Schreibweise hängen am Rechtsraum des Betriebs.
+  const raum = aktuellerRechtsraum();
+  const geld = schreibweiseVon(raum.id);
   const [positionen, setPositionen] = useState<Position[]>([]);
   const [maske, setMaske] = useState<Position | "neu" | null>(null);
   const [fehler, setFehler] = useState<string | null>(null);
@@ -78,7 +84,7 @@ export function AuftragPositionen({ datensatzId }: ErweiterungsProps) {
       <div className="wb-block__kopf">
         <h2>Positionen</h2>
         <span className="wb-block__summe">
-          {alsEuro(summen.netto)} netto · {alsEuro(summen.brutto)} brutto
+          {alsEuro(summen.netto, geld)} netto · {alsEuro(summen.brutto, geld)} brutto
         </span>
         {!maske && (
           <button className="wb-button" type="button" onClick={() => setMaske("neu")}>
@@ -125,7 +131,7 @@ export function AuftragPositionen({ datensatzId }: ErweiterungsProps) {
                   <th scope="col">Einheit</th>
                   <th scope="col" className="wb-zelle--rechts">Einzel</th>
                   <th scope="col" className="wb-zelle--rechts">Rabatt</th>
-                  <th scope="col" className="wb-zelle--rechts">USt</th>
+                  <th scope="col" className="wb-zelle--rechts">{raum.steuerKurz}</th>
                   <th scope="col" className="wb-zelle--rechts">Betrag</th>
                   <th scope="col" aria-label="Aktionen" />
                 </tr>
@@ -143,15 +149,15 @@ export function AuftragPositionen({ datensatzId }: ErweiterungsProps) {
                         </span>
                       </span>
                     </td>
-                    <td className="wb-zelle--rechts wb-tabelle__kennung">{alsMenge(p.menge)}</td>
+                    <td className="wb-zelle--rechts wb-tabelle__kennung">{alsMenge(p.menge, geld)}</td>
                     <td className="wb-zelle--gedaempft">{p.einheit}</td>
-                    <td className="wb-zelle--rechts wb-tabelle__kennung">{alsGeld(p.einzelpreis)}</td>
+                    <td className="wb-zelle--rechts wb-tabelle__kennung">{alsGeld(p.einzelpreis, geld)}</td>
                     <td className="wb-zelle--rechts wb-tabelle__kennung">
                       {p.rabatt ? `${p.rabatt} %` : "—"}
                     </td>
-                    <td className="wb-zelle--rechts wb-tabelle__kennung">{p.ustsatz} %</td>
+                    <td className="wb-zelle--rechts wb-tabelle__kennung">{zahlText(raum, p.ustsatz)} %</td>
                     <td className="wb-zelle--rechts wb-tabelle__kennung wb-zelle--betont">
-                      {alsGeld(positionswert(p))}
+                      {alsGeld(positionswert(p), geld)}
                     </td>
                     <td className="wb-zelle--rechts">
                       <button
@@ -200,21 +206,21 @@ export function AuftragPositionen({ datensatzId }: ErweiterungsProps) {
               .sort((a, b) => b[0] - a[0])
               .map(([satz, betrag]) => (
                 <div key={satz}>
-                  <dt>Netto {satz} %</dt>
-                  <dd>{alsEuro(betrag)}</dd>
+                  <dt>Netto {zahlText(raum, Number(satz))} %</dt>
+                  <dd>{alsEuro(betrag, geld)}</dd>
                 </div>
               ))}
             <div>
               <dt>Nettosumme</dt>
-              <dd>{alsEuro(summen.netto)}</dd>
+              <dd>{alsEuro(summen.netto, geld)}</dd>
             </div>
             <div>
-              <dt>Umsatzsteuer</dt>
-              <dd>{alsEuro(summen.ust)}</dd>
+              <dt>{raum.steuerName}</dt>
+              <dd>{alsEuro(summen.ust, geld)}</dd>
             </div>
             <div className="wb-aufstellung__gesamt">
               <dt>Gesamt</dt>
-              <dd>{alsEuro(summen.brutto)}</dd>
+              <dd>{alsEuro(summen.brutto, geld)}</dd>
             </div>
           </dl>
         </>
@@ -236,10 +242,12 @@ function Positionsmaske({
   beiGespeichert: () => void;
   beiAbbruch: () => void;
 }) {
+  const raum = aktuellerRechtsraum();
+  const geld = schreibweiseVon(raum.id);
   const [werte, setWerte] = useState<PositionEingabe>(
     vorhanden
       ? { ...vorhanden }
-      : { ...LEERE_POSITION, auftrag, pos: naechste },
+      : { ...LEERE_POSITION, auftrag, pos: naechste, ustsatz: raum.normalsatz },
   );
   // Preise tippt man als "12,50"; im Datensatz stehen Cent.
   const [preistext, setPreistext] = useState(
@@ -324,7 +332,7 @@ function Positionsmaske({
                     <span className="wb-tabelle__kennung">{a.nummer}</span>
                     <span>{a.bezeichnung}</span>
                     <span className="wb-zelle--gedaempft">
-                      {alsGeld(a.preis)} / {a.einheit}
+                      {alsGeld(a.preis, geld)} / {a.einheit}
                     </span>
                   </button>
                 </li>
@@ -433,14 +441,14 @@ function Positionsmaske({
       </label>
 
       <label className="wb-feld">
-        <span>Umsatzsteuer</span>
+        <span>{raum.steuerName}</span>
         <select
           value={werte.ustsatz}
           onChange={(e) => setWerte({ ...werte, ustsatz: Number(e.target.value) as UstSatz })}
         >
-          {UST_SAETZE.map((s) => (
-            <option key={s} value={s}>
-              {s} %
+          {raum.steuersaetze.map((s) => (
+            <option key={s.satz} value={s.satz}>
+              {satzText(raum, s.satz)}
             </option>
           ))}
         </select>
@@ -448,7 +456,7 @@ function Positionsmaske({
 
       <div className="wb-feld">
         <span>Betrag netto</span>
-        <output className="wb-dauer">{alsEuro(vorschau)}</output>
+        <output className="wb-dauer">{alsEuro(vorschau, geld)}</output>
       </div>
 
       {fehler && (

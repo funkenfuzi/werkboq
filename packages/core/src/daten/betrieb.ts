@@ -35,6 +35,15 @@ export interface Betrieb extends Basisdatensatz {
    * gekauft hat — wie die IBAN oder die UID.
    */
   stundensatz?: number;
+  /**
+   * Rechtsraum: "at", "de" oder "ch".
+   *
+   * Wird beim Einrichten gewählt und danach festgeschrieben — daran hängen
+   * Steuersätze, Währung, Pflichtangaben auf der Rechnung, Verzugszinsen
+   * und die Normen im Prüfbericht. Ein nachträglicher Wechsel würde
+   * bestehende Belege mit falscher Rechtsgrundlage zurücklassen.
+   */
+  rechtsraum?: string;
 }
 
 export type BetriebEingabe = Omit<Betrieb, keyof Basisdatensatz>;
@@ -56,6 +65,7 @@ export const LEERER_BETRIEB: BetriebEingabe = {
   bic: "",
   bank: "",
   stundensatz: 0,
+  rechtsraum: "at",
 };
 
 export async function betriebLaden(): Promise<Betrieb | null> {

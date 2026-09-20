@@ -1,7 +1,12 @@
 # Werkboq
 
-Auftrags- und Baustellendokumentation für österreichische Handwerksbetriebe.
-Ein modular aufgebauter Kern („Werkboq Basic") plus Fachmodule – das erste davon ist **Elektro**.
+Auftrags- und Baustellendokumentation für Handwerksbetriebe in Österreich,
+Deutschland und der Schweiz. Ein modular aufgebauter Kern („Werkboq Basic")
+plus Fachmodule – das erste davon ist **Elektro**.
+
+Steuersätze, Rechnungspflichtangaben, Verzugszinsen, Aufbewahrungsfristen und
+Elektronormen hängen am Rechtsraum, der beim Einrichten gewählt und dann
+festgeschrieben wird: [docs/rechtsraeume.md](docs/rechtsraeume.md).
 
 > Stand: Neustart der Entwicklung, September 2026. Das Vorgängerrepo ist fachliche
 > Referenz, nicht Codebasis. Dieses Gerüst ist Scheibe 0: Struktur, Modulschnittstelle,

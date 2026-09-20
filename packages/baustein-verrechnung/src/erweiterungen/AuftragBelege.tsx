@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
+  aktuellerRechtsraum,
   alsEuro,
   auftragLaden,
   betriebLaden,
   dienst,
   fehlersatz,
   kundeLaden,
+  schreibweiseVon,
   Symbol,
   type ErweiterungsProps,
   type UstSatz,
@@ -37,6 +39,7 @@ import {
  */
 export function AuftragBelege({ datensatzId }: ErweiterungsProps) {
   const navigate = useNavigate();
+  const sw = schreibweiseVon(aktuellerRechtsraum().id);
   const [belege, setBelege] = useState<Beleg[]>([]);
   const [fehler, setFehler] = useState<string | null>(null);
   const [laeuft, setLaeuft] = useState(false);
@@ -102,7 +105,7 @@ export function AuftragBelege({ datensatzId }: ErweiterungsProps) {
           einheit: "h",
           einzelpreis: satz,
           rabatt: 0,
-          ustsatz: 20,
+          ustsatz: aktuellerRechtsraum().normalsatz,
           quelle: "zeiterfassung",
         });
       }
@@ -198,9 +201,9 @@ export function AuftragBelege({ datensatzId }: ErweiterungsProps) {
                       {STATUS_TEXT[b.status]}
                     </span>
                   </td>
-                  <td className="wb-zelle--rechts wb-tabelle__kennung">{alsEuro(b.netto)}</td>
+                  <td className="wb-zelle--rechts wb-tabelle__kennung">{alsEuro(b.netto, sw)}</td>
                   <td className="wb-zelle--rechts wb-tabelle__kennung wb-zelle--betont">
-                    {alsEuro(b.brutto)}
+                    {alsEuro(b.brutto, sw)}
                   </td>
                 </tr>
               ))}

@@ -1,4 +1,12 @@
-import { pb, protokollieren, runden, sicher, type Basisdatensatz } from "@werkboq/core";
+import {
+  aktuellerRechtsraum,
+  pb,
+  protokollieren,
+  runden,
+  sicher,
+  type Basisdatensatz,
+  type Rechtsraum,
+} from "@werkboq/core";
 import { faelligAm, heute, type Beleg } from "./belege";
 
 /**
@@ -9,36 +17,39 @@ import { faelligAm, heute, type Beleg } from "./belege";
  * Erinnerung schon Zinsen verlangt, verliert Kunden an einen vergessenen
  * Beleg — wer nie mahnt, finanziert seine Auftraggeber.
  *
- * ZINSEN
- * Zwischen Unternehmern gilt § 456 UGB: Basiszinssatz plus 9,2 Prozentpunkte.
- * Der Basiszinssatz steht seit 11.6.2025 bei 1,53 % und ist für 2026
- * bestätigt — macht 10,73 % im Jahr. Gegenüber Verbrauchern gilt § 1000 ABGB
- * mit 4 % im Jahr.
+ * ZINSEN UND SPESEN STEHEN NICHT HIER.
  *
- * Der Basiszinssatz wird von der OeNB zum 1. Jänner und 1. Juli festgesetzt.
- * Er steht deshalb als Konstante hier und nicht irgendwo verstreut: ändert er
- * sich, ist genau eine Zeile zu ändern, und der Kommentar sagt, woher der
- * Wert kommt.
+ * Sie hängen am Land und stehen deshalb im Rechtsraum (werkzeug/laender.ts):
+ * Österreich rechnet zwischen Unternehmern nach § 456 UGB, Deutschland nach
+ * § 288 Abs 2 BGB, die Schweiz kennt nur den einen Satz aus Art. 104 OR und
+ * gar keine Betreibungskostenpauschale. Eine Konstante an dieser Stelle wäre
+ * in zwei von drei Ländern schlicht falsch.
  *
- * SPESEN
- * Im B2B gibt § 458 UGB eine Pauschale von 40 € für Betreibungskosten, ohne
- * Nachweis und zusätzlich zu den Zinsen. Gegenüber Verbrauchern gibt es
- * nichts dergleichen: Mahnspesen müssen dort vereinbart und der Höhe nach
- * angemessen sein, sonst sind sie nicht durchsetzbar. Werkboq schlägt
- * deshalb für Verbraucher keine vor.
+ * Gegenüber Verbrauchern gibt es in Österreich und der Schweiz keine
+ * Kostenpauschale; Mahnspesen müssten dort vereinbart und der Höhe nach
+ * angemessen sein. Werkboq schlägt deshalb für Verbraucher keine vor.
  */
 
-/** Basiszinssatz der OeNB. Stand: unverändert seit 11.6.2025, gilt für 2026. */
-export const BASISZINSSATZ = 1.53;
+/** Verzugszinssatz im Jahr für diesen Kunden, in Prozent. */
+export function zinssatz(unternehmer: boolean, raum: Rechtsraum = aktuellerRechtsraum()): number {
+  return unternehmer ? raum.verzugB2B : raum.verzugB2C;
+}
 
-/** § 456 UGB: Basiszinssatz plus 9,2 Prozentpunkte, zwischen Unternehmern. */
-export const VERZUGSZINSEN_B2B = BASISZINSSATZ + 9.2;
+/** Fundstelle des Zinssatzes — steht im Mahntext und in der Oberfläche. */
+export function zinsParagraf(
+  unternehmer: boolean,
+  raum: Rechtsraum = aktuellerRechtsraum(),
+): string {
+  return unternehmer ? raum.verzugB2BParagraf : raum.verzugB2CParagraf;
+}
 
-/** § 1000 ABGB: 4 % im Jahr gegenüber Verbrauchern. */
-export const VERZUGSZINSEN_B2C = 4;
-
-/** § 458 UGB: Betreibungskostenpauschale im B2B, 40 € ohne Nachweis. */
-export const BETREIBUNGSKOSTEN_B2B = 4000;
+/** Kostenpauschale im B2B, in Cent. 0, wo es keine gibt. */
+export function kostenpauschale(
+  unternehmer: boolean,
+  raum: Rechtsraum = aktuellerRechtsraum(),
+): number {
+  return unternehmer ? raum.betreibungskosten : 0;
+}
 
 export const MAHNSTUFEN = [1, 2, 3] as const;
 export type Mahnstufe = (typeof MAHNSTUFEN)[number];
@@ -75,18 +86,18 @@ export function verzugszinsen(
   offenerBetrag: number,
   tageImVerzug: number,
   unternehmer: boolean,
+  raum: Rechtsraum = aktuellerRechtsraum(),
 ): number {
   if (offenerBetrag <= 0 || tageImVerzug <= 0) return 0;
-  const satz = unternehmer ? VERZUGSZINSEN_B2B : VERZUGSZINSEN_B2C;
-  return runden((offenerBetrag * satz * tageImVerzug) / (100 * 365));
+  return runden((offenerBetrag * zinssatz(unternehmer, raum) * tageImVerzug) / (100 * 365));
 }
 
 /**
  * Was die nächste Mahnung kosten würde.
  *
- * Die Pauschale nach § 458 UGB gibt es einmal je Forderung, nicht je
- * Mahnung — deshalb hängt sie an der ersten echten Mahnung (Stufe 2) und
- * nicht an der Erinnerung.
+ * Die Kostenpauschale gibt es einmal je Forderung, nicht je Mahnung —
+ * deshalb hängt sie an der ersten echten Mahnung (Stufe 2) und nicht an der
+ * Erinnerung. Wo das Land keine vorsieht (Schweiz), ist sie null.
  */
 export function mahnvorschlag(
   beleg: Pick<Beleg, "datum" | "zahlungszielTage">,
@@ -95,14 +106,14 @@ export function mahnvorschlag(
   stufe: Mahnstufe,
   bisherigeSpesen: number,
   stichtag = heute(),
+  raum: Rechtsraum = aktuellerRechtsraum(),
 ): { tage: number; zinsen: number; spesen: number; frist: string } {
   const faellig = new Date(`${faelligAm(beleg)}T00:00:00`).getTime();
   const jetzt = new Date(`${stichtag}T00:00:00`).getTime();
   const tage = Math.max(0, Math.round((jetzt - faellig) / 86400000));
 
-  const zinsen = verzugszinsen(offenerBetrag, tage, unternehmer);
-  const spesen =
-    unternehmer && stufe >= 2 && bisherigeSpesen === 0 ? BETREIBUNGSKOSTEN_B2B : 0;
+  const zinsen = verzugszinsen(offenerBetrag, tage, unternehmer, raum);
+  const spesen = stufe >= 2 && bisherigeSpesen === 0 ? kostenpauschale(unternehmer, raum) : 0;
 
   const frist = new Date(`${stichtag}T00:00:00`);
   frist.setDate(frist.getDate() + MAHNSTUFE_FRIST[stufe]);

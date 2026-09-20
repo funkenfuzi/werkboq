@@ -58,7 +58,8 @@ export const VERRECHNUNG_COLLECTIONS: ModulCollection[] = [
       { name: "einheit", type: "text", options: { max: 12 } },
       { name: "einzelpreis", type: "number", required: true, options: { noDecimal: true } },
       { name: "rabatt", type: "number", options: { min: 0, max: 100 } },
-      { name: "ustsatz", type: "number", required: true, options: { min: 0, max: 100, noDecimal: true } },
+      // Nachkommastellen erlaubt: die Schweiz kennt 8,1 %.
+      { name: "ustsatz", type: "number", required: true, options: { min: 0, max: 100 } },
       { name: "betrag", type: "number", required: true, options: { noDecimal: true } },
       { name: "quelle", type: "text" },
     ],

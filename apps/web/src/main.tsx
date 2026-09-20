@@ -4,7 +4,14 @@ import "@werkboq/tokens/tokens.css";
 import "./app.css";
 import "./gestaltung/huelle.css";
 import "./gestaltung/akte.css";
-import { bausteineLaden, modulRegistrieren, moduleStarten, offlineStarten } from "@werkboq/core";
+import {
+  bausteineLaden,
+  betriebLaden,
+  modulRegistrieren,
+  moduleStarten,
+  offlineStarten,
+  rechtsraumLaden,
+} from "@werkboq/core";
 import bausteinZeiterfassung from "@werkboq/baustein-zeiterfassung";
 import bausteinPlanung from "@werkboq/baustein-planung";
 import bausteinMaterial from "@werkboq/baustein-material";
@@ -26,6 +33,10 @@ async function start() {
   await modulRegistrieren(bausteinMaterial);
   await modulRegistrieren(bausteinVerrechnung);
   await modulRegistrieren(modulElektro);
+
+  // Vor allem anderen das Land: Steuersätze, Währung und Pflichtangaben
+  // hängen daran, und eine Maske kann darauf nicht warten.
+  await rechtsraumLaden(betriebLaden);
 
   // Erst wissen, was freigegeben ist, dann starten: ein nicht gekaufter
   // Baustein soll nicht einmal seine Dienste anmelden.
