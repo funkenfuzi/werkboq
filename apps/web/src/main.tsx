@@ -16,6 +16,7 @@ import bausteinZeiterfassung from "@werkboq/baustein-zeiterfassung";
 import bausteinPlanung from "@werkboq/baustein-planung";
 import bausteinMaterial from "@werkboq/baustein-material";
 import bausteinVerrechnung from "@werkboq/baustein-verrechnung";
+import bausteinPersonal from "@werkboq/baustein-personal";
 import modulElektro from "@werkboq/modul-elektro";
 import { App } from "./App";
 
@@ -32,6 +33,7 @@ async function start() {
   await modulRegistrieren(bausteinPlanung);
   await modulRegistrieren(bausteinMaterial);
   await modulRegistrieren(bausteinVerrechnung);
+  await modulRegistrieren(bausteinPersonal);
   await modulRegistrieren(modulElektro);
 
   // Vor allem anderen das Land: Steuersätze, Währung und Pflichtangaben

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
+import { Symbol } from "./Symbol";
+import { aktuellerBenutzer, stufeSetzen, STUFE_TEXT, type Bereich, type Stufe } from "../benutzer/rechte";
 import {
-  Symbol,
-  aktuellerBenutzer,
   bereicheSetzen,
   mindestlaengePasswort,
   passwortSetzen,
@@ -9,11 +9,10 @@ import {
   zugangAnlegen,
   zugangEntfernen,
   zugangLaden,
-  type Bereich,
   type Bereichswahl as Bereichsangebot,
-  type Mitarbeiter,
   type Zugang,
-} from "@werkboq/core";
+} from "../benutzer/verwaltung";
+import type { Mitarbeiter } from "../daten/mitarbeiter";
 
 /**
  * Der Zugang eines Mitarbeiters.
@@ -44,6 +43,7 @@ export function Zugangsblock({
   const [passwort, setPasswort] = useState("");
   const [neuesPasswort, setNeuesPasswort] = useState("");
   const [bereiche, setBereiche] = useState<Bereich[]>(["technik"]);
+  const [lesebereiche, setLesebereiche] = useState<Bereich[]>([]);
   const [admin, setAdmin] = useState(false);
 
   const moeglich = useMemo(() => vergebbareBereiche(), []);
@@ -63,6 +63,7 @@ export function Zugangsblock({
         setZugang(z);
         if (z) {
           setBereiche(z.bereiche);
+          setLesebereiche(z.lesebereiche);
           setAdmin(z.admin);
         }
       })
@@ -73,8 +74,11 @@ export function Zugangsblock({
     };
   }, [mitarbeiter.benutzer]);
 
-  function umschalten(b: Bereich) {
-    setBereiche((v) => (v.includes(b) ? v.filter((x) => x !== b) : [...v, b]));
+  /** Setzt die Stufe eines Bereichs. Beide Listen ändern sich zugleich. */
+  function stufeAendern(bereich: Bereich, neu: Stufe) {
+    const nachher = stufeSetzen(bereiche, lesebereiche, bereich, neu);
+    setBereiche(nachher.bereiche);
+    setLesebereiche(nachher.lesebereiche);
   }
 
   async function fuehreAus(was: () => Promise<void>, erfolg: string) {
@@ -142,9 +146,10 @@ export function Zugangsblock({
 
             <Bereichswahl
               moeglich={moeglich}
-              gewaehlt={bereiche}
+              bereiche={bereiche}
+              lesebereiche={lesebereiche}
               admin={admin}
-              beiUmschalten={umschalten}
+              beiStufe={stufeAendern}
               beiAdmin={setAdmin}
             />
           </div>
@@ -156,7 +161,14 @@ export function Zugangsblock({
               disabled={laeuft || !email.trim() || passwort.length < minLaenge}
               onClick={() =>
                 void fuehreAus(async () => {
-                  const neu = await zugangAnlegen(mitarbeiter, email, passwort, bereiche, admin);
+                  const neu = await zugangAnlegen(
+                    mitarbeiter,
+                    email,
+                    passwort,
+                    bereiche,
+                    admin,
+                    lesebereiche,
+                  );
                   setZugang(neu);
                   setPasswort("");
                   beiAenderung?.();
@@ -177,10 +189,11 @@ export function Zugangsblock({
           <div className="wb-zugang__gitter">
             <Bereichswahl
               moeglich={moeglich}
-              gewaehlt={bereiche}
+              bereiche={bereiche}
+              lesebereiche={lesebereiche}
               admin={admin}
               selbst={selbst}
-              beiUmschalten={umschalten}
+              beiStufe={stufeAendern}
               beiAdmin={setAdmin}
             />
 
@@ -203,8 +216,8 @@ export function Zugangsblock({
               disabled={laeuft}
               onClick={() =>
                 void fuehreAus(async () => {
-                  await bereicheSetzen(mitarbeiter, zugang.id, bereiche, admin);
-                  setZugang({ ...zugang, bereiche, admin });
+                  await bereicheSetzen(mitarbeiter, zugang.id, bereiche, admin, lesebereiche);
+                  setZugang({ ...zugang, bereiche, lesebereiche, admin });
                 }, "Berechtigungen gespeichert.")
               }
             >
@@ -241,6 +254,7 @@ export function Zugangsblock({
                     await zugangEntfernen(mitarbeiter, zugang.id);
                     setZugang(null);
                     setBereiche(["technik"]);
+                    setLesebereiche([]);
                     setAdmin(false);
                     beiAenderung?.();
                   }, "Zugang entfernt.");
@@ -267,40 +281,67 @@ export function Zugangsblock({
   );
 }
 
+/**
+ * Bereiche mit drei Stufen: kein Zugriff, nur lesen, lesen und ändern.
+ *
+ * Kästchen genügen hier nicht mehr. Ein Monteur soll die Aufträge sehen, auf
+ * die er fährt, ohne einen Preis ändern zu können — und die Personalakte gar
+ * nicht. Bei Verwaltung und Entwickler fehlt die mittlere Stufe: wer Zugänge
+ * ansehen darf, kann sie auch vergeben, alles andere wäre eine Stufe, die
+ * nichts schützt und nur verwirrt.
+ */
 function Bereichswahl({
   moeglich,
-  gewaehlt,
+  bereiche,
+  lesebereiche,
   admin,
   selbst,
-  beiUmschalten,
+  beiStufe,
   beiAdmin,
 }: {
   moeglich: Bereichsangebot[];
-  gewaehlt: Bereich[];
+  bereiche: Bereich[];
+  lesebereiche: Bereich[];
   admin: boolean;
   selbst?: boolean;
-  beiUmschalten: (b: Bereich) => void;
+  beiStufe: (b: Bereich, s: Stufe) => void;
   beiAdmin: (a: boolean) => void;
 }) {
+  const stufeVon = (b: Bereich): Stufe =>
+    admin || bereiche.includes(b) ? "schreiben" : lesebereiche.includes(b) ? "lesen" : "keine";
+
   return (
     <fieldset className="wb-bereiche wb-feld--breit">
       <legend>Bereiche</legend>
       <div className="wb-bereiche__liste">
         {moeglich.map((b) => (
-          <label key={b.id} className="wb-schalter wb-schalter--eng">
-            <input
-              type="checkbox"
-              checked={admin || gewaehlt.includes(b.id)}
-              disabled={admin}
-              onChange={() => beiUmschalten(b.id)}
-            />
-            <span>
+          <div key={b.id} className="wb-bereich">
+            <span className="wb-bereich__name">
               {b.titel}
               <small>{b.hinweis}</small>
             </span>
-          </label>
+            <select
+              className="wb-bereich__stufe"
+              value={stufeVon(b.id)}
+              disabled={admin}
+              aria-label={`Zugriff auf ${b.titel}`}
+              onChange={(e) => beiStufe(b.id, e.target.value as Stufe)}
+            >
+              <option value="keine">{STUFE_TEXT.keine}</option>
+              {!b.nurGanz && <option value="lesen">{STUFE_TEXT.lesen}</option>}
+              <option value="schreiben">{STUFE_TEXT.schreiben}</option>
+            </select>
+          </div>
         ))}
       </div>
+
+      <p className="wb-notiz wb-bereiche__warnung">
+        <strong>Personalwesen ist auch serverseitig gesperrt</strong> — dort kommt niemand ohne
+        Recht an die Daten, auch nicht an der Oberfläche vorbei. Bei allen anderen Bereichen
+        steuert die Stufe vorerst nur, was angezeigt wird: wer sich auskennt, erreicht sie über
+        die Schnittstelle trotzdem. Solange das so ist, gehört ein Zugang nur an Leute, denen der
+        Betrieb ohnehin vertraut.
+      </p>
 
       <label className="wb-schalter wb-schalter--eng">
         <input

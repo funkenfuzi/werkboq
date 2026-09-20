@@ -31,7 +31,10 @@ export type SymbolName =
   | "katalog"
   | "beleg"
   | "geld"
-  | "vertrag";
+  | "vertrag"
+  | "personal"
+  | "haken"
+  | "kreuz";
 
 const PFADE: Record<SymbolName, string> = {
   start: "M3 10.5 12 3l9 7.5M5.5 9.5V20h13V9.5M9.5 20v-6h5v6",
@@ -56,6 +59,12 @@ const PFADE: Record<SymbolName, string> = {
   geld: "M3.5 6.5h17v11h-17v-11ZM12 14.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM6.5 9.5v5M17.5 9.5v5",
   vertrag: "M5 3.5h9l5 5V20a.5.5 0 0 1-.5.5h-13A.5.5 0 0 1 5 20V4a.5.5 0 0 1 .5-.5ZM14 3.5V9h5M8.5 13.5h7M8.5 17h4M8.5 10h2",
   warnung: "M12 4 2.5 20.5h19L12 4ZM12 10v5M12 17.8v.2",
+  // Personalwesen: eine Person mit Karte — nicht dieselbe Figur wie "kunden",
+  // sonst stehen im Menü zwei Einträge mit demselben Zeichen.
+  personal:
+    "M9 11.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM3.5 19.5v-1a4 4 0 0 1 4-4h3a4 4 0 0 1 4 4v1M16.5 9h4M16.5 12.5h4M16.5 16h2.5",
+  haken: "M4.5 12.5 9.5 17.5 19.5 6.5",
+  kreuz: "M6 6l12 12M18 6 6 18",
 };
 
 export function Symbol({

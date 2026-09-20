@@ -8,6 +8,10 @@ Steuersätze, Rechnungspflichtangaben, Verzugszinsen, Aufbewahrungsfristen und
 Elektronormen hängen am Rechtsraum, der beim Einrichten gewählt und dann
 festgeschrieben wird: [docs/rechtsraeume.md](docs/rechtsraeume.md).
 
+Wer was sehen und ändern darf, steht in [docs/rechte.md](docs/rechte.md) —
+samt einer ehrlichen Liste dessen, was noch **nicht** serverseitig
+durchgesetzt ist. `npm run rechte-pruefen` prüft es nach.
+
 > Stand: Neustart der Entwicklung, September 2026. Das Vorgängerrepo ist fachliche
 > Referenz, nicht Codebasis. Dieses Gerüst ist Scheibe 0: Struktur, Modulschnittstelle,
 > Datenmodell, Design-Tokens, Offline-Warteschlange, Einrichtung.

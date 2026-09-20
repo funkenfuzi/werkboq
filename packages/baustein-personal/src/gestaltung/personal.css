@@ -1,0 +1,65 @@
+/* ----------------------------------------------------------------------
+   Personalwesen.
+   Eigene Datei, eigenes Präfix: zwei Bausteine, die sich dieselbe
+   Klasse teilen, haben schon einmal die Layouts des jeweils anderen
+   still zerschossen (siehe wb-summen → wb-aufstellung).
+   ---------------------------------------------------------------------- */
+
+/* Offene Anträge und Fristen nebeneinander, solange Platz ist. */
+.wb-personal__aufmerksam {
+  display: grid;
+  gap: var(--wb-space-4);
+  grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+}
+
+.wb-merkliste {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.wb-merkliste li {
+  border-bottom: 1px solid var(--wb-border);
+  line-height: 1.5;
+  padding: 0.4rem 0;
+}
+
+.wb-merkliste li:last-child {
+  border-bottom: 0;
+}
+
+/* Zwischenüberschrift in einer langen Maske — die Personalakte hat drei
+   Abschnitte, und ohne Gliederung sucht man das Eintrittsdatum. */
+.wb-maske__abschnitt {
+  border-bottom: 1px solid var(--wb-border);
+  color: var(--wb-text-muted);
+  font-size: var(--wb-text-sm);
+  grid-column: 1 / -1;
+  letter-spacing: 0.02em;
+  margin: var(--wb-space-4) 0 0;
+  font-weight: 600;
+  padding-bottom: 0.3rem;
+  text-transform: uppercase;
+}
+
+.wb-maske__abschnitt:first-child {
+  margin-top: 0;
+}
+
+/* Auswahlfeld in einer Werkzeugleiste: Beschriftung daneben, nicht darüber. */
+.wb-feld--inline {
+  align-items: center;
+  flex-direction: row;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.wb-verborgen {
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}

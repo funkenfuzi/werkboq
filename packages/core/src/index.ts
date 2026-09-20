@@ -6,6 +6,7 @@ export * from "./modul/registry";
 export * from "./modul/dienste";
 export * from "./modul/bausteine";
 export * from "./ui/Symbol";
+export * from "./ui/Zugangsblock";
 export * from "./werkzeug/zeitrechnung";
 export * from "./werkzeug/geld";
 export * from "./werkzeug/laender";

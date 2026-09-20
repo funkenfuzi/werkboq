@@ -1,6 +1,6 @@
 import { pb } from "../daten/client";
 import { protokollieren } from "../daten/protokoll";
-import { KERN_BEREICHE, type Bereich } from "./rechte";
+import { KERN_BEREICHE, type Bereich, type Stufe } from "./rechte";
 import { alleModule } from "../modul/registry";
 import type { Mitarbeiter } from "../daten/mitarbeiter";
 
@@ -24,7 +24,10 @@ export interface Zugang {
   id: string;
   email: string;
   name: string;
+  /** Bereiche mit Schreibrecht. */
   bereiche: Bereich[];
+  /** Bereiche, die nur gelesen werden dürfen. */
+  lesebereiche: Bereich[];
   admin: boolean;
 }
 
@@ -32,23 +35,45 @@ export interface Bereichswahl {
   id: Bereich;
   titel: string;
   hinweis: string;
+  /**
+   * Bereiche, in denen ein reines Leserecht keinen Sinn ergibt.
+   * Wer Zugänge vergeben darf, kann sie auch ändern — ein Betrachter der
+   * Verwaltung wäre eine Stufe, die nichts schützt und nur verwirrt.
+   */
+  nurGanz?: boolean;
 }
 
 /** Alle Bereiche, die vergeben werden können — Kern plus angemeldete Module. */
 export function vergebbareBereiche(): Bereichswahl[] {
   const kern: Bereichswahl[] = [
-    { id: "verwaltung", titel: "Verwaltung", hinweis: "Stammdaten und Zugänge" },
+    { id: "verwaltung", titel: "Verwaltung", hinweis: "Stammdaten und Zugänge", nurGanz: true },
     { id: "buchhaltung", titel: "Buchhaltung", hinweis: "Angebote und Rechnungen" },
     { id: "technik", titel: "Technik", hinweis: "Kunden, Aufträge, Planung" },
     { id: "lager", titel: "Lager", hinweis: "Material" },
-    { id: "entwickler", titel: "Entwickler", hinweis: "Diagnose und Rohdaten" },
+    {
+      id: "personal",
+      titel: "Personalwesen",
+      hinweis: "Personalakte, Abwesenheiten, Lohnvorbereitung",
+    },
+    { id: "entwickler", titel: "Entwickler", hinweis: "Diagnose und Rohdaten", nurGanz: true },
   ];
-  const module = alleModule().map((m) => ({
-    id: m.id,
-    titel: m.name,
-    hinweis: "Fachmodul",
-  }));
-  return [...kern.filter((b) => KERN_BEREICHE.includes(b.id as never)), ...module];
+  const kernBereiche = kern.filter((b) => KERN_BEREICHE.includes(b.id as never));
+
+  // Ein Modul, das denselben Namen trägt wie ein Kernbereich, bekommt keinen
+  // zweiten Eintrag: der Baustein Personalwesen heißt "personal", und genau
+  // so heißt der Bereich, den seine Collection-Regeln prüfen. Zwei Zeilen
+  // dafür wären zwei Schalter für dieselbe Sache — und React beschwert sich
+  // zu Recht über den doppelten Schlüssel.
+  const belegt = new Set(kernBereiche.map((b) => b.id));
+  const module = alleModule()
+    .filter((m) => !belegt.has(m.id))
+    .map((m) => ({
+      id: m.id,
+      titel: m.name,
+      hinweis: m.art === "fachmodul" ? "Fachmodul" : "Baustein",
+    }));
+
+  return [...kernBereiche, ...module];
 }
 
 export async function zugangLaden(benutzerId: string): Promise<Zugang | null> {
@@ -63,6 +88,7 @@ export async function zugangLaden(benutzerId: string): Promise<Zugang | null> {
     email: String(roh.email ?? ""),
     name: String(roh.name ?? ""),
     bereiche: Array.isArray(roh.bereiche) ? (roh.bereiche as Bereich[]) : [],
+    lesebereiche: Array.isArray(roh.lesebereiche) ? (roh.lesebereiche as Bereich[]) : [],
     admin: Boolean(roh.admin),
   };
 }
@@ -78,6 +104,7 @@ export async function zugangAnlegen(
   passwort: string,
   bereiche: Bereich[],
   admin = false,
+  lesebereiche: Bereich[] = [],
 ): Promise<Zugang> {
   const neu = await pb().collection("users").create({
     email: email.trim(),
@@ -85,6 +112,7 @@ export async function zugangAnlegen(
     passwordConfirm: passwort,
     name: m.name,
     bereiche,
+    lesebereiche,
     admin,
     emailVisibility: false,
     // "verified" darf laut PocketBase nur der Serveradministrator setzen —
@@ -101,6 +129,7 @@ export async function zugangAnlegen(
     email: email.trim(),
     name: m.name,
     bereiche,
+    lesebereiche,
     admin,
   };
 }
@@ -110,14 +139,34 @@ export async function bereicheSetzen(
   benutzerId: string,
   bereiche: Bereich[],
   admin: boolean,
+  lesebereiche: Bereich[] = [],
 ): Promise<void> {
-  await pb().collection("users").update(benutzerId, { bereiche, admin });
-  await protokollieren(
-    "mitarbeiter",
-    m.id,
-    "aendern",
-    `Berechtigungen geändert: ${admin ? "Administrator, " : ""}${bereiche.join(", ") || "keine Bereiche"}`,
-  );
+  await pb().collection("users").update(benutzerId, { bereiche, lesebereiche, admin });
+  await protokollieren("mitarbeiter", m.id, "aendern", `Berechtigungen geändert: ${rechteText(bereiche, lesebereiche, admin)}`);
+}
+
+/** Was im Änderungsverlauf steht — lesbar, nicht als Feldsalat. */
+export function rechteText(bereiche: Bereich[], lesebereiche: Bereich[], admin: boolean): string {
+  if (admin) return "Administrator";
+  const teile: string[] = [];
+  if (bereiche.length > 0) teile.push(`ändern: ${bereiche.join(", ")}`);
+  if (lesebereiche.length > 0) teile.push(`lesen: ${lesebereiche.join(", ")}`);
+  return teile.join(" · ") || "keine Bereiche";
+}
+
+/** Die Stufe je Bereich für einen Zugang — für die Oberfläche. */
+export function stufenVon(z: Pick<Zugang, "bereiche" | "lesebereiche" | "admin">): Record<Bereich, Stufe> {
+  const stufen: Record<Bereich, Stufe> = {};
+  for (const b of vergebbareBereiche()) {
+    stufen[b.id] = z.admin
+      ? "schreiben"
+      : z.bereiche.includes(b.id)
+        ? "schreiben"
+        : z.lesebereiche.includes(b.id)
+          ? "lesen"
+          : "keine";
+  }
+  return stufen;
 }
 
 /**

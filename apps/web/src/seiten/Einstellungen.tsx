@@ -1,7 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import {
   aktuellerRechtsraum,
-  alleMitarbeiter,
   dienst,
   LAENDER,
   RECHTSRAEUME,
@@ -13,26 +12,22 @@ import {
   betriebSpeichern,
   darf,
   fehlendeRechnungsangaben,
-  FUNKTION_TEXT,
-  FUNKTIONEN,
-  kurz,
   LEERER_BETRIEB,
-  LEERER_MITARBEITER,
-  mitarbeiterAendern,
-  mitarbeiterAnlegen,
-  mitarbeiterStilllegen,
   type Betrieb,
   type BetriebEingabe,
-  type Funktion,
-  type Mitarbeiter,
-  type MitarbeiterEingabe,
 } from "@werkboq/core";
-import { Zugangsblock } from "../komponenten/Zugangsblock";
 import { Bausteinverwaltung } from "../komponenten/Bausteinverwaltung";
 
-/** Stammdaten des Betriebs und der Mitarbeiter. */
+/**
+ * Stammdaten des Betriebs und freigeschaltete Bausteine.
+ *
+ * Die Mitarbeiter standen hier einmal und sind in den Baustein Personalwesen
+ * gewandert. Einstellungen sind das, was man einmal einrichtet; Personal ist
+ * das, womit man arbeitet — wer einen Urlaub genehmigt, tut nichts, was in
+ * ein Einstellungsmenü gehört.
+ */
 export function Einstellungen() {
-  const [reiter, setReiter] = useState<"betrieb" | "mitarbeiter" | "bausteine">("betrieb");
+  const [reiter, setReiter] = useState<"betrieb" | "bausteine">("betrieb");
 
   if (!darf("verwaltung")) {
     return (
@@ -63,14 +58,6 @@ export function Einstellungen() {
         </button>
         <button
           role="tab"
-          aria-selected={reiter === "mitarbeiter"}
-          className={`wb-reiter__knopf${reiter === "mitarbeiter" ? " ist-aktiv" : ""}`}
-          onClick={() => setReiter("mitarbeiter")}
-        >
-          Mitarbeiter
-        </button>
-        <button
-          role="tab"
           aria-selected={reiter === "bausteine"}
           className={`wb-reiter__knopf${reiter === "bausteine" ? " ist-aktiv" : ""}`}
           onClick={() => setReiter("bausteine")}
@@ -80,7 +67,6 @@ export function Einstellungen() {
       </nav>
 
       {reiter === "betrieb" && <Betriebsdaten />}
-      {reiter === "mitarbeiter" && <Mitarbeiterverwaltung />}
       {reiter === "bausteine" && <Bausteinverwaltung />}
     </section>
   );
@@ -305,271 +291,6 @@ function Betriebsdaten() {
           </button>
         </div>
       </form>
-    </>
-  );
-}
-
-function Mitarbeiterverwaltung() {
-  const [liste, setListe] = useState<Mitarbeiter[]>([]);
-  const [bearbeitet, setBearbeitet] = useState<Mitarbeiter | "neu" | null>(null);
-  const [laedt, setLaedt] = useState(true);
-  const [fehler, setFehler] = useState<string | null>(null);
-
-  function laden() {
-    setLaedt(true);
-    alleMitarbeiter()
-      .then(setListe)
-      .catch((e: unknown) => setFehler(e instanceof Error ? e.message : String(e)))
-      .finally(() => setLaedt(false));
-  }
-
-  useEffect(laden, []);
-
-  async function stilllegen(m: Mitarbeiter) {
-    if (!confirm(`${m.name} stilllegen? Zeiten und Termine bleiben erhalten.`)) return;
-    await mitarbeiterStilllegen(m);
-    laden();
-  }
-
-  return (
-    <>
-      <div className="wb-werkzeugleiste">
-        <p className="wb-leer wb-legende">
-          Mitarbeiter werden nicht gelöscht, sondern stillgelegt — an ihnen hängen Zeiten und
-          Termine, die als Nachweis erhalten bleiben.
-        </p>
-        {!bearbeitet && (
-          <button className="wb-button" type="button" onClick={() => setBearbeitet("neu")}>
-            <Symbol name="plus" groesse={18} />
-            Neuer Mitarbeiter
-          </button>
-        )}
-      </div>
-
-      {fehler && <p className="wb-fehler" role="alert">{fehler}</p>}
-
-      {bearbeitet && (
-        <Mitarbeitermaske
-          key={bearbeitet === "neu" ? "neu" : bearbeitet.id}
-          vorhanden={bearbeitet === "neu" ? null : bearbeitet}
-          beiGespeichert={() => {
-            setBearbeitet(null);
-            laden();
-          }}
-          beiAbbruch={() => setBearbeitet(null)}
-          beiZugangsaenderung={laden}
-        />
-      )}
-
-      {laedt && liste.length === 0 && <p className="wb-leer">Wird geladen …</p>}
-
-      {liste.length > 0 && (
-        <div className="wb-tabelle-rahmen">
-          <table className="wb-tabelle">
-            <thead>
-              <tr>
-                <th scope="col">Name</th>
-                <th scope="col">Funktion</th>
-                <th scope="col">Telefon</th>
-                <th scope="col">Zugang</th>
-                <th scope="col">Status</th>
-                <th scope="col" aria-label="Aktionen" />
-              </tr>
-            </thead>
-            <tbody>
-              {liste.map((m) => (
-                <tr key={m.id} className={m.aktiv === false ? "ist-stillgelegt" : ""}>
-                  <td>
-                    <span className="wb-zellname">
-                      <span
-                        className="wb-initialen wb-initialen--klein"
-                        style={{ background: m.farbe || undefined }}
-                        aria-hidden="true"
-                      >
-                        {kurz(m)}
-                      </span>
-                      {m.name}
-                    </span>
-                  </td>
-                  <td>{FUNKTION_TEXT[m.funktion]}</td>
-                  <td>{m.telefon || "—"}</td>
-                  <td>{m.benutzer ? "ja" : "—"}</td>
-                  <td>
-                    {m.aktiv === false ? (
-                      <span className="wb-plakette">stillgelegt</span>
-                    ) : (
-                      <span className="wb-plakette wb-plakette--ok">aktiv</span>
-                    )}
-                  </td>
-                  <td className="wb-zelle--rechts">
-                    <button
-                      type="button"
-                      className="wb-zeilenknopf wb-zeilenknopf--neutral"
-                      onClick={() => setBearbeitet(m)}
-                      title={`${m.name} bearbeiten`}
-                    >
-                      <Symbol name="stift" groesse={16} />
-                    </button>
-                    {m.aktiv !== false && (
-                      <button
-                        type="button"
-                        className="wb-zeilenknopf"
-                        onClick={() => void stilllegen(m)}
-                        title={`${m.name} stilllegen`}
-                      >
-                        <Symbol name="muell" groesse={16} />
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </>
-  );
-}
-
-function Mitarbeitermaske({
-  vorhanden,
-  beiGespeichert,
-  beiAbbruch,
-  beiZugangsaenderung,
-}: {
-  vorhanden: Mitarbeiter | null;
-  beiGespeichert: () => void;
-  beiAbbruch: () => void;
-  beiZugangsaenderung?: () => void;
-}) {
-  const [werte, setWerte] = useState<MitarbeiterEingabe>(
-    vorhanden ? { ...LEERER_MITARBEITER, ...vorhanden } : LEERER_MITARBEITER,
-  );
-  const [fehler, setFehler] = useState<string | null>(null);
-
-  async function absenden(e: FormEvent) {
-    e.preventDefault();
-    if (!werte.name.trim()) {
-      setFehler("Ein Name ist Pflicht.");
-      return;
-    }
-    try {
-      if (vorhanden) await mitarbeiterAendern(vorhanden.id, werte);
-      else await mitarbeiterAnlegen(werte);
-      beiGespeichert();
-    } catch (e: unknown) {
-      setFehler(e instanceof Error ? e.message : String(e));
-    }
-  }
-
-  return (
-    <>
-    <form className="wb-maske" onSubmit={absenden}>
-      <label className="wb-feld wb-feld--breit">
-        <span>Name *</span>
-        <input
-          type="text"
-          value={werte.name}
-          onChange={(e) => setWerte({ ...werte, name: e.target.value })}
-          required
-          autoFocus
-        />
-      </label>
-
-      <label className="wb-feld wb-feld--schmal">
-        <span>Kurzzeichen</span>
-        <input
-          type="text"
-          maxLength={4}
-          placeholder="wird berechnet"
-          value={werte.kurzzeichen ?? ""}
-          onChange={(e) => setWerte({ ...werte, kurzzeichen: e.target.value })}
-        />
-      </label>
-
-      <label className="wb-feld">
-        <span>Funktion</span>
-        <select
-          value={werte.funktion}
-          onChange={(e) => setWerte({ ...werte, funktion: e.target.value as Funktion })}
-        >
-          {FUNKTIONEN.map((f) => (
-            <option key={f} value={f}>
-              {FUNKTION_TEXT[f]}
-            </option>
-          ))}
-        </select>
-      </label>
-
-      <label className="wb-feld wb-feld--schmal">
-        <span>Farbe im Plan</span>
-        <input
-          type="color"
-          value={werte.farbe || "#0058a8"}
-          onChange={(e) => setWerte({ ...werte, farbe: e.target.value })}
-        />
-      </label>
-
-      <label className="wb-feld">
-        <span>Telefon</span>
-        <input
-          type="tel"
-          value={werte.telefon ?? ""}
-          onChange={(e) => setWerte({ ...werte, telefon: e.target.value })}
-        />
-      </label>
-
-      <label className="wb-feld">
-        <span>E-Mail</span>
-        <input
-          type="email"
-          value={werte.email ?? ""}
-          onChange={(e) => setWerte({ ...werte, email: e.target.value })}
-        />
-      </label>
-
-      <label className="wb-feld wb-feld--schmal">
-        <span>Wochenstunden</span>
-        <input
-          type="number"
-          min={0}
-          step={0.5}
-          value={werte.wochenstunden ?? 0}
-          onChange={(e) => setWerte({ ...werte, wochenstunden: Number(e.target.value) })}
-        />
-      </label>
-
-      <label className="wb-schalter wb-feld--breit">
-        <input
-          type="checkbox"
-          checked={werte.aktiv !== false}
-          onChange={(e) => setWerte({ ...werte, aktiv: e.target.checked })}
-        />
-        <span>
-          Aktiv
-          <small>Nur aktive Mitarbeiter erscheinen im Plan.</small>
-        </span>
-      </label>
-
-      {fehler && <p className="wb-fehler wb-feld--breit" role="alert">{fehler}</p>}
-
-      <div className="wb-aktionen wb-feld--breit">
-        <button className="wb-button" type="submit">
-          {vorhanden ? "Speichern" : "Anlegen"}
-        </button>
-        <button className="wb-button wb-button--sekundaer" type="button" onClick={beiAbbruch}>
-          Abbrechen
-        </button>
-      </div>
-    </form>
-
-    {vorhanden ? (
-      <Zugangsblock mitarbeiter={vorhanden} beiAenderung={beiZugangsaenderung} />
-    ) : (
-      <p className="wb-leer wb-zugang__spaeter">
-        Einen Zugang vergibst du, nachdem der Mitarbeiter angelegt ist.
-      </p>
-    )}
     </>
   );
 }

@@ -195,6 +195,16 @@ Ablauf, Auftragsbestätigung aus dem angenommenen Angebot.
 - QR-Rechnung (Swiss QR Code im Zahlteil) — seit Oktober 2022 der Standard.
   Eine Schweizer Rechnung aus Werkboq ist ohne ihn gültig, aber unüblich.
 
+## Zweiter Durchgang Rechte
+
+Serverseitig durchgesetzt ist bisher nur das Personalwesen. Aufträge,
+Material und Verrechnung stehen noch auf „jeder Angemeldete darf alles“ —
+die Stufe in der Oberfläche blendet dort nur aus. `npm run rechte-pruefen`
+listet den Rückstand am Ende namentlich auf; siehe docs/rechte.md.
+
+Reihenfolge, wenn es soweit ist: Belege (Geld), dann Artikel (Preise und
+Einkaufspreise), dann Aufträge (der Monteur soll lesen, aber nicht ändern).
+
 ## Offene Punkte
 
 - E-Rechnung: ebInterface/Peppol (AT), XRechnung/ZUGFeRD (DE).

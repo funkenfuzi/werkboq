@@ -25,6 +25,7 @@ Grundfunktionen, die einzeln verkauft werden. `art: "baustein"`.
 | Planung | `termine` | Mitarbeiter (Kern) | — |
 | Material | `artikel`, `positionen` | Auftrag (Kern) | Verrechnung |
 | Verrechnung | `belege`, `belegpositionen`, `zahlungen`, `mahnungen` | Kunde, Auftrag (Kern) | — |
+| Personalwesen | `personaldaten`, `abwesenheiten`, `personaldokumente` | Mitarbeiter (Kern) | Planung |
 
 Die Zeiterfassung ist allein verkaufbar: eine Arbeitszeitaufzeichnung nach
 § 26 AZG braucht jeder Betrieb. Ein Zeiteintrag ohne Auftrag ist allgemeine
@@ -65,6 +66,8 @@ sonst niemand. Bisher vergeben:
 | `tagesstunden` | Zeiterfassung | Planung |
 | `auftragsstunden` | Zeiterfassung | Verrechnung |
 | `auftragspositionen` | Material | Verrechnung |
+| `abwesend` | Personalwesen | Planung |
+| `rechtsraumSperre` | Verrechnung | Kern (Einstellungen) |
 
 Der Kern kennt die *Namen und Formen* beider — so wie eine Steckdose die Form
 des Steckers kennt, aber kein Gerät. Anbieter kennt er keine.
@@ -147,6 +150,25 @@ Rechnungsnummer ist nur dann eine, wenn dazwischen nichts verschwindet, und
 § 132 BAO verlangt sieben Jahre Aufbewahrung. Ein Entwurf lässt sich
 wegräumen, solange er nicht festgeschrieben ist; danach ist die Korrektur
 eine Gutschrift.
+
+## Was das Personalwesen bewusst nicht tut
+
+* **Keine Lohnverrechnung.** Kein Lohnzettel, keine Sozialversicherung, keine
+  Zuschlagsstufen. Werkboq liefert Soll-, Ist- und Mehrstunden sowie die
+  Abwesenheitstage als CSV; daraus macht die Lohnverrechnung einen
+  Lohnzettel. Ein falsch gerechneter Zuschlag ist ein Fehler, den der Betrieb
+  nachzahlt und verantwortet, und die Regeln stehen im Kollektivvertrag.
+* **Keine Feiertage.** Sie unterscheiden sich je Bundesland. Ein falsch
+  geratener Feiertag verfälscht Sollzeit und Urlaubstage still — lieber
+  fehlt er und man korrigiert die Zahl von Hand.
+* **Keine automatische Urlaubsstufe.** Ab 25 Dienstjahren gebühren sechs
+  Wochen, aber ob Vordienstzeiten anzurechnen sind, steht im Vertrag.
+* **Der Mitarbeiterdatensatz bleibt im Kern.** Aufträge, Zeiten und Termine
+  verweisen darauf. Wer das Personalwesen nicht gekauft hat, muss trotzdem
+  jemanden einplanen können.
+
+Zu den Rechten — was serverseitig durchgesetzt ist und was noch nicht —
+siehe [rechte.md](rechte.md).
 
 ## Beim nächsten Baustein
 

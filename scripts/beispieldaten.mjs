@@ -93,6 +93,90 @@ const MITARBEITER = [
   { name: "Andrea Hofer", kurzzeichen: "AH", funktion: "buero", telefon: "02622 / 3333", farbe: "#1f7a4c", wochenstunden: 20 },
 ];
 
+/**
+ * Personalakten. Lohn in Cent, wie jeder Geldbetrag im Programm.
+ * Die Sozialversicherungsnummern sind erfunden, aber prüfziffernrichtig —
+ * sonst schlägt die Plausibilitätsprüfung in der Maske an und man hält den
+ * Testdatensatz für kaputt.
+ */
+const PERSONALDATEN = [
+  {
+    mitarbeiter: "Franz Bauer",
+    geburtsdatum: "1985-03-14",
+    svnr: "1237140385",
+    anschrift: "Feldgasse 14",
+    plz: "2700",
+    ort: "Wiener Neustadt",
+    eintritt: "2012-04-02",
+    beschaeftigung: "vollzeit",
+    kollektivvertrag: "Elektro- und Elektronikindustrie",
+    verwendungsgruppe: "D",
+    lohnart: "monat",
+    lohn: 342000,
+    urlaubsanspruch: 25,
+    urlaubUebertrag: 3,
+    notfallkontakt: "Maria Bauer",
+    notfalltelefon: "0664 / 1111222",
+  },
+  {
+    mitarbeiter: "Lukas Steiner",
+    geburtsdatum: "2007-09-21",
+    svnr: "4386210907",
+    anschrift: "Bahnstraße 3",
+    plz: "2751",
+    ort: "Steinabrückl",
+    eintritt: "2024-09-02",
+    beschaeftigung: "lehre",
+    kollektivvertrag: "Elektro- und Elektronikindustrie",
+    verwendungsgruppe: "Lehrling 2. Jahr",
+    lohnart: "monat",
+    lohn: 98000,
+    urlaubsanspruch: 25,
+    urlaubUebertrag: 0,
+  },
+  {
+    mitarbeiter: "Andrea Hofer",
+    geburtsdatum: "1978-11-05",
+    svnr: "2230051178",
+    anschrift: "Ringstraße 8a",
+    plz: "2700",
+    ort: "Wiener Neustadt",
+    eintritt: "2008-01-07",
+    beschaeftigung: "teilzeit",
+    kollektivvertrag: "Handel",
+    lohnart: "monat",
+    lohn: 186000,
+    urlaubsanspruch: 25,
+    urlaubUebertrag: 1.5,
+  },
+];
+
+/** Abwesenheiten über das Jahr — genehmigt, beantragt und eine abgelehnte. */
+const ABWESENHEITEN = [
+  { mitarbeiter: "Franz Bauer", art: "urlaub", von: "-07-27", bis: "-08-07", status: "genehmigt" },
+  { mitarbeiter: "Franz Bauer", art: "krankenstand", von: "-03-09", bis: "-03-11", status: "genehmigt" },
+  { mitarbeiter: "Franz Bauer", art: "urlaub", von: "-12-28", bis: "-12-31", status: "beantragt" },
+  { mitarbeiter: "Lukas Steiner", art: "urlaub", von: "-08-10", bis: "-08-21", status: "genehmigt" },
+  { mitarbeiter: "Lukas Steiner", art: "schulung", von: "-04-13", bis: "-04-17", status: "genehmigt", grund: "Berufsschule, Blockwoche" },
+  { mitarbeiter: "Andrea Hofer", art: "urlaub", von: "-05-26", bis: "-05-29", status: "genehmigt", halberTagEnde: true },
+  { mitarbeiter: "Andrea Hofer", art: "pflegefreistellung", von: "-02-17", bis: "-02-17", status: "genehmigt" },
+  { mitarbeiter: "Andrea Hofer", art: "urlaub", von: "-11-02", bis: "-11-13", status: "abgelehnt", notiz: "Jahresabschluss, bitte später" },
+];
+
+/**
+ * Dokumente mit Fristen. Absichtlich dabei: eine abgelaufene Unterweisung
+ * und eine, die demnächst abläuft — sonst sieht man der Fristenübersicht
+ * nicht an, wofür sie da ist.
+ */
+const DOKUMENTE = [
+  { mitarbeiter: "Franz Bauer", art: "dienstvertrag", titel: "Dienstvertrag vom 2.4.2012", ausgestelltAm: "2012-04-02", erinnerungTage: 0 },
+  { mitarbeiter: "Franz Bauer", art: "unterweisung", titel: "Jährliche Unterweisung nach ASchG", tageHer: 400, gueltigTage: 365, erinnerungTage: 30 },
+  { mitarbeiter: "Franz Bauer", art: "befaehigung", titel: "Elektrofachkraft, Nachweis", tageHer: 900, gueltigTage: 1825, erinnerungTage: 90 },
+  { mitarbeiter: "Lukas Steiner", art: "unterweisung", titel: "Unterweisung Jugendliche nach KJBG", tageHer: 340, gueltigTage: 365, erinnerungTage: 30 },
+  { mitarbeiter: "Lukas Steiner", art: "aerztlich", titel: "Jugendlichenuntersuchung", tageHer: 200, gueltigTage: 365, erinnerungTage: 60 },
+  { mitarbeiter: "Andrea Hofer", art: "dienstvertrag", titel: "Dienstvertrag vom 7.1.2008", ausgestelltAm: "2008-01-07", erinnerungTage: 0 },
+];
+
 /** Katalog. Preise netto in Cent, wie überall im Programm. */
 const ARTIKEL = [
   { nummer: "M-9001", bezeichnung: "NYM-J 3x1,5 mm²", art: "material", einheit: "m", preis: 145, einkauf: 92, ustsatz: 20 },
@@ -225,6 +309,8 @@ async function anlegen() {
   }
   console.log(`Mitarbeiter: ${mitarbeiter.size}`);
 
+  await personalwesenFuellen(mitarbeiter);
+
   const artikel = new Map();
   for (const a of ARTIKEL) {
     artikel.set(a.nummer, await einmalig("artikel", `nummer = "${a.nummer}"`, { ...a, aktiv: true }));
@@ -290,6 +376,103 @@ async function anlegen() {
  * bleibt unberührt: wer seinen echten Betrieb eingetragen hat, soll ihn
  * nicht durch "Elektro Musterbetrieb" ersetzt bekommen.
  */
+/**
+ * Personalakten, Abwesenheiten und Dokumente.
+ *
+ * Läuft still weiter, wenn der Baustein Personalwesen nicht eingerichtet ist
+ * — dann gibt es die Collections nicht, und das ist kein Fehler, sondern der
+ * Normalfall bei einem Betrieb, der ihn nicht gekauft hat.
+ */
+async function personalwesenFuellen(mitarbeiter) {
+  const jahr = new Date().getFullYear();
+  let akten = 0;
+  let frei = 0;
+  let papiere = 0;
+
+  for (const d of PERSONALDATEN) {
+    const m = mitarbeiter.get(d.mitarbeiter);
+    if (!m) continue;
+    const { mitarbeiter: _name, ...felder } = d;
+    const angelegt = await einmalig("personaldaten", `mitarbeiter = "${m.id}"`, {
+      ...felder,
+      mitarbeiter: m.id,
+    }).catch(() => null);
+    if (angelegt) akten += 1;
+  }
+  if (akten === 0) {
+    console.log("Personalwesen: nicht eingerichtet, übersprungen");
+    return;
+  }
+
+  for (const a of ABWESENHEITEN) {
+    const m = mitarbeiter.get(a.mitarbeiter);
+    if (!m) continue;
+    const von = `${jahr}${a.von}`;
+    const bis = `${jahr}${a.bis}`;
+    const angelegt = await einmalig(
+      "abwesenheiten",
+      `mitarbeiter = "${m.id}" && von = "${von}"`,
+      {
+        mitarbeiter: m.id,
+        art: a.art,
+        von,
+        bis,
+        status: a.status,
+        halberTagBeginn: Boolean(a.halberTagBeginn),
+        halberTagEnde: Boolean(a.halberTagEnde),
+        tage: werktageZaehlen(von, bis, a.halberTagBeginn, a.halberTagEnde),
+        grund: a.grund ?? "",
+        notiz: a.notiz ?? "",
+      },
+    ).catch(() => null);
+    if (angelegt) frei += 1;
+  }
+
+  for (const d of DOKUMENTE) {
+    const m = mitarbeiter.get(d.mitarbeiter);
+    if (!m) continue;
+    const ausgestellt = d.ausgestelltAm ?? tagVerschoben(-(d.tageHer ?? 0));
+    const angelegt = await einmalig(
+      "personaldokumente",
+      `mitarbeiter = "${m.id}" && titel = "${d.titel.replace(/"/g, '\\"')}"`,
+      {
+        mitarbeiter: m.id,
+        art: d.art,
+        titel: d.titel,
+        ausgestelltAm: ausgestellt,
+        laeuftAb: d.gueltigTage ? tagVerschoben(-(d.tageHer ?? 0) + d.gueltigTage) : null,
+        erinnerungTage: d.erinnerungTage ?? 0,
+        erledigt: false,
+      },
+    ).catch(() => null);
+    if (angelegt) papiere += 1;
+  }
+
+  console.log(`Personalwesen: ${akten} Akten, ${frei} Abwesenheiten, ${papiere} Dokumente`);
+}
+
+/** Werktage ohne Feiertage — dieselbe Regel wie im Baustein. */
+function werktageZaehlen(von, bis, halbAnfang, halbEnde) {
+  const a = new Date(`${von}T00:00:00`);
+  const b = new Date(`${bis}T00:00:00`);
+  let tage = 0;
+  for (const d = new Date(a); d <= b; d.setDate(d.getDate() + 1)) {
+    if (d.getDay() !== 0 && d.getDay() !== 6) tage += 1;
+  }
+  if (tage === 0) return 0;
+  if (von === bis) return halbAnfang || halbEnde ? 0.5 : tage;
+  if (halbAnfang && a.getDay() !== 0 && a.getDay() !== 6) tage -= 0.5;
+  if (halbEnde && b.getDay() !== 0 && b.getDay() !== 6) tage -= 0.5;
+  return Math.max(0, tage);
+}
+
+/** Datum um so viele Tage verschoben, als JJJJ-MM-TT. */
+function tagVerschoben(tage) {
+  const d = new Date();
+  d.setDate(d.getDate() + tage);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 async function betriebFuellen() {
   const b = (await pb.collection("betrieb").getList(1, 1)).items[0];
   if (!b) {
@@ -565,6 +748,11 @@ async function entfernen() {
   for (const m of personal) {
     weg += await loescheAlle("termine", `mitarbeiter ~ "${m.id}"`);
     weg += await loescheAlle("zeiten", `mitarbeiter = "${m.id}"`);
+    // Das Personalwesen muss nicht eingerichtet sein — dann gibt es die
+    // Collections nicht, und loescheAlle meldet still null.
+    weg += await loescheAlle("abwesenheiten", `mitarbeiter = "${m.id}"`);
+    weg += await loescheAlle("personaldokumente", `mitarbeiter = "${m.id}"`);
+    weg += await loescheAlle("personaldaten", `mitarbeiter = "${m.id}"`);
   }
 
   for (const k of kunden) {

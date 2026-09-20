@@ -64,11 +64,20 @@ export type AuftragspositionenDienst = (auftragId: string) => Promise<{
  */
 export type RechtsraumSperreDienst = () => Promise<{ gesperrt: boolean; grund: string }>;
 
+/**
+ * Wer ist an welchem Tag nicht da?
+ * Schlüssel: `mitarbeiterId|JJJJ-MM-TT`. Bewusst ohne den Grund — die
+ * Planung muss wissen, dass jemand fehlt, nicht ob es Urlaub oder
+ * Krankenstand war.
+ */
+export type AbwesendDienst = (von: string, bis: string) => Promise<Record<string, true>>;
+
 export interface Dienste {
   tagesstunden: TagesstundenDienst;
   auftragsstunden: AuftragsstundenDienst;
   auftragspositionen: AuftragspositionenDienst;
   rechtsraumSperre: RechtsraumSperreDienst;
+  abwesend: AbwesendDienst;
 }
 
 const angeboten = new Map<keyof Dienste, unknown>();

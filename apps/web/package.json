@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@werkboq/baustein-material": "*",
+    "@werkboq/baustein-personal": "*",
     "@werkboq/baustein-planung": "*",
     "@werkboq/baustein-verrechnung": "*",
     "@werkboq/baustein-zeiterfassung": "*",

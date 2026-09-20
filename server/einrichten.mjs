@@ -37,6 +37,37 @@ if (!EMAIL || !PASSWORT) {
 
 const angemeldet = "@request.auth.id != ''";
 const nurAdmin = "@request.auth.admin = true";
+
+/**
+ * Regelbausteine für die Bereichsrechte.
+ *
+ * `bereiche` und `lesebereiche` sind JSON-Arrays. PocketBase kann darauf
+ * keinen echten Mengenvergleich, also wird auf den Text gefiltert — mit
+ * Anführungszeichen, damit "lager" nicht in "lagerleitung" trifft.
+ *
+ * DAS HIER IST DER ECHTE SCHUTZ, nicht die Oberfläche. Was in der App
+ * ausgeblendet ist, liegt trotzdem hinter der API bereit, solange keine
+ * Regel danebensteht.
+ */
+const schreibt = (bereich) => `${nurAdmin} || @request.auth.bereiche ~ '"${bereich}"'`;
+const liest = (bereich) =>
+  `${nurAdmin} || @request.auth.bereiche ~ '"${bereich}"' || @request.auth.lesebereiche ~ '"${bereich}"'`;
+
+/**
+ * Regeln für eine Collection, die einem Bereich gehört.
+ * `eigene` ist ein zusätzlicher Ausdruck, unter dem jemand seinen eigenen
+ * Datensatz trotzdem sehen darf — ein Mitarbeiter etwa seinen Resturlaub.
+ */
+function bereichsregeln(bereich, eigene = null) {
+  const mitEigenen = (regel) => (eigene ? `(${regel}) || (${eigene})` : regel);
+  return {
+    listRule: mitEigenen(liest(bereich)),
+    viewRule: mitEigenen(liest(bereich)),
+    createRule: schreibt(bereich),
+    updateRule: schreibt(bereich),
+    deleteRule: nurAdmin,
+  };
+}
 /** Marker-Collection, die diese Datenbank als Werkboq-Datenbank kennzeichnet. */
 const MARKER = "werkboq_meta";
 
@@ -46,6 +77,7 @@ const KERN_BEREICHE_UND_MODULE = [
   "buchhaltung",
   "technik",
   "lager",
+  "personal",
   "entwickler",
   "elektro",
 ];
@@ -403,6 +435,112 @@ const BAUSTEINE = [
     ],
     indexes: ["CREATE INDEX idx_mahnungen_beleg ON mahnungen (beleg, stufe)"],
   },
+
+  // ----------------------------------------------------------------------
+  // Personalwesen
+  //
+  // Drei Collections statt einer, weil sie unterschiedlich heikel sind.
+  // Die Personaldaten (Geburtsdatum, Sozialversicherungsnummer, Lohn) gehen
+  // niemanden etwas an außer der Personalstelle und dem Betroffenen selbst.
+  // Abwesenheiten stehen zwischen beidem: die Disposition muss wissen, dass
+  // jemand nicht da ist, aber nicht warum. Trennen lässt sich das hier nicht
+  // — PocketBase kennt Regeln je Datensatz, nicht je Feld, und mit dem
+  // Datensatz käme auch "krankenstand" mit. Deshalb liest Abwesenheiten nur,
+  // wer Personalwesen lesen darf, plus der Betroffene selbst. Wer die Dispo
+  // macht, braucht also Leserecht auf Personalwesen und sieht damit auch den
+  // Grund. Soll die Planung wirklich grundblind sein, braucht es eine eigene,
+  // schmale Collection nur mit Tagen — bewusst nicht jetzt gebaut.
+  //
+  // Der Mitarbeiterdatensatz selbst bleibt im Kern: Aufträge, Zeiten und
+  // Termine verweisen darauf. Wer kein Personalwesen gekauft hat, soll
+  // trotzdem jemanden einplanen können.
+  // ----------------------------------------------------------------------
+  {
+    // Die Personalakte. Eine Zeile je Mitarbeiter.
+    name: "personaldaten",
+    // Der Betroffene darf die eigene Akte lesen — das ist keine Nettigkeit,
+    // sondern Auskunftsrecht. Ändern darf er sie nicht.
+    ...bereichsregeln("personal", "mitarbeiter.benutzer = @request.auth.id"),
+    schema: [
+      { name: "mitarbeiter", type: "relation", required: true, options: { collectionId: "mitarbeiter", maxSelect: 1, cascadeDelete: true } },
+      { name: "geburtsdatum", type: "date" },
+      { name: "geburtsort", type: "text" },
+      { name: "svnr", type: "text", options: { max: 20 } },
+      { name: "staatsbuergerschaft", type: "text" },
+      { name: "anschrift", type: "text" },
+      { name: "plz", type: "text", options: { max: 10 } },
+      { name: "ort", type: "text" },
+      { name: "iban", type: "text", options: { max: 40 } },
+      { name: "notfallkontakt", type: "text" },
+      { name: "notfalltelefon", type: "text" },
+      { name: "eintritt", type: "date" },
+      { name: "austritt", type: "date" },
+      { name: "austrittsgrund", type: "text" },
+      { name: "beschaeftigung", type: "select", options: { maxSelect: 1, values: ["vollzeit", "teilzeit", "geringfuegig", "lehre", "ferialarbeit", "leihpersonal"] } },
+      { name: "kollektivvertrag", type: "text" },
+      { name: "verwendungsgruppe", type: "text", options: { max: 20 } },
+      // Bruttomonatslohn bzw. Stundenlohn in Cent — wie überall ganzzahlig.
+      { name: "lohnart", type: "select", options: { maxSelect: 1, values: ["monat", "stunde"] } },
+      { name: "lohn", type: "number", options: { min: 0, noDecimal: true } },
+      { name: "urlaubsanspruch", type: "number", options: { min: 0 } },
+      { name: "urlaubUebertrag", type: "number" },
+      { name: "notizen", type: "text" },
+    ],
+    indexes: ["CREATE UNIQUE INDEX idx_personaldaten_ma ON personaldaten (mitarbeiter)"],
+  },
+  {
+    // Urlaub, Zeitausgleich, Krankenstand. Beantragt, genehmigt, abgelehnt.
+    name: "abwesenheiten",
+    // Anlegen darf jeder für sich selbst — ein Urlaubsantrag ist kein
+    // Verwaltungsakt. Entscheiden (Status ändern) darf nur das Personalwesen.
+    listRule: `${liest("personal")} || mitarbeiter.benutzer = @request.auth.id`,
+    viewRule: `${liest("personal")} || mitarbeiter.benutzer = @request.auth.id`,
+    createRule: `${schreibt("personal")} || (mitarbeiter.benutzer = @request.auth.id && @request.data.status = "beantragt")`,
+    updateRule: schreibt("personal"),
+    deleteRule: nurAdmin,
+    schema: [
+      { name: "mitarbeiter", type: "relation", required: true, options: { collectionId: "mitarbeiter", maxSelect: 1, cascadeDelete: true } },
+      { name: "art", type: "select", required: true, options: { maxSelect: 1, values: ["urlaub", "zeitausgleich", "krankenstand", "pflegefreistellung", "sonderurlaub", "unbezahlt", "schulung", "praesenzdienst"] } },
+      { name: "von", type: "date", required: true },
+      { name: "bis", type: "date", required: true },
+      // Halbe Tage kommen vor und sind der häufigste Rechenfehler von Hand.
+      { name: "halberTagBeginn", type: "bool" },
+      { name: "halberTagEnde", type: "bool" },
+      { name: "status", type: "select", required: true, options: { maxSelect: 1, values: ["beantragt", "genehmigt", "abgelehnt", "storniert"] } },
+      { name: "tage", type: "number", options: { min: 0 } },
+      { name: "entschiedenVon", type: "relation", options: { collectionId: "users", maxSelect: 1 } },
+      { name: "entschiedenAm", type: "date" },
+      { name: "grund", type: "text" },
+      { name: "notiz", type: "text" },
+    ],
+    indexes: [
+      "CREATE INDEX idx_abwesenheiten_ma ON abwesenheiten (mitarbeiter, von)",
+      "CREATE INDEX idx_abwesenheiten_zeitraum ON abwesenheiten (von, bis)",
+    ],
+  },
+  {
+    // Dienstvertrag, Zeugnis, Ausweis, Unterweisung — mit Ablaufdatum.
+    // Die Unterweisungen sind der eigentliche Grund: eine abgelaufene
+    // Elektrofachkraft-Unterweisung merkt sonst niemand, bis etwas passiert.
+    name: "personaldokumente",
+    ...bereichsregeln("personal", "mitarbeiter.benutzer = @request.auth.id"),
+    schema: [
+      { name: "mitarbeiter", type: "relation", required: true, options: { collectionId: "mitarbeiter", maxSelect: 1, cascadeDelete: true } },
+      { name: "art", type: "select", required: true, options: { maxSelect: 1, values: ["dienstvertrag", "zeugnis", "ausweis", "unterweisung", "befaehigung", "aerztlich", "sonstiges"] } },
+      { name: "titel", type: "text", required: true },
+      { name: "ausgestelltAm", type: "date" },
+      { name: "laeuftAb", type: "date" },
+      // Wie viele Tage vor Ablauf erinnert wird. 0 heißt: gar nicht.
+      { name: "erinnerungTage", type: "number", options: { min: 0, noDecimal: true } },
+      { name: "erledigt", type: "bool" },
+      { name: "notiz", type: "text" },
+      { name: "datei", type: "file", options: { maxSelect: 1, maxSize: 20971520 } },
+    ],
+    indexes: [
+      "CREATE INDEX idx_personaldokumente_ma ON personaldokumente (mitarbeiter)",
+      "CREATE INDEX idx_personaldokumente_ablauf ON personaldokumente (laeuftAb)",
+    ],
+  },
 ];
 
 /** Modul-Collections: jedes Modul liefert seine in <modul>/src/daten/collections.ts;
@@ -601,6 +739,8 @@ async function benutzerErgaenzen() {
   const neu = [];
   if (!vorhanden.has("name")) neu.push({ name: "name", type: "text" });
   if (!vorhanden.has("bereiche")) neu.push({ name: "bereiche", type: "json", options: { maxSize: 2000000 } });
+  // Bereiche, die nur gelesen werden dürfen — der Monteur auf den Aufträgen.
+  if (!vorhanden.has("lesebereiche")) neu.push({ name: "lesebereiche", type: "json", options: { maxSize: 2000000 } });
   if (!vorhanden.has("admin")) neu.push({ name: "admin", type: "bool" });
   // Kennzeichnet Konten, die nur zum Entwickeln existieren und später
   // mit "npm run entwicklung-weg" restlos entfernt werden.
