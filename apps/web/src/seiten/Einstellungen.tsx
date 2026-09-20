@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import {
   alleMitarbeiter,
+  Symbol,
   betriebLaden,
   betriebSpeichern,
   darf,
@@ -19,12 +20,12 @@ import {
   type Mitarbeiter,
   type MitarbeiterEingabe,
 } from "@werkboq/core";
-import { Symbol } from "../komponenten/Symbol";
 import { Zugangsblock } from "../komponenten/Zugangsblock";
+import { Bausteinverwaltung } from "../komponenten/Bausteinverwaltung";
 
 /** Stammdaten des Betriebs und der Mitarbeiter. */
 export function Einstellungen() {
-  const [reiter, setReiter] = useState<"betrieb" | "mitarbeiter">("betrieb");
+  const [reiter, setReiter] = useState<"betrieb" | "mitarbeiter" | "bausteine">("betrieb");
 
   if (!darf("verwaltung")) {
     return (
@@ -61,9 +62,19 @@ export function Einstellungen() {
         >
           Mitarbeiter
         </button>
+        <button
+          role="tab"
+          aria-selected={reiter === "bausteine"}
+          className={`wb-reiter__knopf${reiter === "bausteine" ? " ist-aktiv" : ""}`}
+          onClick={() => setReiter("bausteine")}
+        >
+          Bausteine
+        </button>
       </nav>
 
-      {reiter === "betrieb" ? <Betriebsdaten /> : <Mitarbeiterverwaltung />}
+      {reiter === "betrieb" && <Betriebsdaten />}
+      {reiter === "mitarbeiter" && <Mitarbeiterverwaltung />}
+      {reiter === "bausteine" && <Bausteinverwaltung />}
     </section>
   );
 }

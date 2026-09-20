@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
+  Symbol,
   AUFTRAG_PHASEN,
   ansprechpartnerAnlegen,
   ansprechpartnerLoeschen,
@@ -18,7 +19,6 @@ import {
   type Protokollzeile,
   type Standort,
 } from "@werkboq/core";
-import { Symbol } from "../komponenten/Symbol";
 import { Verlaufsliste } from "../komponenten/Verlaufsliste";
 
 /**

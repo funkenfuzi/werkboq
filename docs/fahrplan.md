@@ -1,7 +1,12 @@
 # Fahrplan
 
-Entwicklung in Scheiben. Jede Scheibe geht durch Kern **und** Modul Elektro – damit
-die Modulschnittstelle laufend an einem echten Konsumenten geprüft wird.
+Entwicklung in Scheiben. Jede Scheibe geht durch Kern **und** mindestens ein
+Modul – damit die Modulschnittstelle laufend an einem echten Konsumenten
+geprüft wird.
+
+Wo die Grenze zwischen Kern und einzeln verkaufbaren Bausteinen liegt und
+welche Regeln dabei gelten, steht in [bausteine.md](bausteine.md). Neue
+Funktionen entstehen ab jetzt als Baustein, nicht im Kern.
 
 ## Scheibe 0 – Gerüst (erledigt)
 
@@ -50,12 +55,36 @@ Zeiterfassung zusammen.
 Offen: Monats- und Tagesansicht, Abwesenheiten aus Urlaubsplanung, Auslastung
 über die Woche, Termine aus der Auftragsakte heraus anlegen.
 
-## Scheibe 4 – Positionen und Material
+## Scheibe 3b – Kern und Bausteine trennen (erledigt)
+
+Die Grundfunktionen liegen jetzt in eigenen Paketen und sind einzeln
+verkaufbar: `baustein-zeiterfassung` und `baustein-planung` neben dem
+Fachmodul `modul-elektro`. Der Kern ist die Auftragsverwaltung und kennt
+keinen von ihnen.
+
+Zwei Sockel im Kern halten das zusammen, ohne dass ein Modul ein anderes
+kennt: Erweiterungspunkte reichen Oberfläche durch (der Zeiten-Block hängt an
+`auftrag.abschnitt`), Dienste reichen Daten durch (die Planung fragt
+`tagesstunden` und bekommt sie von der Zeiterfassung, wenn diese da ist).
+Fehlt der Nachbar, fehlt seine Zutat und sonst nichts — ohne Zeiterfassung
+zeigt der Dispo-Kalender nur die geplanten Stunden.
+
+Unter Einstellungen → Bausteine steht, was dieser Betrieb hat. Das ist ein
+Aufräumschalter, kein Kopierschutz; die Begründung steht in bausteine.md.
+
+Offen: die Collection-Definitionen stehen weiterhin doppelt — im Modul und
+gespiegelt in `einrichten.mjs`.
+
+## Scheibe 4 – Positionen und Material (Baustein)
 
 Leistungspositionen und Material am Auftrag. Zusammen mit den Stunden entstehen
 daraus später Angebot und Rechnung fast von selbst.
 
-## Scheibe 5 – Prüfbericht am Tablet
+Entsteht als eigener Baustein `baustein-material`, hängt am Auftrag aus dem
+Kern und bietet später einen Dienst `auftragspositionen` für die
+Verrechnung an.
+
+## Scheibe 5 – Prüfbericht am Tablet (Fachmodul Elektro)
 
 Prüfbericht nach OVE E 8101 als Formular, das offline vollständig ausfüllbar ist;
 PDF-Erzeugung; Anhang am Auftrag. Prüft die Offline-Warteschlange unter echten
@@ -91,7 +120,7 @@ an der der Server misst.
 Offen: Bereiche auch serverseitig je Collection durchsetzen (bisher steuern
 sie die Oberfläche), Zugang vorübergehend sperren statt entfernen.
 
-## Scheibe 7 – Angebot, Rechnung, Mahnwesen
+## Scheibe 7 – Angebot, Rechnung, Mahnwesen (Baustein)
 
 Angebots- und Rechnungs-PDF mit den österreichischen Pflichtangaben nach
 §11 UStG (UID, Firmenbuchnummer, fortlaufende Nummer, Leistungszeitraum),

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
+  Symbol,
   abmelden,
   aktuellerBenutzer,
   KERN_COLLECTIONS,
@@ -9,7 +10,6 @@ import {
   type Auftrag,
   type Kunde,
 } from "@werkboq/core";
-import { Symbol } from "./Symbol";
 
 /**
  * Kopfleiste mit globaler Suche.

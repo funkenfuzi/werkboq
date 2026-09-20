@@ -1,8 +1,13 @@
-import { pb } from "./client";
-import { schreiben } from "./offline";
-import { protokollieren } from "./protokoll";
-import { aktuellerBenutzer } from "../benutzer/rechte";
-import type { Basisdatensatz } from "./typen";
+import {
+  aktuellerBenutzer,
+  alsStunden,
+  pb,
+  protokollieren,
+  schreiben,
+  sicher,
+  spanne,
+  type Basisdatensatz,
+} from "@werkboq/core";
 
 /**
  * Zeiterfassung.
@@ -73,33 +78,13 @@ export const LEERE_ZEIT: ZeitEingabe = {
 };
 
 /** Minuten seit Mitternacht; -1 wenn die Angabe nicht lesbar ist. */
-export function minuten(uhrzeit?: string): number {
-  const treffer = /^(\d{1,2}):(\d{2})$/.exec((uhrzeit ?? "").trim());
-  if (!treffer) return -1;
-  const stunde = Number(treffer[1]);
-  const minute = Number(treffer[2]);
-  if (stunde > 23 || minute > 59) return -1;
-  return stunde * 60 + minute;
-}
-
 /**
  * Dauer eines Eintrags in Minuten, Pause bereits abgezogen.
  * Ein Ende vor dem Beginn gilt als über Mitternacht hinaus — Nachtarbeit im
  * Störungsdienst ist der Normalfall, nicht der Sonderfall.
  */
 export function dauer(z: Pick<Zeit, "beginn" | "ende" | "pause">): number {
-  const von = minuten(z.beginn);
-  const bis = minuten(z.ende);
-  if (von < 0 || bis < 0) return 0;
-  const roh = bis >= von ? bis - von : 24 * 60 - von + bis;
-  return Math.max(0, roh - (z.pause ?? 0));
-}
-
-/** "7:45" aus Minuten. */
-export function alsStunden(gesamtMinuten: number): string {
-  const stunden = Math.floor(gesamtMinuten / 60);
-  const rest = gesamtMinuten % 60;
-  return `${stunden}:${String(rest).padStart(2, "0")}`;
+  return Math.max(0, spanne(z.beginn, z.ende) - (z.pause ?? 0));
 }
 
 export function summe(zeiten: Zeit[]): number {
@@ -199,24 +184,6 @@ export async function zeitLoeschen(z: Zeit): Promise<void> {
   }
 }
 
-/** Montag der Woche, in der `tag` liegt — als "JJJJ-MM-TT". */
-export function wochenbeginn(tag = new Date()): string {
-  const d = new Date(tag);
-  const versatz = (d.getDay() + 6) % 7; // Montag = 0
-  d.setDate(d.getDate() - versatz);
-  return alsDatum(d);
-}
-
-export function alsDatum(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
-export function tagePlus(datum: string, tage: number): string {
-  const d = new Date(`${datum}T00:00:00`);
-  d.setDate(d.getDate() + tage);
-  return alsDatum(d);
-}
-
 /** Einträge nach Tag gruppiert. */
 export function nachTag(zeiten: Zeit[]): Map<string, Zeit[]> {
   const karte = new Map<string, Zeit[]>();
@@ -227,8 +194,4 @@ export function nachTag(zeiten: Zeit[]): Map<string, Zeit[]> {
     karte.set(tag, bisher);
   }
   return karte;
-}
-
-function sicher(text: string): string {
-  return text.replace(/["\\]/g, "");
 }

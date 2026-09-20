@@ -3,20 +3,22 @@ import {
   aktuellerBenutzer,
   alsStunden,
   auftraegeSuchen,
+  Symbol,
+  tagePlus,
+  wochenbeginn,
+  type Auftrag,
+} from "@werkboq/core";
+import {
   dauer,
   nachTag,
   summe,
   TAGESWARNUNG_STUNDEN,
-  tagePlus,
-  wochenbeginn,
   zeitenVonBis,
   zeitLoeschen,
   ZEITART_TEXT,
-  type Auftrag,
   type Zeit,
-} from "@werkboq/core";
-import { Symbol } from "../komponenten/Symbol";
-import { Zeitmaske } from "../komponenten/Zeitmaske";
+} from "../daten/zeiten";
+import { Zeitmaske } from "../erweiterungen/Zeitmaske";
 
 /**
  * Wochenansicht der eigenen Zeiten.

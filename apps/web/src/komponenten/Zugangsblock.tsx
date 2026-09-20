@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  Symbol,
   aktuellerBenutzer,
   bereicheSetzen,
   mindestlaengePasswort,
@@ -13,7 +14,6 @@ import {
   type Mitarbeiter,
   type Zugang,
 } from "@werkboq/core";
-import { Symbol } from "./Symbol";
 
 /**
  * Der Zugang eines Mitarbeiters.

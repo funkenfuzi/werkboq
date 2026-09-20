@@ -11,6 +11,9 @@ import { ELEKTRO_COLLECTIONS } from "./daten/collections";
 export const modulElektro: WerkboqModul = {
   id: "elektro",
   name: "Elektro",
+  beschreibung:
+    "Prüfberichte nach OVE E 8101, Anlagendokumentation und elektrotechnische Auftragsdaten.",
+  art: "fachmodul",
   version: "0.1.0",
   benoetigtKern: "^0.1.0",
 
@@ -27,7 +30,7 @@ export const modulElektro: WerkboqModul = {
   ],
 
   erweiterungen: {
-    "auftrag.reiter": AuftragElektroReiter,
+    "auftrag.abschnitt": AuftragElektroReiter,
   },
 
   initialisieren: () => {

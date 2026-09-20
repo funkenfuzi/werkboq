@@ -82,6 +82,10 @@ const KERN = [
       { name: "bic", type: "text" },
       { name: "bank", type: "text" },
       { name: "logo", type: "file", options: { maxSelect: 1, maxSize: 2097152, mimeTypes: ["image/png", "image/jpeg", "image/svg+xml"] } },
+      // Welche Bausteine dieser Betrieb gekauft hat. Leer heißt "alle" —
+      // ein Bestand ohne Eintrag soll nicht plötzlich dunkel werden.
+      // Kein Kopierschutz: siehe packages/core/src/modul/bausteine.ts.
+      { name: "bausteine", type: "json", options: { maxSize: 20000 } },
     ],
     deleteRule: null,
   },
@@ -153,25 +157,6 @@ const KERN = [
     indexes: ["CREATE UNIQUE INDEX idx_auftraege_nummer ON auftraege (nummer)"],
   },
   {
-    // Termine sind die Planung: wer soll wann wo sein. Was daraus wurde,
-    // steht in den Zeiten. Ein Termin ohne Auftrag ist innerbetrieblich
-    // (Urlaub, Schulung, Werkstatt), deshalb ist der Auftrag nicht Pflicht.
-    name: "termine",
-    schema: [
-      { name: "auftrag", type: "relation", options: { collectionId: "auftraege", maxSelect: 1, cascadeDelete: true } },
-      { name: "mitarbeiter", type: "relation", options: { collectionId: "mitarbeiter", maxSelect: 20 } },
-      { name: "titel", type: "text", required: true },
-      { name: "datum", type: "date", required: true },
-      { name: "beginn", type: "text", options: { max: 5 } },
-      { name: "ende", type: "text", options: { max: 5 } },
-      { name: "ganztags", type: "bool" },
-      { name: "art", type: "select", options: { maxSelect: 1, values: ["baustelle", "kundentermin", "werkstatt", "urlaub", "schulung", "sonstiges"] } },
-      { name: "ort", type: "text" },
-      { name: "notizen", type: "text" },
-    ],
-    indexes: ["CREATE INDEX idx_termine_datum ON termine (datum)"],
-  },
-  {
     name: "dokumente",
     schema: [
       { name: "auftrag", type: "relation", required: true, options: { collectionId: "auftraege", maxSelect: 1, cascadeDelete: true } },
@@ -201,6 +186,36 @@ const KERN = [
       { name: "notizen", type: "text" },
     ],
   },
+  {
+    // Änderungsverlauf. Wird beim Schreiben mitgeschrieben und nie geändert:
+    // updateRule und deleteRule bleiben gesperrt, sonst taugt er als Nachweis
+    // nichts. Löschen darf nur ein Admin über das Admin-UI.
+    name: "protokoll",
+    schema: [
+      { name: "bereich", type: "text", required: true },
+      { name: "datensatz", type: "text", required: true },
+      { name: "aktion", type: "select", required: true, options: { maxSelect: 1, values: ["anlegen", "aendern", "loeschen"] } },
+      { name: "zusammenfassung", type: "text", required: true },
+      { name: "benutzer", type: "relation", options: { collectionId: "users", maxSelect: 1 } },
+      { name: "benutzername", type: "text" },
+    ],
+    indexes: ["CREATE INDEX idx_protokoll_datensatz ON protokoll (datensatz)"],
+    listRule: angemeldet,
+    viewRule: angemeldet,
+    createRule: angemeldet,
+    updateRule: null,
+    deleteRule: null,
+  },
+];
+
+/**
+ * Collections der Bausteine — der Grundfunktionen, die einzeln verkauft
+ * werden. Angelegt werden sie immer: ob ein Betrieb den Baustein gekauft hat,
+ * entscheidet betrieb.bausteine in der Oberfläche, nicht das Schema. Eine
+ * leere Tabelle kostet nichts, ein nachträglich fehlendes Schema dagegen
+ * einen Ausfall, sobald jemand den Baustein dazukauft.
+ */
+const BAUSTEINE = [
   {
     // Zeiten. Ein Eintrag ohne Auftrag ist allgemeine Arbeitszeit, einer mit
     // Auftrag ist auf den Auftrag gebuchte Zeit — dieselbe Stunde zählt also
@@ -232,24 +247,23 @@ const KERN = [
     ],
   },
   {
-    // Änderungsverlauf. Wird beim Schreiben mitgeschrieben und nie geändert:
-    // updateRule und deleteRule bleiben gesperrt, sonst taugt er als Nachweis
-    // nichts. Löschen darf nur ein Admin über das Admin-UI.
-    name: "protokoll",
+    // Termine sind die Planung: wer soll wann wo sein. Was daraus wurde,
+    // steht in den Zeiten. Ein Termin ohne Auftrag ist innerbetrieblich
+    // (Urlaub, Schulung, Werkstatt), deshalb ist der Auftrag nicht Pflicht.
+    name: "termine",
     schema: [
-      { name: "bereich", type: "text", required: true },
-      { name: "datensatz", type: "text", required: true },
-      { name: "aktion", type: "select", required: true, options: { maxSelect: 1, values: ["anlegen", "aendern", "loeschen"] } },
-      { name: "zusammenfassung", type: "text", required: true },
-      { name: "benutzer", type: "relation", options: { collectionId: "users", maxSelect: 1 } },
-      { name: "benutzername", type: "text" },
+      { name: "auftrag", type: "relation", options: { collectionId: "auftraege", maxSelect: 1, cascadeDelete: true } },
+      { name: "mitarbeiter", type: "relation", options: { collectionId: "mitarbeiter", maxSelect: 20 } },
+      { name: "titel", type: "text", required: true },
+      { name: "datum", type: "date", required: true },
+      { name: "beginn", type: "text", options: { max: 5 } },
+      { name: "ende", type: "text", options: { max: 5 } },
+      { name: "ganztags", type: "bool" },
+      { name: "art", type: "select", options: { maxSelect: 1, values: ["baustelle", "kundentermin", "werkstatt", "urlaub", "schulung", "sonstiges"] } },
+      { name: "ort", type: "text" },
+      { name: "notizen", type: "text" },
     ],
-    indexes: ["CREATE INDEX idx_protokoll_datensatz ON protokoll (datensatz)"],
-    listRule: angemeldet,
-    viewRule: angemeldet,
-    createRule: angemeldet,
-    updateRule: null,
-    deleteRule: null,
+    indexes: ["CREATE INDEX idx_termine_datum ON termine (datum)"],
   },
 ];
 
@@ -289,7 +303,7 @@ try {
   const ids = new Map();
   ids.set("users", (await pb.collections.getOne("users")).id);
 
-  for (const c of [...KERN, ...MODULE]) {
+  for (const c of [...KERN, ...BAUSTEINE, ...MODULE]) {
     const schema = c.schema.map((f) => {
       if (f.type === "relation" && f.options?.collectionId && ids.has(f.options.collectionId)) {
         return { ...f, options: { ...f.options, collectionId: ids.get(f.options.collectionId) } };
@@ -364,7 +378,7 @@ async function datenbankPruefen() {
   const hatMarker = vorhanden.some((c) => c.name === MARKER);
 
   if (!hatMarker) {
-    const unsere = new Set([...KERN, ...MODULE].map((c) => c.name));
+    const unsere = new Set([...KERN, ...BAUSTEINE, ...MODULE].map((c) => c.name));
     const fremd = vorhanden
       .filter((c) => !c.system && c.name !== "users" && !unsere.has(c.name))
       .map((c) => c.name);

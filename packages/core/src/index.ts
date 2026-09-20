@@ -3,6 +3,10 @@
 
 export * from "./modul/typen";
 export * from "./modul/registry";
+export * from "./modul/dienste";
+export * from "./modul/bausteine";
+export * from "./ui/Symbol";
+export * from "./werkzeug/zeitrechnung";
 export * from "./daten/typen";
 export * from "./daten/client";
 export * from "./daten/offline";
@@ -10,9 +14,7 @@ export * from "./daten/kunden";
 export * from "./daten/auftraege";
 export * from "./daten/ansprechpartner";
 export * from "./daten/protokoll";
-export * from "./daten/zeiten";
 export * from "./daten/mitarbeiter";
 export * from "./daten/betrieb";
-export * from "./daten/termine";
 export * from "./benutzer/rechte";
 export * from "./benutzer/verwaltung";

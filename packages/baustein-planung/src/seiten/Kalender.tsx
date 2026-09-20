@@ -4,26 +4,26 @@ import {
   alleMitarbeiter,
   alsStunden,
   auftraegeSuchen,
-  dauer,
-  geplanteDauer,
+  dienst,
   kurz,
   PLANBARE_FUNKTIONEN,
+  Symbol,
   tagePlus,
+  wochenbeginn,
+  type Auftrag,
+  type Mitarbeiter,
+} from "@werkboq/core";
+import {
+  geplanteDauer,
   terminAendern,
   terminAnlegen,
   terminLoeschen,
   TERMINART_TEXT,
   termineVonBis,
   terminVerschieben,
-  wochenbeginn,
-  zeitenVonBisAlle,
-  type Auftrag,
-  type Mitarbeiter,
   type Termin,
   type Terminart,
-  type Zeit,
-} from "@werkboq/core";
-import { Symbol } from "../komponenten/Symbol";
+} from "../daten/termine";
 
 /**
  * Dispo-Kalender.
@@ -41,7 +41,11 @@ export function Kalender() {
   const [woche, setWoche] = useState(() => wochenbeginn());
   const [mitarbeiter, setMitarbeiter] = useState<Mitarbeiter[]>([]);
   const [termine, setTermine] = useState<Termin[]>([]);
-  const [zeiten, setZeiten] = useState<Zeit[]>([]);
+  // Gebuchte Minuten je "mitarbeiterId|Tag". Liefert die Zeiterfassung, wenn
+  // sie da ist. Ist sie es nicht, bleibt die Karte leer und die Spalte der
+  // gebuchten Stunden verschwindet — die Planung funktioniert ohne sie.
+  const [gebuchteStunden, setGebuchteStunden] = useState<Record<string, number>>({});
+  const stundenDienst = useMemo(() => dienst("tagesstunden"), []);
   const [auftraege, setAuftraege] = useState<Auftrag[]>([]);
   const [maske, setMaske] = useState<{ tag: string; mitarbeiter: string } | null>(null);
   const [gezogen, setGezogen] = useState<Termin | null>(null);
@@ -55,16 +59,16 @@ export function Kalender() {
     Promise.all([
       alleMitarbeiter(true),
       termineVonBis(woche, wochenende),
-      zeitenVonBisAlle(woche, wochenende).catch(() => [] as Zeit[]),
+      stundenDienst?.(woche, wochenende).catch(() => ({})) ?? Promise.resolve({}),
     ])
       .then(([m, t, z]) => {
         setMitarbeiter(m.filter((x) => PLANBARE_FUNKTIONEN.includes(x.funktion)));
         setTermine(t);
-        setZeiten(z);
+        setGebuchteStunden(z);
         setFehler(null);
       })
       .catch((e: unknown) => setFehler(e instanceof Error ? e.message : String(e)));
-  }, [woche, wochenende]);
+  }, [woche, wochenende, stundenDienst]);
 
   useEffect(laden, [laden]);
 
@@ -81,9 +85,7 @@ export function Kalender() {
 
   /** Gebuchte Minuten einer Person an einem Tag. */
   function gebucht(m: string, tag: string): number {
-    return zeiten
-      .filter((z) => z.mitarbeiter === m && z.datum.slice(0, 10) === tag)
-      .reduce((s, z) => s + dauer(z), 0);
+    return gebuchteStunden[`${m}|${tag}`] ?? 0;
   }
 
   async function ablegen(m: string, tag: string) {
@@ -137,8 +139,13 @@ export function Kalender() {
           </button>
         </div>
         <p className="wb-leer wb-legende">
-          <strong>P</strong> geplant, <strong>I</strong> gebucht. Termine lassen sich auf
-          andere Tage und Personen ziehen.
+          <strong>P</strong> geplant{stundenDienst ? ", " : ". "}
+          {stundenDienst && (
+            <>
+              <strong>I</strong> gebucht.{" "}
+            </>
+          )}
+          Termine lassen sich auf andere Tage und Personen ziehen.
         </p>
       </div>
 
@@ -248,10 +255,12 @@ export function Kalender() {
                             <abbr title="geplant">P</abbr>
                             {geplant > 0 ? alsStunden(geplant) : "–"}
                           </span>
-                          <span className="wb-plan__ist">
-                            <abbr title="gebucht">I</abbr>
-                            {ist > 0 ? alsStunden(ist) : "–"}
-                          </span>
+                          {stundenDienst && (
+                            <span className="wb-plan__ist">
+                              <abbr title="gebucht">I</abbr>
+                              {ist > 0 ? alsStunden(ist) : "–"}
+                            </span>
+                          )}
                           <button
                             type="button"
                             className="wb-plan__plus"

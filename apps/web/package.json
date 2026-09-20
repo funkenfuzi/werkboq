@@ -11,6 +11,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@werkboq/baustein-planung": "*",
+    "@werkboq/baustein-zeiterfassung": "*",
     "@werkboq/core": "*",
     "@werkboq/modul-elektro": "*",
     "@werkboq/tokens": "*",

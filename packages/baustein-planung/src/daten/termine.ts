@@ -1,8 +1,13 @@
-import { pb } from "./client";
-import { schreiben } from "./offline";
-import { protokollieren } from "./protokoll";
-import { alsStunden, dauer, minuten } from "./zeiten";
-import type { Basisdatensatz } from "./typen";
+import {
+  alsStunden,
+  minuten,
+  pb,
+  protokollieren,
+  schreiben,
+  sicher,
+  spanne,
+  type Basisdatensatz,
+} from "@werkboq/core";
 
 /**
  * Termine — die Planung.
@@ -68,7 +73,7 @@ export function geplanteDauer(t: Pick<Termin, "beginn" | "ende" | "ganztags">): 
   if (t.ganztags) return 8 * 60;
   if (!t.beginn || !t.ende) return 0;
   if (minuten(t.beginn) < 0 || minuten(t.ende) < 0) return 0;
-  return dauer({ beginn: t.beginn, ende: t.ende, pause: 0 });
+  return spanne(t.beginn, t.ende);
 }
 
 export function geplantAlsStunden(t: Pick<Termin, "beginn" | "ende" | "ganztags">): string {
@@ -149,8 +154,4 @@ function aufbereiten(eingabe: TerminEingabe): Record<string, unknown> {
     beginn: eingabe.ganztags ? "" : eingabe.beginn,
     ende: eingabe.ganztags ? "" : eingabe.ende,
   };
-}
-
-function sicher(text: string): string {
-  return text.replace(/["\\]/g, "");
 }

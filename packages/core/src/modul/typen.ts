@@ -10,11 +10,31 @@ import type { Bereich } from "../benutzer/rechte";
  * Schnittstelle – nicht über Änderungen am Kern. Ein zweites Modul
  * (z. B. Holz) muss ohne Umbau des Kerns anschließbar sein.
  */
+export type Modulart =
+  /** Grundfunktion, einzeln verkaufbar: Zeiterfassung, Planung, Verrechnung. */
+  | "baustein"
+  /** Fachliche Erweiterung für ein Gewerk: Elektro, später Holz, Sanitär. */
+  | "fachmodul";
+
 export interface WerkboqModul {
   /** Eindeutige Kennung, z. B. "elektro". Wird auch als Rechte-Bereich verwendet. */
   id: string;
   /** Anzeigename in der Oberfläche. */
   name: string;
+  /** Wofür der Baustein da ist — steht in den Einstellungen unter Bausteine. */
+  beschreibung?: string;
+  /**
+   * Baustein oder Fachmodul. Entscheidet nur, wie die Oberfläche gruppiert
+   * und was in den Einstellungen als eigener Posten erscheint.
+   */
+  art?: Modulart;
+  /**
+   * Andere Module, die dieses hier bereichert, wenn sie vorhanden sind.
+   * Nur zur Anzeige und Dokumentation: eine harte Abhängigkeit zwischen
+   * Modulen gibt es nicht und darf es nicht geben. Wer einen Nachbarn
+   * braucht, holt ihn über einen Dienst und kommt ohne ihn aus.
+   */
+  ergaenzt?: string[];
   /** Semver, unabhängig vom Kern. */
   version: string;
   /** Mindestversion des Kerns, die dieses Modul voraussetzt. */
@@ -42,6 +62,7 @@ export interface WerkboqModul {
 export interface ModulCollection {
   name: string;
   schema: Record<string, unknown>[];
+  indexes?: string[];
   listRule?: string | null;
   viewRule?: string | null;
   createRule?: string | null;
@@ -57,12 +78,14 @@ export interface NavEintrag {
   komponente: ComponentType;
   /** Nur sichtbar, wenn der Nutzer diesen Bereich hat. */
   bereich?: Bereich;
+  /** Setzt das Registry beim Ausliefern; Module geben das nicht selbst an. */
+  modulId?: string;
 }
 
 /** Stellen im Kern, an denen Module Oberfläche beisteuern können. */
 export type Erweiterungspunkt =
-  | "auftrag.reiter"        // zusätzlicher Reiter in der Auftragsansicht
-  | "auftrag.aktionen"      // Buttons in der Kopfzeile eines Auftrags
+  | "auftrag.abschnitt"     // eigener Block in der Auftragsakte, unter den Stammdaten
+  | "auftrag.aktionen"      // Schaltflächen in der Kopfzeile eines Auftrags
   | "kunde.reiter"          // zusätzlicher Reiter in der Kundenansicht
   | "dashboard.kachel";     // Kachel auf der Startseite
 

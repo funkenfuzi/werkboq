@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { kundenSuchen, type Kunde } from "@werkboq/core";
-import { Symbol } from "../komponenten/Symbol";
+import { Symbol, kundenSuchen, type Kunde } from "@werkboq/core";
 
 /**
  * Kundenliste als Arbeitstabelle.

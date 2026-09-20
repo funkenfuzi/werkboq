@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
+  Symbol,
   AUFTRAG_PHASEN,
   auftraegeSuchen,
   nachPhase,
@@ -11,7 +12,6 @@ import {
   type AuftragPhase,
   type Kunde,
 } from "@werkboq/core";
-import { Symbol } from "../komponenten/Symbol";
 
 /**
  * Aufträge — als Liste oder als Phasenbrett.

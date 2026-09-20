@@ -1122,3 +1122,75 @@ tbody .wb-plan__person {
 .wb-schalter input:disabled + span {
   color: var(--wb-text-muted);
 }
+
+/* --- Bausteine (Einstellungen) --- */
+.wb-warnkasten--ruhig {
+  border-color: var(--wb-border-strong);
+  background: var(--wb-surface-2);
+  color: var(--wb-text-muted);
+}
+
+.wb-warnkasten--ruhig svg { color: var(--wb-text-muted); }
+
+.wb-bausteine {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wb-space-5);
+  margin-bottom: var(--wb-space-5);
+}
+
+.wb-bausteine__titel {
+  margin: 0 0 var(--wb-space-3);
+  font-size: var(--wb-text-sm);
+  font-weight: 600;
+  color: var(--wb-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.wb-bausteine__liste {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--wb-space-3);
+}
+
+.wb-baustein {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--wb-space-3);
+  padding: var(--wb-space-4);
+  border: 1px solid var(--wb-border);
+  border-left: 3px solid var(--wb-border-strong);
+  border-radius: var(--wb-radius-md);
+  background: var(--wb-surface);
+  cursor: pointer;
+}
+
+.wb-baustein.ist-aktiv {
+  border-left-color: var(--wb-brand);
+}
+
+.wb-baustein input {
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  accent-color: var(--wb-brand);
+  flex: none;
+}
+
+.wb-baustein strong {
+  display: block;
+  margin-bottom: 2px;
+}
+
+.wb-baustein small {
+  display: block;
+  color: var(--wb-text-muted);
+  font-size: var(--wb-text-sm);
+}
+
+.wb-baustein__ergaenzt {
+  margin-top: var(--wb-space-2);
+  font-size: var(--wb-text-xs) !important;
+  font-style: italic;
+}

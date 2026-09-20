@@ -11,19 +11,26 @@ Ein modular aufgebauter Kern („Werkboq Basic") plus Fachmodule – das erste d
 
 ```
 apps/
-  web/                  Shell: registriert Module, Routing, Anmeldung
+  web/                  Hülle: registriert Module, Seitenleiste, Routen, Anmeldung
 packages/
-  core/                 Werkboq Basic – Modulschnittstelle, Datenmodell,
-                        PocketBase-Client, Offline-Warteschlange, Rechte
-  modul-elektro/        Fachmodul Elektro – Prüfberichte, Anlagendaten
+  core/                 Werkboq Basic – Kunde, Auftrag, Mitarbeiter, Zugänge,
+                        Modulschnittstelle, PocketBase-Client, Offline-Warteschlange
+  baustein-zeiterfassung/   Arbeitszeit und Auftragsstunden (§ 26 AZG)
+  baustein-planung/         Dispo-Kalender, Termine, Ressourcen
+  modul-elektro/            Fachmodul Elektro – Prüfberichte, Anlagendaten
   tokens/               Design-Tokens (Funkenfuzi-Farben, Barlow, hell/dunkel)
 server/
   start.mjs             startet PocketBase (lädt das Binary beim ersten Mal)
   einrichten.mjs        legt alle Collections an – idempotent, ersetzt Migrationen
+  pb_hooks/             die wenigen Endpunkte, die PocketBase nicht mitbringt
 scripts/
   start-mac.command     Doppelklick-Start macOS
   start-windows.bat     Doppelklick-Start Windows
 ```
+
+Der Kern ist die Auftragsverwaltung und kennt keinen Baustein. Was einzeln
+verkauft wird, welche Regeln zwischen den Modulen gelten und wie ein neuer
+Baustein angeschlossen wird, steht in [docs/bausteine.md](docs/bausteine.md).
 
 ## Erste Inbetriebnahme
 

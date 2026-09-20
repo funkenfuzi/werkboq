@@ -67,7 +67,8 @@ export interface Auftrag extends Basisdatensatz {
   ende?: string;
 }
 
-// Termin steht in daten/termine.ts — dort hängt auch die Planungslogik.
+// Termine stehen im Baustein Planung, Zeiten im Baustein Zeiterfassung.
+// Der Kern kennt beide nicht.
 
 export interface Dokument extends Basisdatensatz {
   auftrag: string;
@@ -85,13 +86,16 @@ export interface Foto extends Basisdatensatz {
   aufgenommen?: string;
 }
 
-/** Namen der Kern-Collections in PocketBase. */
+/**
+ * Namen der Kern-Collections in PocketBase.
+ * Nur der Kern steht hier. Bausteine bringen ihre eigenen mit — "zeiten" und
+ * "termine" gehören der Zeiterfassung bzw. der Planung, nicht dem Kern.
+ */
 export const KERN_COLLECTIONS = {
   benutzer: "users",
   kunden: "kunden",
   standorte: "standorte",
   auftraege: "auftraege",
-  termine: "termine",
   dokumente: "dokumente",
   fotos: "fotos",
 } as const;

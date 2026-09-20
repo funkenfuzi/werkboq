@@ -2,19 +2,21 @@ import { useEffect, useState, type FormEvent } from "react";
 import {
   alleMitarbeiter,
   alsDatum,
-  dauer,
-  eigenerMitarbeiter,
   alsStunden,
-  LEERE_ZEIT,
+  eigenerMitarbeiter,
   minuten,
+  type Auftrag,
+  type Mitarbeiter,
+} from "@werkboq/core";
+import {
+  dauer,
+  LEERE_ZEIT,
   zeitAnlegen,
   ZEITARTEN,
   ZEITART_TEXT,
-  type Auftrag,
-  type Mitarbeiter,
   type Zeitart,
   type ZeitEingabe,
-} from "@werkboq/core";
+} from "../daten/zeiten";
 
 /**
  * Maske für einen Zeiteintrag.

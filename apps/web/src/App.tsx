@@ -1,5 +1,12 @@
 import { BrowserRouter, NavLink, Route, Routes } from "react-router-dom";
-import { alleNavEintraege, darf, istAngemeldet } from "@werkboq/core";
+import {
+  alleNavEintraege,
+  darf,
+  istAngemeldet,
+  Symbol,
+  type NavEintrag,
+  type SymbolName,
+} from "@werkboq/core";
 import { Anmeldung } from "./seiten/Anmeldung";
 import { Start } from "./seiten/Start";
 import { Kunden } from "./seiten/Kunden";
@@ -8,12 +15,9 @@ import { KundeBearbeiten } from "./seiten/KundeBearbeiten";
 import { Auftraege } from "./seiten/Auftraege";
 import { AuftragAkte } from "./seiten/AuftragAkte";
 import { AuftragBearbeiten } from "./seiten/AuftragBearbeiten";
-import { Zeiten } from "./seiten/Zeiten";
-import { Kalender } from "./seiten/Kalender";
 import { Einstellungen } from "./seiten/Einstellungen";
 import { OfflineHinweis } from "./komponenten/OfflineHinweis";
 import { Kopfleiste } from "./komponenten/Kopfleiste";
-import { Symbol, type SymbolName } from "./komponenten/Symbol";
 
 /**
  * Hülle der Bürofassung.
@@ -23,15 +27,22 @@ import { Symbol, type SymbolName } from "./komponenten/Symbol";
  * eigene Fassung — eine geschrumpfte Bürooberfläche ist keine Baustellen-App.
  */
 
-/** Symbole für die Navigationseinträge der Module, nach ihrem symbol-Feld. */
+/** Symbole, die Module über ihr symbol-Feld anfordern können. */
 const MODULSYMBOLE: Record<string, SymbolName> = {
   pruefung: "pruefung",
+  uhr: "uhr",
+  kalender: "kalender",
 };
 
 export function App() {
   if (!istAngemeldet()) return <Anmeldung />;
 
-  const modulNav = alleNavEintraege().filter((n) => !n.bereich || darf(n.bereich));
+  // Die Seitenleiste kennt keinen Baustein namentlich. Sie fragt das Registry,
+  // was freigegeben ist und wofür der Angemeldete Rechte hat — mehr nicht.
+  const sichtbar = (n: NavEintrag) => !n.bereich || darf(n.bereich);
+  const bausteinNav = alleNavEintraege("baustein").filter(sichtbar);
+  const modulNav = alleNavEintraege("fachmodul").filter(sichtbar);
+  const alleRouten = [...bausteinNav, ...modulNav];
 
   return (
     <BrowserRouter>
@@ -59,16 +70,12 @@ export function App() {
                 Aufträge
               </NavLink>
             )}
-            {darf("technik") && (
-              <NavLink to="/planung">
-                <Symbol name="kalender" />
-                Planung
+            {bausteinNav.map((n) => (
+              <NavLink key={n.pfad} to={n.pfad}>
+                <Symbol name={MODULSYMBOLE[n.symbol ?? ""] ?? "auftraege"} />
+                {n.titel}
               </NavLink>
-            )}
-            <NavLink to="/zeiten">
-              <Symbol name="uhr" />
-              Meine Zeiten
-            </NavLink>
+            ))}
           </div>
 
           {modulNav.length > 0 && (
@@ -107,10 +114,8 @@ export function App() {
             <Route path="/auftraege/neu" element={<AuftragBearbeiten />} />
             <Route path="/auftraege/:id" element={<AuftragAkte />} />
             <Route path="/auftraege/:id/bearbeiten" element={<AuftragBearbeiten />} />
-            <Route path="/zeiten" element={<Zeiten />} />
-            <Route path="/planung" element={<Kalender />} />
             <Route path="/einstellungen" element={<Einstellungen />} />
-            {modulNav.map((n) => (
+            {alleRouten.map((n) => (
               <Route key={n.pfad} path={n.pfad} element={<n.komponente />} />
             ))}
           </Routes>
