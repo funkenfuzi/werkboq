@@ -16,6 +16,7 @@ export type KundeEingabe = Omit<Kunde, keyof { id: 1; created: 1; updated: 1 }>;
 export const LEERER_KUNDE: KundeEingabe = {
   name: "",
   intern: false,
+  unternehmer: false,
   strasse: "",
   plz: "",
   ort: "",

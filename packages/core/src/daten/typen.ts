@@ -22,6 +22,16 @@ export interface Kunde extends Basisdatensatz {
   name: string;
   /** Eigener Betrieb / eigene Vorhaben. */
   intern: boolean;
+  /**
+   * Unternehmer oder Verbraucher.
+   *
+   * Entscheidet mehr als es aussieht: Verzugszinsen sind zwischen
+   * Unternehmern gesetzlich viel höher als gegenüber Verbrauchern, die
+   * Betreibungskostenpauschale nach § 458 UGB gibt es nur im B2B, und der
+   * Übergang der Steuerschuld bei Bauleistungen setzt einen Unternehmer
+   * voraus.
+   */
+  unternehmer?: boolean;
   strasse?: string;
   plz?: string;
   ort?: string;

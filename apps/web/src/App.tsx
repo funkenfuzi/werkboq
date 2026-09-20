@@ -43,10 +43,15 @@ export function App() {
 
   // Die Seitenleiste kennt keinen Baustein namentlich. Sie fragt das Registry,
   // was freigegeben ist und wofür der Angemeldete Rechte hat — mehr nicht.
-  const sichtbar = (n: NavEintrag) => !n.bereich || darf(n.bereich);
-  const bausteinNav = alleNavEintraege("baustein").filter(sichtbar);
-  const modulNav = alleNavEintraege("fachmodul").filter(sichtbar);
-  const alleRouten = [...bausteinNav, ...modulNav];
+  const erlaubt = (n: NavEintrag) => !n.bereich || darf(n.bereich);
+  // Routen und Seitenleiste sind nicht dasselbe: Unterseiten wie /belege/:id
+  // brauchen eine Route, haben aber in der Leiste nichts verloren.
+  const alleRouten = [
+    ...alleNavEintraege("baustein"),
+    ...alleNavEintraege("fachmodul"),
+  ].filter(erlaubt);
+  const bausteinNav = alleNavEintraege("baustein").filter((n) => erlaubt(n) && !n.versteckt);
+  const modulNav = alleNavEintraege("fachmodul").filter((n) => erlaubt(n) && !n.versteckt);
 
   return (
     <BrowserRouter>

@@ -75,14 +75,21 @@ Aufräumschalter, kein Kopierschutz; die Begründung steht in bausteine.md.
 Offen: die Collection-Definitionen stehen weiterhin doppelt — im Modul und
 gespiegelt in `einrichten.mjs`.
 
-## Scheibe 4 – Positionen und Material (Baustein)
+## Scheibe 4 – Positionen und Material (erledigt)
 
-Leistungspositionen und Material am Auftrag. Zusammen mit den Stunden entstehen
-daraus später Angebot und Rechnung fast von selbst.
+Baustein `material`: Leistungs- und Materialkatalog mit Verkaufs- und
+Einkaufspreis, Positionen am Auftrag mit Menge, Einheit, Rabatt und
+Steuersatz, Aufstellung netto je Steuersatz. Katalogpreise werden beim
+Einfügen kopiert, nicht verknüpft — ein späterer Preiswechsel darf einen
+halbfertigen Auftrag nicht rückwirkend verteuern.
 
-Entsteht als eigener Baustein `baustein-material`, hängt am Auftrag aus dem
-Kern und bietet später einen Dienst `auftragspositionen` für die
-Verrechnung an.
+Geld steht durchgehend als Cent in ganzen Zahlen, und die Steuer wird je
+Steuersatz aus der gerundeten Nettosumme gerechnet. Beides steht unter Test
+(`npm test`), weil ein stiller Rundungsfehler hier Geld kostet.
+
+Offen: Lagerbestände (bewusst nicht vorgesehen), Preislisten je Kunde,
+Import einer Großhändlerdatei.
+
 
 ## Scheibe 5 – Prüfbericht am Tablet (Fachmodul Elektro)
 
@@ -120,17 +127,60 @@ an der der Server misst.
 Offen: Bereiche auch serverseitig je Collection durchsetzen (bisher steuern
 sie die Oberfläche), Zugang vorübergehend sperren statt entfernen.
 
-## Scheibe 7 – Angebot, Rechnung, Mahnwesen (Baustein)
+## Scheibe 7 – Verrechnung und Mahnwesen (erledigt)
 
-Angebots- und Rechnungs-PDF mit den österreichischen Pflichtangaben nach
-§11 UStG (UID, Firmenbuchnummer, fortlaufende Nummer, Leistungszeitraum),
-Zahlungsziel und dreistufiges Mahnwesen.
+Baustein `verrechnung`: Angebot, Auftragsbestätigung, Rechnung und
+Gutschrift in einer Collection, weil sie dieselbe Gestalt haben und sich nur
+in Nummernkreis, Pflichtangaben und erlaubten Statuswechseln unterscheiden.
 
-Bewusst **nicht** vorgesehen: Registrierkasse und Buchhaltung. Die
-Registrierkassenpflicht greift ab 15.000 EUR Jahresumsatz netto und zugleich
-7.500 EUR Barumsätze netto und verlangt RKSV-Signatur, Datenerfassungsprotokoll
-und Zertifizierung — das ist ein eigenes Produkt. Gebucht wird beim
-Steuerberater; Werkboq liefert einen Export.
+Zwei Festlegungen tragen das Ganze:
+
+*Positionen werden eingefroren.* Ein Beleg kopiert die Zeilen in eigene
+Datensätze. Ändert danach jemand die Auftragsposition, bleibt die Rechnung,
+wie sie war — sie ist ein Dokument, das aus dem Haus gegangen ist, kein
+Fenster in den aktuellen Datenbestand.
+
+*Belege werden festgeschrieben.* Ab dem Festschreiben ändert sich nichts
+mehr, und gelöscht werden kann ein Beleg überhaupt nicht (`deleteRule: null`).
+Korrektur heißt Storno per Gutschrift mit Gegenvorzeichen; beide Belege
+bleiben stehen.
+
+Enthalten: Pflichtangaben nach § 11 UStG als Prüfliste, die vor dem
+Festschreiben sagt, was fehlt; Kleinbetragsrechnung bis 400 € brutto nach
+§ 11 Abs 6; Steuersätze 20/13/10 und die steuerfreien Fälle, allen voran der
+Übergang der Steuerschuld bei Bauleistungen nach § 19 Abs 1a UStG (keine USt
+ausgewiesen, Pflichthinweis gedruckt, UID des Empfängers verlangt);
+Leistungszeitraum, Zahlungsziel, Skonto; Druckansicht als A4-Seite mit
+Druckstil statt PDF-Bibliothek.
+
+Zahlungen und offene Posten: Teilzahlungen sind der Normalfall, der Beleg
+gilt erst als bezahlt, wenn die Summe reicht. Die Liste der offenen Posten
+zeigt Verzug in Tagen.
+
+Mahnwesen dreistufig: Zahlungserinnerung, 1. Mahnung, 2. Mahnung. Zinsen
+taggenau auf 365 Tage — zwischen Unternehmern 10,73 % nach § 456 UGB
+(Basiszinssatz 1,53 plus 9,2 Punkte, Stand 2026), gegenüber Verbrauchern 4 %
+nach § 1000 ABGB. Betreibungskostenpauschale 40 € nach § 458 UGB, nur im B2B
+und nur einmal je Forderung. Vorschläge sind änderbar; ob der Kunde
+Unternehmer ist, steht in seinen Stammdaten.
+
+Offen: E-Rechnung als XML (ebInterface bzw. EN 16931). In Österreich gibt es
+2026 noch keine B2B-Pflicht; EU-weit wird sie ab 1.7.2030 für
+grenzüberschreitende Rechnungen verlangt. Das Datenmodell trägt es, die
+Ausgabe fehlt. Ebenfalls offen: das PDF automatisch am Auftrag ablegen,
+Sammelrechnung über mehrere Aufträge, Teilrechnung mit Anzahlung.
+
+## Scheibe 8 – Export für den Steuerberater
+
+Ausgangsrechnungsjournal und Zahlungen als CSV in einem Aufbau, den BMD und
+RZL einlesen können. Kein Kontenrahmen, keine UVA, kein Abschluss —
+gebucht wird beim Steuerberater.
+
+## Scheibe 9 – Verträge (Baustein)
+
+Wartungsverträge mit Intervall und wiederkehrender Verrechnung,
+Vertragsdokumente am Kunden mit Laufzeit, Kündigungsfrist und Erinnerung vor
+Ablauf, Auftragsbestätigung aus dem angenommenen Angebot.
 
 ## Vor der ersten echten Inbetriebnahme
 

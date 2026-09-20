@@ -28,6 +28,13 @@ export interface Betrieb extends Basisdatensatz {
   bic?: string;
   bank?: string;
   logo?: string;
+  /**
+   * Verrechnungssatz für eine Arbeitsstunde, netto in Cent.
+   * Steht bei den Betriebsstammdaten und nicht im Baustein Verrechnung: ein
+   * Handwerksbetrieb hat einen Stundensatz, gleich welche Bausteine er
+   * gekauft hat — wie die IBAN oder die UID.
+   */
+  stundensatz?: number;
 }
 
 export type BetriebEingabe = Omit<Betrieb, keyof Basisdatensatz>;
@@ -48,6 +55,7 @@ export const LEERER_BETRIEB: BetriebEingabe = {
   iban: "",
   bic: "",
   bank: "",
+  stundensatz: 0,
 };
 
 export async function betriebLaden(): Promise<Betrieb | null> {

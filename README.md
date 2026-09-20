@@ -17,6 +17,8 @@ packages/
                         Modulschnittstelle, PocketBase-Client, Offline-Warteschlange
   baustein-zeiterfassung/   Arbeitszeit und Auftragsstunden (§ 26 AZG)
   baustein-planung/         Dispo-Kalender, Termine, Ressourcen
+  baustein-material/        Katalog und Positionen am Auftrag
+  baustein-verrechnung/     Angebot, Rechnung, Zahlungen, Mahnwesen
   modul-elektro/            Fachmodul Elektro – Prüfberichte, Anlagendaten
   tokens/               Design-Tokens (Funkenfuzi-Farben, Barlow, hell/dunkel)
 server/
@@ -32,24 +34,39 @@ Der Kern ist die Auftragsverwaltung und kennt keinen Baustein. Was einzeln
 verkauft wird, welche Regeln zwischen den Modulen gelten und wie ein neuer
 Baustein angeschlossen wird, steht in [docs/bausteine.md](docs/bausteine.md).
 
-## Erste Inbetriebnahme
+## Starten
 
 ```bash
-npm install
-cp .env.example .env          # Zugangsdaten eintragen, siehe unten
-npm run server                # PocketBase auf http://127.0.0.1:8095
+cp .env.example .env          # beim ersten Mal: Zugangsdaten eintragen, siehe unten
+npm start
 ```
+
+Das war alles. `npm start` macht die Reihenfolge selbst und in einem Fenster:
+
+1. `npm install`, falls sich die Paketliste geändert hat
+2. PocketBase starten und warten, bis sie antwortet
+3. `npm run einrichten` — gleicht das Schema ab, idempotent
+4. Vite starten, Oberfläche auf `http://localhost:5173`
+
+Strg+C beendet beides. Läuft der Vite-Server, landet jede geänderte Datei ohne
+Zutun im Browser — für den Alltag heißt das: `npm start` einmal am Morgen, den
+Rest erledigt das Neuladen von selbst.
 
 Werkboq läuft bewusst auf **Port 8095**, nicht auf dem PocketBase-Standard 8090 —
 damit eine andere lokal laufende PocketBase nicht versehentlich getroffen wird.
-
-Der Serverstart legt den PocketBase-Admin aus `PB_ADMIN_*` gleich selbst an — das
+Der Serverstart legt den PocketBase-Admin aus `PB_ADMIN_*` gleich selbst an; das
 Admin-UI unter `http://127.0.0.1:8095/_/` brauchst du nur, wenn du Daten von Hand
-ansehen willst. Dann in einem zweiten Terminal:
+ansehen willst.
+
+### Die Teile einzeln
+
+Wenn etwas klemmt, lassen sich die Schritte weiterhin von Hand ausführen:
 
 ```bash
-npm run einrichten            # Collections anlegen / abgleichen, ersten Benutzer anlegen
-npm run dev                   # Oberfläche auf http://localhost:5173
+npm run server                # nur PocketBase
+npm run einrichten            # nur das Schema abgleichen (Server muss laufen)
+npm run dev                   # nur die Oberfläche
+npm test                      # Rechentests, laufen in einer Sekunde
 ```
 
 `npm run einrichten` ist beliebig oft ausführbar: bestehende Felder bleiben erhalten,

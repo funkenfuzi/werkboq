@@ -8,6 +8,7 @@
     "apps/*"
   ],
   "scripts": {
+    "start": "node scripts/start.mjs",
     "dev": "npm run dev --workspace=apps/web",
     "build": "npm run build --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",

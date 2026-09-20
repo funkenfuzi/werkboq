@@ -86,6 +86,8 @@ const KERN = [
       // ein Bestand ohne Eintrag soll nicht plötzlich dunkel werden.
       // Kein Kopierschutz: siehe packages/core/src/modul/bausteine.ts.
       { name: "bausteine", type: "json", options: { maxSize: 20000 } },
+      // Verrechnungssatz für eine Arbeitsstunde, netto in Cent.
+      { name: "stundensatz", type: "number", options: { min: 0, noDecimal: true } },
     ],
     deleteRule: null,
   },
@@ -113,6 +115,9 @@ const KERN = [
     schema: [
       { name: "name", type: "text", required: true },
       { name: "intern", type: "bool" },
+      // Unternehmer oder Verbraucher — entscheidet über Verzugszinssatz,
+      // Betreibungskostenpauschale und Übergang der Steuerschuld.
+      { name: "unternehmer", type: "bool" },
       { name: "strasse", type: "text" },
       { name: "plz", type: "text" },
       { name: "ort", type: "text" },
@@ -306,6 +311,92 @@ const BAUSTEINE = [
     ],
     indexes: ["CREATE INDEX idx_positionen_auftrag ON positionen (auftrag, pos)"],
   },
+  {
+    // Belege: Angebot, Auftragsbestätigung, Rechnung, Gutschrift.
+    // Kein Löschen — eine fortlaufende Rechnungsnummer verträgt keine
+    // Lücken, und § 132 BAO verlangt sieben Jahre Aufbewahrung. Entwürfe
+    // räumt die Anwendung über einen eigenen Weg weg, der prüft, dass der
+    // Beleg noch nicht festgeschrieben ist.
+    name: "belege",
+    schema: [
+      { name: "belegart", type: "select", required: true, options: { maxSelect: 1, values: ["angebot", "auftragsbestaetigung", "rechnung", "gutschrift"] } },
+      { name: "nummer", type: "text", required: true, options: { max: 30 } },
+      { name: "kunde", type: "relation", required: true, options: { collectionId: "kunden", maxSelect: 1 } },
+      { name: "auftrag", type: "relation", options: { collectionId: "auftraege", maxSelect: 1 } },
+      { name: "status", type: "select", required: true, options: { maxSelect: 1, values: ["entwurf", "offen", "angenommen", "abgelehnt", "bezahlt", "storniert"] } },
+      { name: "datum", type: "date", required: true },
+      { name: "festgeschrieben", type: "date" },
+      { name: "leistungVon", type: "date" },
+      { name: "leistungBis", type: "date" },
+      { name: "empfaengerName", type: "text", required: true },
+      { name: "empfaengerAnschrift", type: "text" },
+      { name: "empfaengerUid", type: "text", options: { max: 20 } },
+      { name: "steuerfrei", type: "select", required: true, options: { maxSelect: 1, values: ["keiner", "bauleistung", "kleinunternehmer", "innergemeinschaftlich", "ausfuhr"] } },
+      { name: "zahlungszielTage", type: "number", options: { min: 0, noDecimal: true } },
+      { name: "skontoProzent", type: "number", options: { min: 0, max: 100 } },
+      { name: "skontoTage", type: "number", options: { min: 0, noDecimal: true } },
+      { name: "kopftext", type: "text" },
+      { name: "fusstext", type: "text" },
+      { name: "netto", type: "number", required: true, options: { noDecimal: true } },
+      { name: "ust", type: "number", required: true, options: { noDecimal: true } },
+      { name: "brutto", type: "number", required: true, options: { noDecimal: true } },
+      { name: "nettoJeSatz", type: "json", options: { maxSize: 4000 } },
+      { name: "storniert", type: "relation", options: { collectionId: "belege", maxSelect: 1 } },
+      { name: "folgebeleg", type: "relation", options: { collectionId: "belege", maxSelect: 1 } },
+    ],
+    indexes: [
+      "CREATE UNIQUE INDEX idx_belege_nummer ON belege (nummer)",
+      "CREATE INDEX idx_belege_kunde ON belege (kunde)",
+      "CREATE INDEX idx_belege_art_status ON belege (belegart, status)",
+    ],
+    deleteRule: null,
+  },
+  {
+    // Eingefrorene Kopie der Positionen zum Zeitpunkt der Belegerstellung.
+    // Ändert jemand später die Auftragsposition, bleibt die Rechnung, wie
+    // sie war — sie ist ein Dokument, kein Fenster in den aktuellen Stand.
+    name: "belegpositionen",
+    schema: [
+      { name: "beleg", type: "relation", required: true, options: { collectionId: "belege", maxSelect: 1, cascadeDelete: true } },
+      { name: "pos", type: "number", required: true, options: { min: 0, noDecimal: true } },
+      { name: "art", type: "text" },
+      { name: "bezeichnung", type: "text", required: true },
+      { name: "beschreibung", type: "text" },
+      { name: "menge", type: "number", required: true },
+      { name: "einheit", type: "text", options: { max: 12 } },
+      { name: "einzelpreis", type: "number", required: true, options: { noDecimal: true } },
+      { name: "rabatt", type: "number", options: { min: 0, max: 100 } },
+      { name: "ustsatz", type: "number", required: true, options: { min: 0, max: 100, noDecimal: true } },
+      { name: "betrag", type: "number", required: true, options: { noDecimal: true } },
+      { name: "quelle", type: "text" },
+    ],
+    indexes: ["CREATE INDEX idx_belegpositionen_beleg ON belegpositionen (beleg, pos)"],
+    deleteRule: null,
+  },
+  {
+    name: "zahlungen",
+    schema: [
+      { name: "beleg", type: "relation", required: true, options: { collectionId: "belege", maxSelect: 1 } },
+      { name: "datum", type: "date", required: true },
+      { name: "betrag", type: "number", required: true, options: { noDecimal: true } },
+      { name: "art", type: "select", required: true, options: { maxSelect: 1, values: ["ueberweisung", "bar", "karte", "verrechnung"] } },
+      { name: "notiz", type: "text" },
+    ],
+    indexes: ["CREATE INDEX idx_zahlungen_beleg ON zahlungen (beleg)"],
+  },
+  {
+    name: "mahnungen",
+    schema: [
+      { name: "beleg", type: "relation", required: true, options: { collectionId: "belege", maxSelect: 1 } },
+      { name: "stufe", type: "number", required: true, options: { min: 1, max: 3, noDecimal: true } },
+      { name: "datum", type: "date", required: true },
+      { name: "frist", type: "date", required: true },
+      { name: "zinsen", type: "number", options: { noDecimal: true } },
+      { name: "spesen", type: "number", options: { noDecimal: true } },
+      { name: "text", type: "text" },
+    ],
+    indexes: ["CREATE INDEX idx_mahnungen_beleg ON mahnungen (beleg, stufe)"],
+  },
 ];
 
 /** Modul-Collections: jedes Modul liefert seine in <modul>/src/daten/collections.ts;
@@ -342,17 +433,49 @@ try {
   // angegeben; PocketBase erwartet die interne Kennung. Die Zuordnung füllt
   // sich beim Anlegen — außer für "users", das es schon gibt.
   const ids = new Map();
-  ids.set("users", (await pb.collections.getOne("users")).id);
+  // Alles, was es schon gibt, vorab eintragen. Dann lösen sich Verknüpfungen
+  // auf bestehende Collections gleich im ersten Durchgang auf, und eine
+  // fertig eingerichtete Datenbank braucht den zweiten gar nicht.
+  for (const c of await pb.collections.getFullList()) ids.set(c.name, c.id);
 
-  for (const c of [...KERN, ...BAUSTEINE, ...MODULE]) {
-    const schema = c.schema.map((f) => {
-      if (f.type === "relation" && f.options?.collectionId && ids.has(f.options.collectionId)) {
-        return { ...f, options: { ...f.options, collectionId: ids.get(f.options.collectionId) } };
+  const alle = [...KERN, ...BAUSTEINE, ...MODULE];
+
+  /**
+   * Zwei Durchgänge.
+   *
+   * Eine Collection kann auf sich selbst zeigen — "belege.storniert" auf den
+   * stornierten Beleg — und PocketBase kennt beim Anlegen deren Kennung noch
+   * nicht. Solche Felder bleiben im ersten Durchgang weg; im zweiten stehen
+   * alle Kennungen fest und collectionAbgleichen hängt sie an. Idempotent,
+   * also kostet der zweite Durchgang bei einer fertigen Datenbank nichts.
+   */
+  const zurueckgestellt = new Set();
+
+  for (const durchgang of [1, 2]) {
+    for (const c of alle) {
+      const schema = [];
+      for (const f of c.schema) {
+        if (f.type === "relation" && f.options?.collectionId) {
+          const kennung = ids.get(f.options.collectionId);
+          if (!kennung) {
+            // Ziel noch nicht angelegt: im ersten Durchgang überspringen.
+            zurueckgestellt.add(`${c.name}.${f.name}`);
+            continue;
+          }
+          schema.push({ ...f, options: { ...f.options, collectionId: kennung } });
+          continue;
+        }
+        schema.push(f);
       }
-      return f;
-    });
-    const id = await collectionAbgleichen({ ...standardRegeln, ...c, schema });
-    ids.set(c.name, id);
+      const id = await collectionAbgleichen({ ...standardRegeln, ...c, schema }, durchgang === 1);
+      ids.set(c.name, id);
+    }
+    if (zurueckgestellt.size === 0) break;
+    if (durchgang === 1 && zurueckgestellt.size > 0) {
+      console.log(
+        `Zweiter Durchgang für Verknüpfungen auf sich selbst: ${[...zurueckgestellt].join(", ")}`,
+      );
+    }
   }
 
   // Ersten Anwendungsbenutzer anlegen, falls gewünscht und noch keiner da ist
@@ -651,7 +774,7 @@ function farbeFuer(name) {
   return palette[summe % palette.length];
 }
 
-async function collectionAbgleichen(def) {
+async function collectionAbgleichen(def, still = false) {
   let vorhanden = null;
   try {
     vorhanden = await pb.collections.getOne(def.name);
@@ -687,7 +810,7 @@ async function collectionAbgleichen(def) {
     updateRule: def.updateRule,
     deleteRule: def.deleteRule,
   });
-  console.log(`${def.name}: abgeglichen`);
+  if (!still) console.log(`${def.name}: abgeglichen`);
   return vorhanden.id;
 }
 

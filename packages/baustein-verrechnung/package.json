@@ -1,0 +1,13 @@
+{
+  "name": "@werkboq/baustein-verrechnung",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Werkboq Baustein Verrechnung – Angebot, Auftragsbestätigung, Rechnung, Zahlungen, Mahnwesen",
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "typecheck": "tsc --noEmit", "test": "tsx --test test/*.test.ts" },
+  "dependencies": { "@werkboq/core": "*", "react": "^18.3.1", "react-router-dom": "^6.28.0" },
+  "devDependencies": { "@types/react": "^18.3.12", "tsx": "^4.19.2", "typescript": "^5.6.3" }
+}

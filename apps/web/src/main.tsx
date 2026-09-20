@@ -8,6 +8,7 @@ import { bausteineLaden, modulRegistrieren, moduleStarten, offlineStarten } from
 import bausteinZeiterfassung from "@werkboq/baustein-zeiterfassung";
 import bausteinPlanung from "@werkboq/baustein-planung";
 import bausteinMaterial from "@werkboq/baustein-material";
+import bausteinVerrechnung from "@werkboq/baustein-verrechnung";
 import modulElektro from "@werkboq/modul-elektro";
 import { App } from "./App";
 
@@ -23,6 +24,7 @@ async function start() {
   await modulRegistrieren(bausteinZeiterfassung);
   await modulRegistrieren(bausteinPlanung);
   await modulRegistrieren(bausteinMaterial);
+  await modulRegistrieren(bausteinVerrechnung);
   await modulRegistrieren(modulElektro);
 
   // Erst wissen, was freigegeben ist, dann starten: ein nicht gekaufter

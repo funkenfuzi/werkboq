@@ -21,10 +21,10 @@ Grundfunktionen, die einzeln verkauft werden. `art: "baustein"`.
 
 | Baustein | Collections | hängt ab von | bereichert |
 |---|---|---|---|
-| Zeiterfassung | `zeiten` | Mitarbeiter (Kern) | Planung, später Verrechnung |
+| Zeiterfassung | `zeiten` | Mitarbeiter (Kern) | Planung, Verrechnung |
 | Planung | `termine` | Mitarbeiter (Kern) | — |
-| Material und Positionen (Scheibe 4) | offen | Auftrag (Kern) | Verrechnung |
-| Verrechnung (Scheibe 7) | offen | Auftrag (Kern) | — |
+| Material | `artikel`, `positionen` | Auftrag (Kern) | Verrechnung |
+| Verrechnung | `belege`, `belegpositionen`, `zahlungen`, `mahnungen` | Kunde, Auftrag (Kern) | — |
 
 Die Zeiterfassung ist allein verkaufbar: eine Arbeitszeitaufzeichnung nach
 § 26 AZG braucht jeder Betrieb. Ein Zeiteintrag ohne Auftrag ist allgemeine
@@ -57,7 +57,13 @@ Zeiten-Block in der Auftragsakte ist so gebaut: `auftrag.abschnitt`.
 *Dienste* reichen Daten durch (`packages/core/src/modul/dienste.ts`). Ein
 Modul bietet eine Funktion unter einem Namen an, ein anderes fragt danach.
 Die Planung fragt `tagesstunden`; ist die Zeiterfassung dabei, antwortet sie,
-sonst niemand.
+sonst niemand. Bisher vergeben:
+
+| Dienst | Anbieter | Nutzer |
+|---|---|---|
+| `tagesstunden` | Zeiterfassung | Planung |
+| `auftragsstunden` | Zeiterfassung | Verrechnung |
+| `auftragspositionen` | Material | Verrechnung |
 
 Der Kern kennt die *Namen und Formen* beider — so wie eine Steckdose die Form
 des Steckers kennt, aber kein Gerät. Anbieter kennt er keine.
@@ -109,6 +115,8 @@ Bausteine verlieren keine Daten.
 packages/core                     Kern
 packages/baustein-zeiterfassung   Baustein
 packages/baustein-planung         Baustein
+packages/baustein-material        Baustein
+packages/baustein-verrechnung     Baustein
 packages/modul-elektro            Fachmodul
 apps/web                          Hülle: Seitenleiste, Routen, Kernseiten
 server/einrichten.mjs             Schema: KERN, BAUSTEINE, MODULE
@@ -118,6 +126,26 @@ server/einrichten.mjs             Schema: KERN, BAUSTEINE, MODULE
 die TypeScript-Dateien nicht direkt laden kann. Das bleibt ein offener Punkt
 (siehe `fahrplan.md`): eine Definition an zwei Stellen ist eine Stelle zu
 viel.
+
+## Was die Verrechnung bewusst nicht tut
+
+**Keine Buchhaltung.** Kein Kontenrahmen, keine UVA, kein Jahresabschluss.
+Werkboq hält fest, was fakturiert und was bezahlt wurde, und liefert einen
+Export. Gebucht wird beim Steuerberater. Alles andere hieße, als
+Softwareanbieter für fremde Buchführung zu haften.
+
+**Keine Registrierkasse.** Die Registrierkassenpflicht greift ab 15.000 €
+Jahresumsatz netto und zugleich 7.500 € Barumsatz netto und verlangt
+RKSV-Signatureinheit, Datenerfassungsprotokoll und Zertifizierung. Wer das
+braucht, braucht ein zertifiziertes Kassensystem — und Werkboq soll das sagen
+statt es vorzutäuschen.
+
+**Kein Löschen von Belegen.** Weder in der Oberfläche noch über die API:
+`belege` und `belegpositionen` haben `deleteRule: null`. Eine fortlaufende
+Rechnungsnummer ist nur dann eine, wenn dazwischen nichts verschwindet, und
+§ 132 BAO verlangt sieben Jahre Aufbewahrung. Ein Entwurf lässt sich
+wegräumen, solange er nicht festgeschrieben ist; danach ist die Korrektur
+eine Gutschrift.
 
 ## Beim nächsten Baustein
 

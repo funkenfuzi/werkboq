@@ -78,6 +78,11 @@ export interface NavEintrag {
   komponente: ComponentType;
   /** Nur sichtbar, wenn der Nutzer diesen Bereich hat. */
   bereich?: Bereich;
+  /**
+   * Route ja, Eintrag in der Seitenleiste nein.
+   * Für Unterseiten wie /belege/:id, die über eine Liste erreicht werden.
+   */
+  versteckt?: boolean;
   /** Setzt das Registry beim Ausliefern; Module geben das nicht selbst an. */
   modulId?: string;
 }
