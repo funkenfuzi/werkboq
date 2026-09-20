@@ -2,6 +2,8 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import "@werkboq/tokens/tokens.css";
 import "./app.css";
+import "./gestaltung/huelle.css";
+import "./gestaltung/akte.css";
 import { modulRegistrieren, offlineStarten } from "@werkboq/core";
 import modulElektro from "@werkboq/modul-elektro";
 import { App } from "./App";

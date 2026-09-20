@@ -1,10 +1,32 @@
-import { BrowserRouter, Link, Route, Routes } from "react-router-dom";
+import { BrowserRouter, NavLink, Route, Routes } from "react-router-dom";
 import { alleNavEintraege, darf, istAngemeldet } from "@werkboq/core";
 import { Anmeldung } from "./seiten/Anmeldung";
 import { Start } from "./seiten/Start";
 import { Kunden } from "./seiten/Kunden";
+import { KundeAkte } from "./seiten/KundeAkte";
+import { KundeBearbeiten } from "./seiten/KundeBearbeiten";
 import { Auftraege } from "./seiten/Auftraege";
+import { AuftragAkte } from "./seiten/AuftragAkte";
+import { AuftragBearbeiten } from "./seiten/AuftragBearbeiten";
+import { Zeiten } from "./seiten/Zeiten";
+import { Kalender } from "./seiten/Kalender";
+import { Einstellungen } from "./seiten/Einstellungen";
 import { OfflineHinweis } from "./komponenten/OfflineHinweis";
+import { Kopfleiste } from "./komponenten/Kopfleiste";
+import { Symbol, type SymbolName } from "./komponenten/Symbol";
+
+/**
+ * Hülle der Bürofassung.
+ *
+ * Bewusst auf den Schreibtisch ausgelegt: feste Seitenleiste, Kopfleiste mit
+ * globaler Suche, breiter Arbeitsbereich. Für Monteure entsteht später eine
+ * eigene Fassung — eine geschrumpfte Bürooberfläche ist keine Baustellen-App.
+ */
+
+/** Symbole für die Navigationseinträge der Module, nach ihrem symbol-Feld. */
+const MODULSYMBOLE: Record<string, SymbolName> = {
+  pruefung: "pruefung",
+};
 
 export function App() {
   if (!istAngemeldet()) return <Anmeldung />;
@@ -13,24 +35,81 @@ export function App() {
 
   return (
     <BrowserRouter>
-      <div className="wb-layout">
-        <nav className="wb-nav">
-          <div className="wb-nav__marke">Werkboq</div>
-          <Link to="/">Start</Link>
-          {darf("technik") && <Link to="/kunden">Kunden</Link>}
-          {darf("technik") && <Link to="/auftraege">Aufträge</Link>}
-          {modulNav.map((n) => (
-            <Link key={n.pfad} to={n.pfad}>
-              {n.titel}
-            </Link>
-          ))}
+      <div className="wb-huelle">
+        <nav className="wb-seitenleiste">
+          <div className="wb-marke">
+            Werkboq
+            <small>Auftragsdokumentation</small>
+          </div>
+
+          <div className="wb-seitenleiste__gruppe">
+            <NavLink to="/" end>
+              <Symbol name="start" />
+              Start
+            </NavLink>
+            {darf("technik") && (
+              <NavLink to="/kunden">
+                <Symbol name="kunden" />
+                Kunden
+              </NavLink>
+            )}
+            {darf("technik") && (
+              <NavLink to="/auftraege">
+                <Symbol name="auftraege" />
+                Aufträge
+              </NavLink>
+            )}
+            {darf("technik") && (
+              <NavLink to="/planung">
+                <Symbol name="kalender" />
+                Planung
+              </NavLink>
+            )}
+            <NavLink to="/zeiten">
+              <Symbol name="uhr" />
+              Meine Zeiten
+            </NavLink>
+          </div>
+
+          {modulNav.length > 0 && (
+            <div className="wb-seitenleiste__gruppe">
+              <span className="wb-seitenleiste__titel">Fachmodule</span>
+              {modulNav.map((n) => (
+                <NavLink key={n.pfad} to={n.pfad}>
+                  <Symbol name={MODULSYMBOLE[n.symbol ?? ""] ?? "auftraege"} />
+                  {n.titel}
+                </NavLink>
+              ))}
+            </div>
+          )}
+
+          {darf("verwaltung") && (
+            <div className="wb-seitenleiste__gruppe wb-seitenleiste__gruppe--unten">
+              <NavLink to="/einstellungen">
+                <Symbol name="einstellungen" />
+                Einstellungen
+              </NavLink>
+            </div>
+          )}
         </nav>
-        <main className="wb-inhalt">
+
+        <Kopfleiste />
+
+        <main className="wb-arbeitsbereich">
           <OfflineHinweis />
           <Routes>
             <Route path="/" element={<Start />} />
             <Route path="/kunden" element={<Kunden />} />
+            <Route path="/kunden/neu" element={<KundeBearbeiten />} />
+            <Route path="/kunden/:id" element={<KundeAkte />} />
+            <Route path="/kunden/:id/bearbeiten" element={<KundeBearbeiten />} />
             <Route path="/auftraege" element={<Auftraege />} />
+            <Route path="/auftraege/neu" element={<AuftragBearbeiten />} />
+            <Route path="/auftraege/:id" element={<AuftragAkte />} />
+            <Route path="/auftraege/:id/bearbeiten" element={<AuftragBearbeiten />} />
+            <Route path="/zeiten" element={<Zeiten />} />
+            <Route path="/planung" element={<Kalender />} />
+            <Route path="/einstellungen" element={<Einstellungen />} />
             {modulNav.map((n) => (
               <Route key={n.pfad} path={n.pfad} element={<n.komponente />} />
             ))}

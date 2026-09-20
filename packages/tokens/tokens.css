@@ -97,9 +97,10 @@
   --wb-space-8: 3rem;
 
   /* --- Radien, Schatten, Bedienelemente --- */
-  --wb-radius-sm: 4px;
-  --wb-radius-md: 8px;
-  --wb-radius-lg: 12px;
+  /* Kantig statt rund — Gestaltungsrichtung "Handwerk". */
+  --wb-radius-sm: 2px;
+  --wb-radius-md: 4px;
+  --wb-radius-lg: 4px;
   --wb-shadow-sm: 0 1px 2px rgb(11 36 64 / 0.08);
   --wb-shadow-md: 0 4px 12px rgb(11 36 64 / 0.12);
   --wb-touch-min: 44px;   /* Mindestgröße Tap-Ziele am Tablet */
@@ -185,6 +186,15 @@
 }
 
 /* Basis */
+
+/* Polsterung zählt zur Breite — sonst sprengt jedes gepolsterte Element mit
+   width:100% seinen Platz, und die Seite scrollt quer. */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 html {
   font-family: var(--wb-font-sans);
   font-size: 16px;

@@ -36,9 +36,9 @@ npm run server                # PocketBase auf http://127.0.0.1:8095
 Werkboq läuft bewusst auf **Port 8095**, nicht auf dem PocketBase-Standard 8090 —
 damit eine andere lokal laufende PocketBase nicht versehentlich getroffen wird.
 
-Im Admin-UI unter `http://127.0.0.1:8095/_/` einmalig den Admin anlegen, mit
-denselben Zugangsdaten, die in der `.env` unter `PB_ADMIN_*` stehen. Dann in einem
-zweiten Terminal:
+Der Serverstart legt den PocketBase-Admin aus `PB_ADMIN_*` gleich selbst an — das
+Admin-UI unter `http://127.0.0.1:8095/_/` brauchst du nur, wenn du Daten von Hand
+ansehen willst. Dann in einem zweiten Terminal:
 
 ```bash
 npm run einrichten            # Collections anlegen / abgleichen, ersten Benutzer anlegen
@@ -61,8 +61,10 @@ Benutzer, rührt das Skript die `users`-Collection nicht an.
 
 Solange entwickelt wird, ist das Tippen einer E-Mail bei jedem Neuladen lästig.
 Mit `WB_ENTWICKLUNG=ja` in der `.env` legt `einrichten.mjs` deshalb den Zugang
-**adm / adm** an. Er wirkt nur gegen eine PocketBase auf `127.0.0.1` und setzt die
-Passwort-Mindestlänge vorübergehend auf drei Zeichen.
+**adm / admadm** an. Kürzer geht nicht: PocketBase lässt die Mindestlänge für
+Passwörter nicht unter fünf Zeichen sinken. Der Zugang wirkt nur gegen eine
+PocketBase auf `127.0.0.1`; ein anderes Passwort lässt sich über
+`WB_ENTWICKLUNG_PASSWORT` setzen.
 
 Das Konto trägt intern `entwicklung = true`. Vor jeder echten Inbetriebnahme:
 
@@ -103,6 +105,10 @@ nachgespielt – gedacht für den Keller ohne Empfang.
 **Ein Satz Design-Tokens.** Farben, Schrift und Abstände kommen aus
 `packages/tokens/tokens.css`. Hell- und Dunkelmodus von Anfang an, Tap-Ziele mindestens
 44 px fürs Tablet. Module verwenden keine eigenen Hex-Werte.
+
+**Jede Änderung ist nachvollziehbar.** Schreibvorgänge hinterlassen eine Zeile in
+`protokoll` — wer, wann, was. Die Collection ist gegen Ändern und Löschen gesperrt;
+ein Verlauf, den man nachträglich frisieren kann, ist als Nachweis wertlos.
 
 **Benutzer und Bereiche.** Jeder Nutzer hat freigegebene Bereiche (verwaltung,
 buchhaltung, technik, lager, entwickler und je Modul dessen ID). `darf(bereich)`

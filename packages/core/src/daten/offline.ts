@@ -53,36 +53,46 @@ function istNetzfehler(e: unknown): boolean {
   return status === 0 || status === undefined;
 }
 
-async function ausfuehren(v: Vorgang): Promise<void> {
+async function ausfuehren(v: Vorgang): Promise<Record<string, unknown> | undefined> {
   const c = pb().collection(v.collection);
   switch (v.art) {
     case "anlegen":
-      await c.create(v.daten);
-      return;
+      return (await c.create(v.daten)) as unknown as Record<string, unknown>;
     case "aendern":
-      await c.update(v.id, v.daten);
-      return;
+      return (await c.update(v.id, v.daten)) as unknown as Record<string, unknown>;
     case "loeschen":
       await c.delete(v.id);
-      return;
+      return undefined;
   }
 }
 
+/**
+ * Ergebnis eines Schreibvorgangs.
+ *
+ * "sofort" heißt: der Server hat den Vorgang angenommen, `datensatz` enthält
+ * den gespeicherten Stand samt vergebener id. "gepuffert" heißt: kein Netz,
+ * der Vorgang liegt in der Warteschlange — es gibt dann noch keine id, und die
+ * Oberfläche darf nicht auf einen Datensatz warten.
+ */
+export type SchreibErgebnis =
+  | { status: "sofort"; datensatz?: Record<string, unknown> }
+  | { status: "gepuffert" };
+
 /** Führt einen Schreibvorgang aus oder stellt ihn bei Netzausfall zurück. */
-export async function schreiben(v: Vorgang): Promise<"sofort" | "gepuffert"> {
+export async function schreiben(v: Vorgang): Promise<SchreibErgebnis> {
   if (lesen().length > 0) {
     // Reihenfolge wahren: solange etwas offen ist, wird angehängt.
     speichern([...lesen(), v]);
     void nachspielen();
-    return "gepuffert";
+    return { status: "gepuffert" };
   }
   try {
-    await ausfuehren(v);
-    return "sofort";
+    const datensatz = await ausfuehren(v);
+    return { status: "sofort", datensatz };
   } catch (e) {
     if (!istNetzfehler(e)) throw e;
     speichern([...lesen(), v]);
-    return "gepuffert";
+    return { status: "gepuffert" };
   }
 }
 

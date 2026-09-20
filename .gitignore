@@ -32,3 +32,7 @@ npm-debug.log*
 # Beipack des PocketBase-Downloads
 server/CHANGELOG.md
 server/LICENSE.md
+server/pb_migrations/
+
+# Ablage der Cowork-Bruecke, gehoert nicht ins Repo
+Claude outputs/

@@ -14,7 +14,7 @@ export const ELEKTRO_COLLECTIONS: ModulCollection[] = [
       { name: "pruefdatum", type: "date" },
       { name: "pruefer", type: "text" },
       { name: "ergebnis", type: "select", options: { maxSelect: 1, values: ["offen", "ohne_maengel", "mit_maengeln", "gefahr"] } },
-      { name: "daten", type: "json" },
+      { name: "daten", type: "json", options: { maxSize: 2000000 } },
       { name: "pdf", type: "file", options: { maxSelect: 1, maxSize: 20971520, mimeTypes: ["application/pdf"] } },
     ],
     listRule: "@request.auth.id != ''",

@@ -67,14 +67,7 @@ export interface Auftrag extends Basisdatensatz {
   ende?: string;
 }
 
-export interface Termin extends Basisdatensatz {
-  auftrag: string;
-  titel: string;
-  beginn: string;
-  ende?: string;
-  ort?: string;
-  notizen?: string;
-}
+// Termin steht in daten/termine.ts — dort hängt auch die Planungslogik.
 
 export interface Dokument extends Basisdatensatz {
   auftrag: string;

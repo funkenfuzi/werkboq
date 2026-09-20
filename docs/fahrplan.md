@@ -8,31 +8,107 @@ die Modulschnittstelle laufend an einem echten Konsumenten geprüft wird.
 Monorepo, Modulschnittstelle, Datenmodell, Design-Tokens, Offline-Warteschlange,
 `einrichten.mjs`, Startskripte, CI.
 
-## Scheibe 1 – Kunde und Auftrag anlegen
+## Scheibe 1 – Kunde und Auftrag (erledigt)
 
-Kunden und Aufträge erfassen, ändern, suchen. Phasenwechsel mit Verlauf. Interner
-Kunde als Voreinstellung für eigene Vorhaben. Elektro: der Auftragsreiter zeigt
-Anlagendaten.
+Kundenliste als sortierbare Tabelle, Kundenakte mit Reitern, Ansprechpartner.
+Aufträge als Phasenbrett (Karten per Ziehen zwischen den Phasen) und als Liste,
+Auftragsakte mit Phasenleiste, Anlegen mit vorgeschlagener Nummer.
+Änderungsverlauf über die Collection `protokoll`, gegen Ändern und Löschen
+gesperrt.
 
-## Scheibe 2 – Prüfbericht am Tablet
+Offen aus dieser Scheibe: Standorte anlegen und bearbeiten (bisher nur
+anzeigen), Dokumente am Kunden, Elektro-Reiter in der Auftragsakte.
+
+## Scheibe 2 – Zeiterfassung (erledigt)
+
+Eine Collection `zeiten` für beides: ein Eintrag ohne Auftrag ist allgemeine
+Arbeitszeit, einer mit Auftrag ist gebuchte Zeit — dieselbe Stunde zählt nie
+doppelt. Wochenansicht je Mitarbeiter mit Tages- und Wochensumme, Warnung ab
+zehn Stunden am Tag, Buchung direkt in der Auftragsakte mit Summe verrechenbar
+und gesamt.
+
+Arbeitszeitaufzeichnungen nach § 26 AZG verlangen Beginn, Ende und Pausen und
+sind ein Jahr aufzubewahren, bei Fahrzeuglenkern zwei. Werkboq löscht nichts
+von selbst.
+
+Offen: Auswertung über alle Mitarbeiter (nur der eigene Stand ist sichtbar),
+Stundensätze, Zeiten nachträglich ändern.
+
+## Scheibe 3 – Stammdaten und Planung (erledigt)
+
+Betriebsstammdaten (ein Datensatz) mit den Angaben, die nach § 11 UStG auf
+jede Rechnung gehören; die Einstellungsseite weist darauf hin, solange etwas
+fehlt. Mitarbeiter als eigene Collection, getrennt von den Benutzern: wer
+eingeplant wird und wer sich anmelden kann, ist nicht dasselbe. Mitarbeiter
+werden stillgelegt statt gelöscht, weil Zeiten und Termine an ihnen hängen.
+
+Dispo-Kalender: Mitarbeiter als Zeilen, Wochentage als Spalten, Termine per
+Ziehen zwischen Tagen und Personen verschiebbar. In jeder Zelle stehen
+geplante und gebuchte Stunden nebeneinander — genau dafür gehören Planung und
+Zeiterfassung zusammen.
+
+Offen: Monats- und Tagesansicht, Abwesenheiten aus Urlaubsplanung, Auslastung
+über die Woche, Termine aus der Auftragsakte heraus anlegen.
+
+## Scheibe 4 – Positionen und Material
+
+Leistungspositionen und Material am Auftrag. Zusammen mit den Stunden entstehen
+daraus später Angebot und Rechnung fast von selbst.
+
+## Scheibe 5 – Prüfbericht am Tablet
 
 Prüfbericht nach OVE E 8101 als Formular, das offline vollständig ausfüllbar ist;
 PDF-Erzeugung; Anhang am Auftrag. Prüft die Offline-Warteschlange unter echten
 Bedingungen, inklusive Fotos.
 
-## Scheibe 3 – Benutzerverwaltung
+## Scheibe 6 – Zugänge (erledigt)
 
-Nutzer anlegen, Bereiche zuteilen, PocketBase-Regeln je Bereich schärfen.
+Benutzer und Mitarbeiter werden gemeinsam geführt. Ein Zugang gehört immer zu
+einer Person im Betrieb und entsteht in deren Mitarbeiterdatensatz unter
+Einstellungen → Mitarbeiter; es gibt keine Benutzerliste daneben, die
+auseinanderlaufen könnte. Wer nur eingeplant wird — eine Fremdfirma etwa —
+bekommt keinen. Kunden bekommen bewusst gar keinen: ein Kundenportal wäre eine
+eigene Anmeldung mit eigenen Regeln, kein Mitarbeiterzugang mit weniger
+Rechten.
 
-## Scheibe 4 – Angebot und Materialverkauf
+Im Zugangsblock: anlegen mit E-Mail und erstem Passwort, Bereiche als
+Ankreuzfelder (Kernbereiche plus jedes angemeldete Fachmodul), Administrator
+als eigener Schalter, Passwort zurücksetzen, Zugang entfernen. Den eigenen
+Adminstatus kann man nicht entziehen und den eigenen Zugang nicht löschen —
+sonst sperrt sich der letzte Administrator selbst aus. Wird ein Zugang
+entfernt, bleibt der Mitarbeiter samt Zeiten und Terminen erhalten.
 
-Positionen, Preise, Angebots-PDF mit den österreichischen Pflichtangaben
-(UID, Firmenbuchnummer).
+Die Regeln der Collection `users` setzt `einrichten.mjs`: Administratoren
+dürfen anlegen, ändern und löschen, jeder sich selbst ändern, Selbst-
+registrierung bleibt gesperrt.
+
+`server/pb_hooks/passwort.pb.js` ergänzt zwei Endpunkte, die PocketBase nicht
+mitbringt: das Passwort eines *anderen* Kontos setzen (PocketBase verlangt
+sonst immer das alte — ausgerechnet im Fall, in dem es vergessen wurde) und
+die eingestellte Mindestlänge abfragen, damit die Maske dieselbe Zahl nennt,
+an der der Server misst.
+
+Offen: Bereiche auch serverseitig je Collection durchsetzen (bisher steuern
+sie die Oberfläche), Zugang vorübergehend sperren statt entfernen.
+
+## Scheibe 7 – Angebot, Rechnung, Mahnwesen
+
+Angebots- und Rechnungs-PDF mit den österreichischen Pflichtangaben nach
+§11 UStG (UID, Firmenbuchnummer, fortlaufende Nummer, Leistungszeitraum),
+Zahlungsziel und dreistufiges Mahnwesen.
+
+Bewusst **nicht** vorgesehen: Registrierkasse und Buchhaltung. Die
+Registrierkassenpflicht greift ab 15.000 EUR Jahresumsatz netto und zugleich
+7.500 EUR Barumsätze netto und verlangt RKSV-Signatur, Datenerfassungsprotokoll
+und Zertifizierung — das ist ein eigenes Produkt. Gebucht wird beim
+Steuerberater; Werkboq liefert einen Export.
 
 ## Vor der ersten echten Inbetriebnahme
 
 - `npm run entwicklung-weg` ausführen: löscht den Zugang adm/adm und setzt die
   Passwort-Mindestlänge zurück auf acht Zeichen.
+- Mindestens einen echten Administrator anlegen, bevor der Entwicklungszugang
+  verschwindet — sonst kann niemand mehr Zugänge vergeben.
 - `WB_ENTWICKLUNG` aus der `.env` der Zielinstallation entfernen.
 
 ## Offene Punkte

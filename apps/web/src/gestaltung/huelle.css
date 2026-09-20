@@ -1,0 +1,1124 @@
+/*
+ * Hülle der Bürofassung — Seitenleiste, Kopfleiste, Arbeitsbereich.
+ *
+ * Auf den Schreibtisch ausgelegt: ab 1100 px wird es bequem, darunter wird es
+ * eng. Das ist Absicht — die Monteursfassung wird eine eigene Oberfläche,
+ * keine zusammengeschobene Bürooberfläche.
+ *
+ * Gestaltungsrichtung "Handwerk": kantig, dicht, kräftige Trennlinien,
+ * Tap-Ziele ab 44 px, Orange ausschließlich für Hauptaktionen.
+ */
+
+:root {
+  --wb-seitenleiste: 232px;
+  --wb-kopfleiste: 56px;
+}
+
+.wb-huelle {
+  display: grid;
+  grid-template-columns: var(--wb-seitenleiste) 1fr;
+  grid-template-rows: var(--wb-kopfleiste) 1fr;
+  grid-template-areas:
+    "leiste kopf"
+    "leiste inhalt";
+  min-height: 100dvh;
+}
+
+/* ---------- Seitenleiste ---------- */
+
+.wb-seitenleiste {
+  grid-area: leiste;
+  display: flex;
+  flex-direction: column;
+  gap: var(--wb-space-5);
+  padding: var(--wb-space-4) var(--wb-space-3);
+  background: var(--wb-blue-night);
+  color: var(--wb-ink-on-dark);
+  position: sticky;
+  top: 0;
+  height: 100dvh;
+  overflow-y: auto;
+}
+
+.wb-marke {
+  font-family: var(--wb-font-display);
+  font-size: var(--wb-text-xl);
+  font-weight: 700;
+  line-height: 1.1;
+  color: #fff;
+  padding: var(--wb-space-2) var(--wb-space-3);
+}
+
+.wb-marke::after {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-left: 4px;
+  border-radius: 50%;
+  background: var(--wb-orange);
+  vertical-align: 0.4em;
+}
+
+.wb-marke small {
+  display: block;
+  font-family: var(--wb-font-sans);
+  font-size: var(--wb-text-xs);
+  font-weight: 400;
+  letter-spacing: 0.03em;
+  color: var(--wb-ink-on-dark-soft);
+  margin-top: 2px;
+}
+
+.wb-seitenleiste__gruppe {
+  display: grid;
+  gap: 2px;
+}
+
+.wb-seitenleiste__titel {
+  display: block;
+  font-size: var(--wb-text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--wb-ink-on-dark-soft);
+  padding: 0 var(--wb-space-3) var(--wb-space-2);
+}
+
+.wb-seitenleiste a {
+  display: flex;
+  align-items: center;
+  gap: var(--wb-space-3);
+  min-height: var(--wb-touch-min);
+  padding: 0 var(--wb-space-3);
+  border-radius: var(--wb-radius-md);
+  border-left: 3px solid transparent;
+  color: var(--wb-ink-on-dark-soft);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.wb-seitenleiste a:hover {
+  background: rgb(255 255 255 / 0.07);
+  color: #fff;
+}
+
+.wb-seitenleiste a.active {
+  background: rgb(255 255 255 / 0.12);
+  border-left-color: var(--wb-orange);
+  color: #fff;
+  font-weight: 600;
+}
+
+/* ---------- Kopfleiste ---------- */
+
+.wb-kopfleiste {
+  grid-area: kopf;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--wb-space-4);
+  padding: 0 var(--wb-space-5);
+  background: var(--wb-surface);
+  border-bottom: 1px solid var(--wb-border);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+.wb-kopfleiste__suche {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--wb-space-2);
+  flex: 1;
+  max-width: 520px;
+  height: 36px;
+  padding: 0 var(--wb-space-3);
+  border: 1px solid var(--wb-border-strong);
+  border-radius: var(--wb-radius-md);
+  background: var(--wb-bg);
+}
+
+.wb-kopfleiste__suche:focus-within {
+  border-color: var(--wb-brand);
+  box-shadow: var(--wb-focus-ring);
+}
+
+.wb-kopfleiste__lupe {
+  color: var(--wb-text-muted);
+  flex: none;
+}
+
+.wb-kopfleiste__suche input {
+  font: inherit;
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--wb-text);
+  outline: none;
+}
+
+.wb-kuerzel {
+  font-family: var(--wb-font-sans);
+  font-size: var(--wb-text-xs);
+  color: var(--wb-text-muted);
+  border: 1px solid var(--wb-border-strong);
+  border-radius: var(--wb-radius-sm);
+  padding: 1px 5px;
+  flex: none;
+}
+
+.wb-treffer {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 30;
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+  max-height: 60vh;
+  overflow-y: auto;
+  background: var(--wb-surface);
+  border: 1px solid var(--wb-border-strong);
+  border-radius: var(--wb-radius-md);
+  box-shadow: var(--wb-shadow-md);
+}
+
+.wb-treffer__leer {
+  padding: var(--wb-space-3);
+  color: var(--wb-text-muted);
+  font-size: var(--wb-text-sm);
+}
+
+.wb-treffer__eintrag {
+  font: inherit;
+  display: flex;
+  align-items: center;
+  gap: var(--wb-space-3);
+  width: 100%;
+  min-height: 40px;
+  padding: 0 var(--wb-space-3);
+  border: 0;
+  border-radius: var(--wb-radius-sm);
+  background: transparent;
+  color: var(--wb-text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.wb-treffer__eintrag.ist-markiert {
+  background: var(--wb-brand-soft);
+  color: var(--wb-brand);
+}
+
+.wb-treffer__titel {
+  font-weight: 500;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wb-treffer__neben {
+  font-size: var(--wb-text-sm);
+  color: var(--wb-text-muted);
+  flex: none;
+}
+
+.wb-kopfleiste__rechts {
+  display: flex;
+  align-items: center;
+  gap: var(--wb-space-3);
+}
+
+.wb-kopfleiste__benutzer {
+  font-size: var(--wb-text-sm);
+  font-weight: 500;
+  color: var(--wb-text-muted);
+}
+
+.wb-kopfleiste__knopf {
+  font: inherit;
+  font-size: var(--wb-text-sm);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--wb-space-2);
+  height: 36px;
+  padding: 0 var(--wb-space-3);
+  border: 1px solid var(--wb-border);
+  border-radius: var(--wb-radius-md);
+  background: var(--wb-surface);
+  color: var(--wb-text-muted);
+  cursor: pointer;
+}
+
+.wb-kopfleiste__knopf:hover {
+  background: var(--wb-surface-2);
+  color: var(--wb-text);
+}
+
+/* ---------- Arbeitsbereich ---------- */
+
+.wb-arbeitsbereich {
+  grid-area: inhalt;
+  padding: var(--wb-space-5) var(--wb-space-6);
+  max-width: 1400px;
+  width: 100%;
+  /* Raster-Elemente wachsen von sich aus mit ihrem Inhalt. Ohne min-width
+     schiebt das Phasenbrett die ganze Seite breit, statt selbst zu scrollen. */
+  min-width: 0;
+}
+
+.wb-kopf__zahl {
+  margin: 2px 0 0;
+  font-size: var(--wb-text-sm);
+  color: var(--wb-text-muted);
+}
+
+.wb-werkzeugleiste {
+  display: flex;
+  align-items: center;
+  gap: var(--wb-space-3);
+  margin-bottom: var(--wb-space-4);
+}
+
+.wb-suchfeld {
+  display: flex;
+  align-items: center;
+  gap: var(--wb-space-2);
+  flex: 1;
+  max-width: 420px;
+  min-height: 38px;
+  padding: 0 var(--wb-space-3);
+  border: 1px solid var(--wb-border-strong);
+  border-radius: var(--wb-radius-md);
+  background: var(--wb-surface);
+  color: var(--wb-text-muted);
+}
+
+.wb-suchfeld:focus-within {
+  border-color: var(--wb-brand);
+  box-shadow: var(--wb-focus-ring);
+}
+
+.wb-suchfeld input {
+  font: inherit;
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--wb-text);
+  outline: none;
+}
+
+/* ---------- Tabelle: Sortierung und Zeilenklick ---------- */
+
+.wb-sortknopf {
+  font: inherit;
+  font-size: var(--wb-text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--wb-space-1);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.wb-sortknopf:hover {
+  color: var(--wb-brand);
+}
+
+.ist-umgedreht {
+  transform: scaleY(-1);
+}
+
+.wb-tabelle--klickbar tbody tr {
+  cursor: pointer;
+}
+
+.wb-tabelle--klickbar tbody tr:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--wb-brand);
+}
+
+.wb-zellname {
+  display: flex;
+  align-items: center;
+  gap: var(--wb-space-2);
+  font-weight: 500;
+}
+
+.wb-initialen--klein {
+  width: 26px;
+  height: 26px;
+  font-size: var(--wb-text-xs);
+}
+
+.wb-zelle--gedaempft {
+  color: var(--wb-text-muted);
+}
+
+/* Schaltflächen mit Symbol */
+.wb-button svg {
+  margin-right: var(--wb-space-2);
+  margin-left: -2px;
+}
+
+/* ---------- Schmaler als Schreibtisch ---------- */
+
+@media (max-width: 1000px) {
+  :root {
+    --wb-seitenleiste: 64px;
+  }
+  .wb-seitenleiste a {
+    justify-content: center;
+    gap: 0;
+    font-size: 0;
+  }
+  .wb-seitenleiste a svg {
+    font-size: initial;
+  }
+  .wb-marke {
+    font-size: 0;
+    padding: var(--wb-space-2) 0;
+    text-align: center;
+  }
+  .wb-marke::after {
+    margin: 0;
+    vertical-align: middle;
+    width: 10px;
+    height: 10px;
+  }
+  .wb-marke small,
+  .wb-seitenleiste__titel,
+  .wb-kopfleiste__benutzer,
+  .wb-kuerzel {
+    display: none;
+  }
+  .wb-arbeitsbereich {
+    padding: var(--wb-space-4);
+  }
+}
+
+/* ---------- Ansichtsumschalter ---------- */
+
+.wb-umschalter {
+  display: flex;
+  border: 1px solid var(--wb-border-strong);
+  border-radius: var(--wb-radius-md);
+  overflow: hidden;
+  flex: none;
+}
+
+.wb-umschalter button {
+  font: inherit;
+  font-size: var(--wb-text-sm);
+  font-weight: 500;
+  min-height: 38px;
+  padding: 0 var(--wb-space-4);
+  border: 0;
+  background: var(--wb-surface);
+  color: var(--wb-text-muted);
+  cursor: pointer;
+}
+
+.wb-umschalter button + button {
+  border-left: 1px solid var(--wb-border-strong);
+}
+
+.wb-umschalter button.ist-aktiv {
+  background: var(--wb-brand);
+  color: var(--wb-brand-text);
+}
+
+/* ---------- Phasenbrett ---------- */
+
+.wb-brett {
+  display: flex;
+  gap: var(--wb-space-3);
+  overflow-x: auto;
+  padding-bottom: var(--wb-space-3);
+  align-items: flex-start;
+}
+
+.wb-spalte {
+  flex: none;
+  width: 250px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--wb-space-2);
+  padding: var(--wb-space-3);
+  background: var(--wb-surface-2);
+  border: 1px solid var(--wb-border);
+  border-radius: var(--wb-radius-md);
+  min-height: 160px;
+}
+
+.wb-spalte.ist-ziel {
+  border-color: var(--wb-accent);
+  background: var(--wb-accent-soft);
+}
+
+.wb-spalte__kopf {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--wb-space-2);
+}
+
+.wb-spalte__zahl {
+  font-size: var(--wb-text-sm);
+  font-weight: 600;
+  color: var(--wb-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.wb-spalte__karten {
+  display: grid;
+  gap: var(--wb-space-2);
+}
+
+.wb-spalte__leer {
+  margin: 0;
+  color: var(--wb-text-muted);
+  text-align: center;
+  padding: var(--wb-space-3) 0;
+}
+
+.wb-karte {
+  display: grid;
+  gap: 2px;
+  padding: var(--wb-space-3);
+  background: var(--wb-surface);
+  border: 1px solid var(--wb-border);
+  border-left: 3px solid var(--wb-brand);
+  border-radius: var(--wb-radius-sm);
+  cursor: grab;
+}
+
+.wb-karte:active {
+  cursor: grabbing;
+}
+
+.wb-karte:hover {
+  border-color: var(--wb-brand);
+  border-left-color: var(--wb-accent);
+}
+
+.wb-karte:focus-visible {
+  outline: none;
+  box-shadow: var(--wb-focus-ring);
+}
+
+.wb-karte__nummer {
+  font-size: var(--wb-text-xs);
+  color: var(--wb-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.wb-karte__titel {
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.wb-karte__kunde,
+.wb-karte__datum {
+  font-size: var(--wb-text-sm);
+  color: var(--wb-text-muted);
+}
+
+/* ---------- Phasenleiste in der Auftragsakte ---------- */
+
+.wb-phasenleiste {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--wb-space-2);
+}
+
+.wb-phasenknopf {
+  font: inherit;
+  font-size: var(--wb-text-sm);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--wb-space-2);
+  min-height: 38px;
+  padding: 0 var(--wb-space-3);
+  border: 1px solid var(--wb-border-strong);
+  border-radius: var(--wb-radius-md);
+  background: var(--wb-surface);
+  color: var(--wb-text-muted);
+  cursor: pointer;
+}
+
+.wb-phasenknopf:hover {
+  border-color: var(--wb-brand);
+  color: var(--wb-text);
+}
+
+.wb-phasenknopf.ist-aktiv {
+  background: var(--wb-brand);
+  border-color: var(--wb-brand);
+  color: var(--wb-brand-text);
+  font-weight: 600;
+}
+
+.wb-punkt {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--wb-status-neutral);
+  flex: none;
+}
+
+.wb-punkt--ok { background: var(--wb-status-ok); }
+.wb-punkt--warn { background: var(--wb-status-warn); }
+.wb-punkt--info { background: var(--wb-status-info); }
+.wb-punkt--error { background: var(--wb-status-error); }
+.wb-punkt--neutral { background: var(--wb-status-neutral); }
+
+/* ---------- Verlauf ---------- */
+
+.wb-verlauf {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--wb-space-3);
+}
+
+.wb-verlauf li {
+  display: grid;
+  grid-template-columns: 8px 1fr;
+  gap: var(--wb-space-3);
+  align-items: start;
+}
+
+.wb-verlauf li .wb-punkt {
+  margin-top: 7px;
+}
+
+.wb-verlauf__text {
+  margin: 0;
+  font-size: var(--wb-text-sm);
+}
+
+.wb-verlauf__wer {
+  margin: 0;
+  font-size: var(--wb-text-xs);
+  color: var(--wb-text-muted);
+}
+
+/* ---------- Kleinkram ---------- */
+
+.wb-akte__ueberzeile {
+  margin: 0 0 2px;
+  font-size: var(--wb-text-sm);
+  color: var(--wb-text-muted);
+}
+
+.wb-akte__ueberzeile a {
+  color: var(--wb-brand);
+}
+
+.wb-abschnitt {
+  display: grid;
+  gap: var(--wb-space-4);
+  justify-items: start;
+}
+
+.wb-zelle--rechts {
+  text-align: right;
+  width: 1%;
+  white-space: nowrap;
+}
+
+.wb-zeilenknopf {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid transparent;
+  border-radius: var(--wb-radius-sm);
+  background: transparent;
+  color: var(--wb-text-muted);
+  cursor: pointer;
+}
+
+.wb-zeilenknopf:hover {
+  border-color: var(--wb-status-error);
+  background: var(--wb-status-error-soft);
+  color: var(--wb-status-error);
+}
+
+.wb-maske select {
+  font: inherit;
+  width: 100%;
+  min-height: var(--wb-touch-min);
+  padding: var(--wb-space-2) var(--wb-space-3);
+  border: 1px solid var(--wb-border-strong);
+  border-radius: var(--wb-radius-md);
+  background: var(--wb-surface);
+  color: var(--wb-text);
+}
+
+/* ---------- Zeiterfassung ---------- */
+
+.wb-summen {
+  display: flex;
+  gap: var(--wb-space-4);
+  margin-left: auto;
+  font-size: var(--wb-text-sm);
+  color: var(--wb-text-muted);
+}
+
+.wb-summen strong {
+  color: var(--wb-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.wb-woche {
+  display: grid;
+  gap: var(--wb-space-2);
+}
+
+.wb-tag {
+  background: var(--wb-surface);
+  border: 1px solid var(--wb-border);
+  border-left: 3px solid var(--wb-border-strong);
+  border-radius: var(--wb-radius-md);
+  padding: var(--wb-space-3);
+}
+
+.wb-tag.ist-wochenende {
+  background: var(--wb-surface-2);
+}
+
+.wb-tag__kopf {
+  display: flex;
+  align-items: center;
+  gap: var(--wb-space-3);
+}
+
+.wb-tag__name {
+  font-weight: 600;
+  min-width: 10ch;
+}
+
+.wb-tag__summe {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--wb-space-1);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--wb-text-muted);
+}
+
+.wb-tag__summe.ist-warnung {
+  color: var(--wb-status-warn);
+}
+
+.wb-tag__kopf .wb-zeilenknopf {
+  margin-left: auto;
+}
+
+.wb-zeilenknopf--neutral:hover {
+  border-color: var(--wb-brand);
+  background: var(--wb-brand-soft);
+  color: var(--wb-brand);
+}
+
+.wb-tag__leer {
+  margin: var(--wb-space-2) 0 0;
+  color: var(--wb-text-muted);
+}
+
+.wb-tag__liste {
+  list-style: none;
+  margin: var(--wb-space-2) 0 0;
+  padding: 0;
+  display: grid;
+  gap: var(--wb-space-1);
+}
+
+.wb-tag__liste li {
+  display: flex;
+  align-items: center;
+  gap: var(--wb-space-3);
+  padding: var(--wb-space-2) 0;
+  border-top: 1px solid var(--wb-border);
+  font-size: var(--wb-text-sm);
+}
+
+.wb-zeit__spanne,
+.wb-zeit__dauer {
+  font-variant-numeric: tabular-nums;
+  color: var(--wb-text-muted);
+  flex: none;
+}
+
+.wb-zeit__dauer {
+  font-weight: 600;
+  color: var(--wb-text);
+  min-width: 5ch;
+  text-align: right;
+}
+
+.wb-zeit__was {
+  flex: 1;
+  min-width: 0;
+}
+
+.wb-zeit__notiz {
+  color: var(--wb-text-muted);
+}
+
+.wb-dauer {
+  display: flex;
+  align-items: center;
+  min-height: var(--wb-touch-min);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.wb-block__kopf {
+  display: flex;
+  align-items: center;
+  gap: var(--wb-space-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--wb-space-3);
+}
+
+.wb-block__kopf h2 {
+  margin: 0;
+}
+
+.wb-block__summe {
+  font-size: var(--wb-text-sm);
+  color: var(--wb-text-muted);
+  margin-right: auto;
+}
+
+.wb-fussnote {
+  margin-top: var(--wb-space-5);
+  font-size: var(--wb-text-xs);
+  max-width: 80ch;
+}
+
+/* ---------- Dispo-Plan ---------- */
+
+.wb-plan-rahmen {
+  overflow-x: auto;
+  background: var(--wb-surface);
+  border: 1px solid var(--wb-border);
+  border-radius: var(--wb-radius-md);
+}
+
+.wb-plan {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.wb-plan th,
+.wb-plan td {
+  border: 1px solid var(--wb-border);
+  vertical-align: top;
+}
+
+.wb-plan thead th {
+  padding: var(--wb-space-2);
+  font-size: var(--wb-text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--wb-text-muted);
+  text-align: center;
+  background: var(--wb-surface-2);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.wb-plan__datum {
+  display: block;
+  font-size: var(--wb-text-sm);
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 600;
+  color: var(--wb-text);
+}
+
+.wb-plan__person {
+  width: 190px;
+  min-width: 190px;
+  text-align: left;
+  padding: var(--wb-space-2) var(--wb-space-3);
+  background: var(--wb-surface);
+  position: sticky;
+  left: 0;
+  z-index: 1;
+}
+
+tbody .wb-plan__person {
+  display: flex;
+  align-items: center;
+  gap: var(--wb-space-2);
+  font-weight: 500;
+  height: 100%;
+}
+
+.wb-plan__person small {
+  display: block;
+  font-size: var(--wb-text-xs);
+  font-weight: 400;
+  color: var(--wb-text-muted);
+}
+
+.wb-plan__zelle {
+  width: 132px;
+  padding: var(--wb-space-1);
+  height: 84px;
+}
+
+.wb-plan .ist-wochenende {
+  background: var(--wb-surface-2);
+}
+
+.wb-plan__zelle.ist-ziel {
+  background: var(--wb-accent-soft);
+  outline: 2px solid var(--wb-accent);
+  outline-offset: -2px;
+}
+
+.wb-termin {
+  position: relative;
+  display: grid;
+  gap: 1px;
+  padding: 3px 18px 3px 6px;
+  margin-bottom: 2px;
+  border-radius: var(--wb-radius-sm);
+  border-left: 3px solid var(--wb-brand);
+  background: var(--wb-brand-soft);
+  font-size: var(--wb-text-xs);
+  cursor: grab;
+}
+
+.wb-termin:active { cursor: grabbing; }
+.wb-termin--urlaub { border-left-color: var(--wb-status-ok); background: var(--wb-status-ok-soft); }
+.wb-termin--schulung { border-left-color: var(--wb-status-warn); background: var(--wb-status-warn-soft); }
+.wb-termin--werkstatt { border-left-color: var(--wb-status-neutral); background: var(--wb-status-neutral-soft); }
+.wb-termin--kundentermin { border-left-color: var(--wb-accent); background: var(--wb-accent-soft); }
+
+.wb-termin__zeit {
+  color: var(--wb-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.wb-termin__titel {
+  font-weight: 600;
+  line-height: 1.2;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.wb-termin__weg {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  width: 16px;
+  height: 16px;
+  border: 0;
+  background: transparent;
+  color: var(--wb-text-muted);
+  cursor: pointer;
+  line-height: 1;
+  font-size: 14px;
+}
+
+.wb-termin__weg:hover { color: var(--wb-status-error); }
+
+.wb-plan__fuss {
+  display: flex;
+  align-items: center;
+  gap: var(--wb-space-2);
+  padding: 2px 4px 0;
+  font-size: var(--wb-text-xs);
+  font-variant-numeric: tabular-nums;
+  border-top: 1px dashed var(--wb-border);
+  margin-top: 2px;
+}
+
+.wb-plan__soll { color: var(--wb-text-muted); font-weight: 600; }
+.wb-plan__soll.ist-abweichung { color: var(--wb-status-warn); }
+.wb-plan__ist { color: var(--wb-brand); }
+
+.wb-plan__plus {
+  margin-left: auto;
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--wb-radius-sm);
+  background: transparent;
+  color: var(--wb-text-muted);
+  cursor: pointer;
+}
+
+.wb-plan__plus:hover { background: var(--wb-brand-soft); color: var(--wb-brand); }
+
+.wb-legende {
+  margin: 0 0 0 auto;
+  font-size: var(--wb-text-xs);
+  max-width: 44ch;
+  text-align: right;
+}
+
+/* ---------- Einstellungen ---------- */
+
+.wb-seitenleiste__gruppe--unten {
+  margin-top: auto;
+}
+
+.wb-warnkasten {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--wb-space-3);
+  padding: var(--wb-space-3);
+  margin-bottom: var(--wb-space-4);
+  border: 1px solid var(--wb-status-warn);
+  border-radius: var(--wb-radius-md);
+  background: var(--wb-status-warn-soft);
+  color: var(--wb-status-warn);
+  font-size: var(--wb-text-sm);
+  max-width: 80ch;
+}
+
+.wb-warnkasten svg { flex: none; margin-top: 2px; }
+
+.ist-stillgelegt {
+  opacity: 0.55;
+}
+
+.wb-maske input[type="color"] {
+  padding: 2px;
+  height: var(--wb-touch-min);
+}
+
+.wb-plan__fuss abbr {
+  text-decoration: none;
+  opacity: 0.65;
+  margin-right: 2px;
+  font-weight: 400;
+}
+
+/* --- Zugang eines Mitarbeiters --- */
+.wb-zugang {
+  margin-top: var(--wb-space-4);
+  padding: var(--wb-space-5);
+  border: 1px solid var(--wb-border);
+  border-left: 3px solid var(--wb-brand);
+  border-radius: var(--wb-radius-lg);
+  background: var(--wb-surface);
+  display: flex;
+  flex-direction: column;
+  gap: var(--wb-space-4);
+}
+
+.wb-zugang h2 {
+  display: flex;
+  align-items: center;
+  gap: var(--wb-space-2);
+  margin: 0;
+  font-size: var(--wb-text-lg);
+}
+
+.wb-zugang h2 svg { color: var(--wb-brand); }
+
+.wb-zugang__gitter {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--wb-space-4);
+  align-items: start;
+}
+
+.wb-zugang__gitter input[type="email"],
+.wb-zugang__gitter input[type="text"] {
+  font: inherit;
+  width: 100%;
+  min-height: var(--wb-touch-min);
+  padding: var(--wb-space-2) var(--wb-space-3);
+  border: 1px solid var(--wb-border-strong);
+  border-radius: var(--wb-radius-md);
+  background: var(--wb-surface);
+  color: var(--wb-text);
+  box-sizing: border-box;
+}
+
+.wb-zugang__text {
+  margin: 0;
+  max-width: 68ch;
+  text-align: left;
+  font-size: var(--wb-text-sm);
+}
+
+.wb-zugang__spaeter {
+  margin-top: var(--wb-space-4);
+  text-align: left;
+}
+
+.wb-bereiche {
+  border: 1px solid var(--wb-border);
+  border-radius: var(--wb-radius-md);
+  padding: var(--wb-space-3) var(--wb-space-4) var(--wb-space-4);
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--wb-space-3);
+}
+
+.wb-bereiche legend {
+  padding: 0 var(--wb-space-2);
+  font-size: var(--wb-text-sm);
+  font-weight: 600;
+  color: var(--wb-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.wb-bereiche__liste {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: var(--wb-space-2) var(--wb-space-4);
+}
+
+.wb-schalter--eng {
+  min-height: 32px;
+  align-items: flex-start;
+  gap: var(--wb-space-2);
+  line-height: 1.3;
+}
+
+.wb-schalter--eng input {
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+}
+
+.wb-schalter--eng small {
+  display: block;
+  color: var(--wb-text-muted);
+  font-size: var(--wb-text-xs);
+}
+
+.wb-schalter input:disabled + span {
+  color: var(--wb-text-muted);
+}

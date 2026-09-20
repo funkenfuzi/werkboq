@@ -30,17 +30,47 @@ adminAnlegen();
 // laufenden PocketBase (z. B. FD-Book) in die Quere kommt.
 const port = process.env.PB_PORT ?? "8095";
 console.log(`PocketBase auf http://127.0.0.1:${port} (Admin-UI: /_/)`);
-const kind = spawn(binary, ["serve", "--http", `0.0.0.0:${port}`, "--dir", datenVerzeichnis], {
+// --automigrate=0: PocketBase soll keine Migrationsdateien aus Schemaänderungen
+// erzeugen. Einzige Quelle für das Schema ist server/einrichten.mjs; automatisch
+// erzeugte Dateien wären eine zweite, stillschweigend abweichende Wahrheit.
+// --hooksDir ausdrücklich: server/pb_hooks enthält die wenigen Endpunkte, die
+// PocketBase von Haus aus nicht anbietet (z. B. Passwort eines Mitarbeiters
+// zurücksetzen). Ohne Angabe hinge der Pfad vom Arbeitsverzeichnis ab.
+const hooksVerzeichnis = join(hier, "pb_hooks");
+const kind = spawn(binary, ["serve", "--http", `0.0.0.0:${port}`, "--dir", datenVerzeichnis, "--hooksDir", hooksVerzeichnis, "--automigrate=0"], {
   stdio: "inherit",
   cwd: hier,
 });
 kind.on("exit", (code) => process.exit(code ?? 0));
 
 /**
+ * Führt ein PocketBase-Unterkommando aus und liefert dessen Ausgabe.
+ *
+ * Achtung: PocketBase 0.22 beendet sich auch bei Fehlern mit Rückgabewert 0
+ * (etwa bei "Migration are not initialized yet"). Der Rückgabewert taugt
+ * deshalb nicht als Erfolgsprüfung — wir sehen uns die Ausgabe an.
+ */
+function pbBefehl(argumente) {
+  try {
+    const aus = execFileSync(binary, [...argumente, "--dir", datenVerzeichnis], {
+      stdio: "pipe",
+      encoding: "utf8",
+    });
+    return { text: String(aus ?? ""), fehler: /(^|\n)\s*Error:/i.test(String(aus ?? "")) };
+  } catch (e) {
+    const text = String(e.stdout ?? "") + String(e.stderr ?? "");
+    return { text, fehler: true };
+  }
+}
+
+/**
  * Legt den Admin aus PB_ADMIN_EMAIL / PB_ADMIN_PASSWORD an, sofern gesetzt.
- * Muss vor dem Serverstart laufen, weil die Kommandozeile direkt auf die
- * Datenbankdatei zugreift. Existiert der Admin schon, meldet PocketBase einen
- * Fehler — den schlucken wir, der Aufruf ist dadurch beliebig wiederholbar.
+ *
+ * Läuft vor dem Serverstart, weil die Kommandozeile direkt auf die
+ * Datenbankdatei zugreift. Auf einem frischen Datenverzeichnis müssen zuerst
+ * die Migrationen laufen, sonst scheitert "admin create". Existiert der Admin
+ * bereits, meldet PocketBase einen UNIQUE-Verstoß — das ist der Normalfall bei
+ * jedem weiteren Start und keine Störung.
  */
 function adminAnlegen() {
   const email = process.env.PB_ADMIN_EMAIL;
@@ -54,26 +84,29 @@ function adminAnlegen() {
     return;
   }
 
+  // Schema anlegen bzw. aktualisieren, sonst gibt es noch keine Admin-Tabelle.
+  const migration = pbBefehl(["migrate", "up"]);
+  if (migration.fehler) {
+    console.warn(`Migrationen konnten nicht laufen:\n${migration.text.trim()}`);
+  }
+
   // 0.22 kennt "admin create", ab 0.23 heißt es "superuser upsert".
-  const varianten = [
+  for (const argumente of [
     ["admin", "create", email, passwort],
     ["superuser", "upsert", email, passwort],
-  ];
-  for (const argumente of varianten) {
-    try {
-      execFileSync(binary, [...argumente, "--dir", datenVerzeichnis], { stdio: "pipe" });
+  ]) {
+    const lauf = pbBefehl(argumente);
+    if (!lauf.fehler) {
       console.log(`Admin ${email} angelegt.`);
       return;
-    } catch (e) {
-      const meldung = String(e.stderr ?? "") + String(e.stdout ?? "");
-      if (/already exists|unique|bereits/i.test(meldung)) {
-        return; // alles gut, gibt es schon
-      }
-      // sonst: nächste Variante probieren
+    }
+    if (/UNIQUE constraint failed|already exists/i.test(lauf.text)) {
+      return; // gibt es schon, alles in Ordnung
     }
   }
+
   console.warn(
-    `Admin konnte nicht über die Kommandozeile angelegt werden.\n` +
+    `Admin ${email} konnte nicht über die Kommandozeile angelegt werden.\n` +
       `Falls die Anmeldung scheitert, einmalig im Browser unter\n` +
       `http://127.0.0.1:${process.env.PB_PORT ?? "8095"}/_/ anlegen.`,
   );
