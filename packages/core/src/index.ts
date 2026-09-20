@@ -18,6 +18,7 @@ export * from "./daten/kunden";
 export * from "./daten/auftraege";
 export * from "./daten/ansprechpartner";
 export * from "./daten/protokoll";
+export * from "./daten/baustelle";
 export * from "./daten/mitarbeiter";
 export * from "./daten/betrieb";
 export * from "./benutzer/rechte";

@@ -111,8 +111,16 @@
 
 /* ---------- Kopfleiste ---------- */
 
+/* min-width: 0 ist hier nicht kosmetisch, sondern trägt die ganze
+   Handyansicht. Ein Rasterfeld wächst von sich aus mit seinem Inhalt: ohne
+   diese Zeile zwingt die Kopfleiste (Suchfeld plus Benutzername plus
+   Abmelden) die Spalte auf ihre Mindestbreite, die Seite wird 507 px breit
+   und der Anwender muss auf einem 390-px-Handy schieben und zoomen. Der
+   Fehler fällt nicht auf, weil scrollWidth und innerWidth dann gemeinsam
+   mitwachsen und jede naive Überlaufprüfung "passt" meldet. */
 .wb-kopfleiste {
   grid-area: kopf;
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -131,6 +139,10 @@
   align-items: center;
   gap: var(--wb-space-2);
   flex: 1;
+  /* Ohne min-width: 0 schrumpft das Feld nicht unter die Mindestbreite
+     seines Eingabefelds — auf einem 360-px-Handy schiebt es dadurch den
+     Abmeldeknopf über den Rand und die ganze Seite wird zu breit. */
+  min-width: 0;
   max-width: 520px;
   height: 36px;
   padding: 0 var(--wb-space-3);
@@ -283,6 +295,11 @@
   align-items: center;
   gap: var(--wb-space-3);
   margin-bottom: var(--wb-space-4);
+  /* Umbrechen, sobald es eng wird. Der Umschalter auf der Belegseite hat
+     fünf Knöpfe und ist über 500 px breit — neben dem Suchfeld passt das
+     selbst auf einem Tablet nicht, und ohne Umbruch zieht er die Seite
+     breit, statt in die zweite Zeile zu rutschen. */
+  flex-wrap: wrap;
 }
 
 .wb-suchfeld {
@@ -290,6 +307,7 @@
   align-items: center;
   gap: var(--wb-space-2);
   flex: 1;
+  min-width: 0;
   max-width: 420px;
   min-height: 38px;
   padding: 0 var(--wb-space-3);
@@ -1045,7 +1063,7 @@ tbody .wb-plan__person {
 
 .wb-zugang__gitter {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
   gap: var(--wb-space-4);
   align-items: start;
 }
@@ -1096,7 +1114,7 @@ tbody .wb-plan__person {
 
 .wb-bereiche__liste {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(210px, 100%), 1fr));
   gap: var(--wb-space-2) var(--wb-space-4);
 }
 
@@ -1210,7 +1228,7 @@ tbody .wb-plan__person {
 
 .wb-bausteine__liste {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
   gap: var(--wb-space-3);
 }
 
@@ -1253,4 +1271,218 @@ tbody .wb-plan__person {
   margin-top: var(--wb-space-2);
   font-size: var(--wb-text-xs) !important;
   font-style: italic;
+}
+
+/* ======================================================================
+   Tagesansicht auf der Startseite
+
+   Für den Monteur um sieben Uhr früh: Zeit links, Ort und Auftrag in der
+   Mitte, ein Knopf rechts. Am Handy untereinander statt nebeneinander —
+   drei Spalten auf 390 px wären drei zu enge Spalten.
+   ====================================================================== */
+
+.wb-tageskopf {
+  margin-bottom: var(--wb-space-5);
+}
+
+.wb-tageskopf__datum {
+  color: var(--wb-text-muted);
+  font-size: var(--wb-text-sm);
+  letter-spacing: 0.02em;
+  margin: 0 0 var(--wb-space-1);
+  text-transform: uppercase;
+}
+
+.wb-tageskopf h1 {
+  margin: 0;
+}
+
+.wb-tagesliste {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.wb-tageszeile {
+  align-items: flex-start;
+  border-bottom: 1px solid var(--wb-border);
+  display: flex;
+  gap: var(--wb-space-4);
+  padding: var(--wb-space-3) 0;
+}
+
+.wb-tageszeile:last-child {
+  border-bottom: 0;
+}
+
+/* Feste Breite, damit die Titel darunter auf einer Linie beginnen —
+   eine Liste mit springendem linken Rand liest sich schlecht. */
+.wb-tageszeile__zeit {
+  color: var(--wb-text);
+  flex: 0 0 auto;
+  font-family: var(--wb-font-mono);
+  font-size: var(--wb-text-sm);
+  padding-top: 2px;
+  width: 6.5rem;
+}
+
+.wb-tageszeile__mitte {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.wb-tageszeile__ort,
+.wb-tageszeile__auftrag {
+  align-items: center;
+  color: var(--wb-text-muted);
+  display: flex;
+  font-size: var(--wb-text-sm);
+  gap: var(--wb-space-1);
+}
+
+.wb-tageszeile__auftrag {
+  color: var(--wb-brand);
+  text-decoration: none;
+  width: fit-content;
+}
+
+.wb-tageszeile__auftrag:hover {
+  text-decoration: underline;
+}
+
+.wb-tageszeile__leute {
+  display: flex;
+  gap: var(--wb-space-1);
+  margin-top: var(--wb-space-1);
+}
+
+.wb-tageszeile__knopf {
+  flex: 0 0 auto;
+}
+
+/* --- Schnellzugriff --------------------------------------------------- */
+
+.wb-schnellzugriff {
+  display: grid;
+  gap: var(--wb-space-3);
+  grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr));
+  margin-top: var(--wb-space-4);
+}
+
+.wb-kachel {
+  align-items: center;
+  background: var(--wb-surface);
+  border: 1px solid var(--wb-border);
+  border-radius: var(--wb-radius-md);
+  color: inherit;
+  display: flex;
+  gap: var(--wb-space-3);
+  min-height: 4rem;
+  padding: var(--wb-space-3) var(--wb-space-4);
+  text-decoration: none;
+}
+
+.wb-kachel:hover {
+  border-color: var(--wb-brand);
+  color: var(--wb-brand);
+}
+
+.wb-kachel:focus-visible {
+  box-shadow: var(--wb-focus-ring);
+  outline: none;
+}
+
+.wb-kachel > span {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+}
+
+.wb-kachel small {
+  color: var(--wb-text-muted);
+  font-size: var(--wb-text-xs);
+}
+
+@media (max-width: 34rem) {
+  .wb-tageszeile {
+    flex-direction: column;
+    gap: var(--wb-space-1);
+  }
+
+  .wb-tageszeile__zeit {
+    width: auto;
+  }
+
+  .wb-tageszeile__knopf {
+    margin-top: var(--wb-space-2);
+  }
+}
+
+/* ----------------------------------------------------------------------
+   Kopfleiste am Handy
+
+   Auf 390 px ist kein Platz für Suchfeld, Benutzernamen und einen Knopf mit
+   Beschriftung. Der Name fällt weg — wer angemeldet ist, weiß man —, beim
+   Abmelden bleibt das Zeichen. Der Knopf behält seine Fläche, damit man ihn
+   mit Handschuhen trifft, und das title-Attribut trägt die Beschriftung für
+   Bildschirmleser weiter.
+   ---------------------------------------------------------------------- */
+@media (max-width: 30rem) {
+  .wb-kopfleiste {
+    padding: 0 var(--wb-space-3);
+    gap: var(--wb-space-2);
+  }
+
+  .wb-kopfleiste__benutzer {
+    display: none;
+  }
+
+  .wb-kopfleiste__knopf span {
+    display: none;
+  }
+
+  .wb-kopfleiste__knopf {
+    min-width: var(--wb-touch-min);
+    justify-content: center;
+  }
+
+  /* Ein Tastenkürzel auf einem Gerät ohne Tastatur ist nicht nur nutzlos,
+     es nimmt auch den Platz weg, den das Suchfeld zum Schrumpfen braucht. */
+  .wb-kuerzel {
+    display: none;
+  }
+
+  .wb-suchfeld,
+  .wb-kopfleiste__suche {
+    padding: 0 var(--wb-space-2);
+  }
+
+  /* Der Platzhalter darf verschwinden statt die Breite zu erzwingen. */
+  .wb-kopfleiste__suche input {
+    min-width: 0;
+  }
+}
+
+/* Der Umschalter (Liste/Offene Posten, Liste/Kacheln) steht am Handy in
+   einer Werkzeugleiste neben dem Suchfeld und ist dort mit `flex: none`
+   unschrumpfbar — er zieht die Seite breit. Am Handy darf er die ganze
+   Zeile nehmen und die Knöpfe teilen sich den Platz. */
+@media (max-width: 34rem) {
+  .wb-umschalter {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  .wb-umschalter button {
+    flex: 1;
+    min-width: 0;
+    padding: 0 var(--wb-space-2);
+  }
+
+  .wb-werkzeugleiste {
+    flex-wrap: wrap;
+  }
 }

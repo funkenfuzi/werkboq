@@ -72,12 +72,43 @@ export type RechtsraumSperreDienst = () => Promise<{ gesperrt: boolean; grund: s
  */
 export type AbwesendDienst = (von: string, bis: string) => Promise<Record<string, true>>;
 
+/**
+ * Ein Termin, so viel davon, wie die Startseite braucht.
+ *
+ * Bewusst nicht der ganze Datensatz: der Kern soll nicht wissen, welche
+ * Felder ein Termin im Baustein Planung hat. Er will anzeigen, wo jemand
+ * heute hin muss — mehr nicht.
+ */
+export interface Tagestermin {
+  id: string;
+  titel: string;
+  /** "07:00", leer bei ganztägigen Terminen. */
+  beginn: string;
+  ende: string;
+  ganztags: boolean;
+  ort: string;
+  /** Auftragskennung, sofern der Termin an einem hängt. */
+  auftrag?: string;
+  /** Mitarbeiterkennungen — wer sonst noch eingeteilt ist. */
+  mitarbeiter: string[];
+}
+
+/**
+ * Die Termine eines Mitarbeiters an einem Tag, nach Beginn sortiert.
+ * Ohne Mitarbeiterkennung: alle Termine des Tages, für das Büro.
+ */
+export type TagestermineDienst = (
+  tag: string,
+  mitarbeiterId?: string,
+) => Promise<Tagestermin[]>;
+
 export interface Dienste {
   tagesstunden: TagesstundenDienst;
   auftragsstunden: AuftragsstundenDienst;
   auftragspositionen: AuftragspositionenDienst;
   rechtsraumSperre: RechtsraumSperreDienst;
   abwesend: AbwesendDienst;
+  tagestermine: TagestermineDienst;
 }
 
 const angeboten = new Map<keyof Dienste, unknown>();

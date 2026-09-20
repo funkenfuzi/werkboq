@@ -210,7 +210,12 @@ const KERN = [
     name: "fotos",
     schema: [
       { name: "auftrag", type: "relation", required: true, options: { collectionId: "auftraege", maxSelect: 1, cascadeDelete: true } },
-      { name: "datei", type: "file", required: true, options: { maxSelect: 1, maxSize: 20971520, mimeTypes: ["image/jpeg", "image/png", "image/heic", "image/webp"] } },
+      // thumbs MUSS hier stehen: PocketBase erzeugt nur Vorschaubilder in
+      // Größen, die am Feld deklariert sind. Ohne das liefert ein Aufruf
+      // mit ?thumb=400x0 klaglos das Original zurück — eine Galerie mit
+      // dreißig Handyfotos wären dann hundert Megabyte über eine
+      // Mobilverbindung, und niemandem fällt auf, warum es so lahm ist.
+      { name: "datei", type: "file", required: true, options: { maxSelect: 1, maxSize: 20971520, mimeTypes: ["image/jpeg", "image/png", "image/heic", "image/webp"], thumbs: ["400x0", "1200x0"] } },
       { name: "beschreibung", type: "text" },
       { name: "aufgenommen", type: "date" },
     ],

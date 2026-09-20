@@ -9,7 +9,7 @@
 .wb-personal__aufmerksam {
   display: grid;
   gap: var(--wb-space-4);
-  grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(20rem, 100%), 1fr));
 }
 
 .wb-merkliste {

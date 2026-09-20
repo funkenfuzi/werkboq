@@ -90,6 +90,24 @@ export async function termineVonBis(von: string, bis: string): Promise<Termin[]>
     });
 }
 
+/**
+ * Die Termine eines Tages, wahlweise nur für einen Mitarbeiter.
+ *
+ * `mitarbeiter` ist eine Mehrfachverknüpfung, deshalb `~` statt `=`: ein
+ * Termin mit drei eingeteilten Leuten soll bei allen dreien erscheinen.
+ */
+export async function termineAmTag(tag: string, mitarbeiterId?: string): Promise<Termin[]> {
+  const teile = [`datum >= "${sicher(tag)}" && datum <= "${sicher(tag)} 23:59:59"`];
+  if (mitarbeiterId) teile.push(`mitarbeiter ~ "${sicher(mitarbeiterId)}"`);
+  return await pb()
+    .collection("termine")
+    .getFullList<Termin>({
+      filter: teile.join(" && "),
+      sort: "ganztags,beginn",
+      expand: "auftrag",
+    });
+}
+
 export async function termineZuAuftrag(auftrag: string): Promise<Termin[]> {
   return await pb()
     .collection("termine")

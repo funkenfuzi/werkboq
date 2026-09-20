@@ -1,6 +1,7 @@
-import type { WerkboqModul } from "@werkboq/core";
+import { dienstAnbieten, type WerkboqModul } from "@werkboq/core";
 import { Kalender } from "./seiten/Kalender";
 import { PLANUNG_COLLECTIONS } from "./daten/collections";
+import { termineAmTag } from "./daten/termine";
 
 export * from "./daten/termine";
 
@@ -18,6 +19,11 @@ export * from "./daten/termine";
  *                  nebeneinander; das ist der eigentliche Wert der Planung.
  * Fehlt die Zeiterfassung, fällt die zweite Zahl weg und der Plan zeigt nur
  * das Geplante. Eine harte Abhängigkeit gibt es nicht.
+ *
+ * Was er anbietet:
+ *   tagestermine — wer heute wo hin muss. Die Startseite fragt danach; ist
+ *   die Planung nicht gekauft, antwortet niemand und die Tagesansicht sagt
+ *   das, statt einen leeren Tag zu zeigen.
  */
 export const bausteinPlanung: WerkboqModul = {
   id: "planung",
@@ -40,6 +46,22 @@ export const bausteinPlanung: WerkboqModul = {
       bereich: "technik",
     },
   ],
+
+  async initialisieren() {
+    dienstAnbieten("tagestermine", async (tag, mitarbeiterId) => {
+      const termine = await termineAmTag(tag, mitarbeiterId);
+      return termine.map((t) => ({
+        id: t.id,
+        titel: t.titel,
+        beginn: t.ganztags ? "" : (t.beginn ?? ""),
+        ende: t.ganztags ? "" : (t.ende ?? ""),
+        ganztags: Boolean(t.ganztags),
+        ort: t.ort ?? "",
+        auftrag: t.auftrag || undefined,
+        mitarbeiter: t.mitarbeiter ?? [],
+      }));
+    });
+  },
 };
 
 export default bausteinPlanung;

@@ -18,6 +18,8 @@ import {
   type Standort,
 } from "@werkboq/core";
 import { Verlaufsliste } from "../komponenten/Verlaufsliste";
+import { Fotoblock } from "../komponenten/Fotoblock";
+import { Dokumentenblock } from "../komponenten/Dokumentenblock";
 
 /** Auftragsakte mit Phasenleiste, Stammdaten und Verlauf. */
 export function AuftragAkte() {
@@ -135,6 +137,12 @@ export function AuftragAkte() {
       {abschnitte.map(({ modulId, Komponente }) => (
         <Komponente key={modulId} datensatzId={auftrag.id} />
       ))}
+
+      {/* Baustellendokumentation. Steht bewusst nach den Modulabschnitten:
+          wer die Akte im Büro öffnet, will zuerst Zeiten und Positionen
+          sehen — wer sie auf der Baustelle öffnet, scrollt ohnehin. */}
+      <Fotoblock auftragId={auftrag.id} />
+      <Dokumentenblock auftragId={auftrag.id} />
 
       <div className="wb-spalten">
         <section className="wb-block">

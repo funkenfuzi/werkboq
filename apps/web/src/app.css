@@ -247,3 +247,31 @@ a.wb-button {
 }
 
 
+
+/* ----------------------------------------------------------------------
+   Lange deutsche Wörter brechen lassen.
+
+   „Lohnvorbereitung", „Baustellendokumentation", „Auftragsbestätigung" —
+   Komposita sind im Deutschen normal und passen als Überschrift auf keinen
+   390-px-Bildschirm. Ohne diese Regel ragt die Überschrift über den Rand,
+   die Seite wird breiter als das Handy, und man sieht „Lohnvorbereitu".
+
+   hyphens: auto trennt nach den Regeln der Sprache (das lang="de" am
+   html-Element sagt dem Browser welcher); overflow-wrap ist der Notnagel
+   für Wörter, für die er keine Trennstelle kennt.
+   ---------------------------------------------------------------------- */
+h1,
+h2,
+h3 {
+  hyphens: auto;
+  overflow-wrap: break-word;
+}
+
+/* Tabellenzellen und Listeneinträge tragen oft Artikelbezeichnungen, die
+   noch länger sind als jede Überschrift. */
+td,
+th,
+dd,
+dt {
+  overflow-wrap: break-word;
+}

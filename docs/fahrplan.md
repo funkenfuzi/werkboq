@@ -205,6 +205,20 @@ listet den Rückstand am Ende namentlich auf; siehe docs/rechte.md.
 Reihenfolge, wenn es soweit ist: Belege (Geld), dann Artikel (Preise und
 Einkaufspreise), dann Aufträge (der Monteur soll lesen, aber nicht ändern).
 
+## Handybreite — was noch offen ist
+
+Die Anwendung passt jetzt ab 360 px ohne waagrechtes Schieben. Auf 320 px
+(iPhone SE der ersten Reihe) ragt die Einstellungsseite um sieben Pixel
+hinaus; das ist bewusst nicht gejagt worden.
+
+Wie man es prüft, ohne sich selbst zu täuschen: `document.body.scrollWidth`
+gegen `window.visualViewport.width` vergleichen, **nicht** gegen
+`window.innerWidth`. Läuft der Inhalt über, wächst der Layout-Viewport mit,
+`innerWidth` wächst ebenfalls, und jede Prüfung der Form
+`scrollWidth > innerWidth` meldet fröhlich "passt", während die Seite auf
+dem Gerät 1066 px breit ist. Genau dieser Fehler hat die Überläufe bis
+September 2026 verdeckt.
+
 ## Offene Punkte
 
 - E-Rechnung: ebInterface/Peppol (AT), XRechnung/ZUGFeRD (DE).

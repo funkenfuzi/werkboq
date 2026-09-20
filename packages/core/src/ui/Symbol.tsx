@@ -34,7 +34,9 @@ export type SymbolName =
   | "vertrag"
   | "personal"
   | "haken"
-  | "kreuz";
+  | "kreuz"
+  | "kamera"
+  | "bild";
 
 const PFADE: Record<SymbolName, string> = {
   start: "M3 10.5 12 3l9 7.5M5.5 9.5V20h13V9.5M9.5 20v-6h5v6",
@@ -63,6 +65,9 @@ const PFADE: Record<SymbolName, string> = {
   // sonst stehen im Menü zwei Einträge mit demselben Zeichen.
   personal:
     "M9 11.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM3.5 19.5v-1a4 4 0 0 1 4-4h3a4 4 0 0 1 4 4v1M16.5 9h4M16.5 12.5h4M16.5 16h2.5",
+  kamera:
+    "M3.5 8.5h3l1.5-2.5h8l1.5 2.5h3v11h-17v-11ZM12 16.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z",
+  bild: "M3.5 4.5h17v15h-17v-15ZM3.5 16l5-4.5 3.5 3 3.5-3.5 5 4.5M9 9.5a1.2 1.2 0 1 0 0-2.4 1.2 1.2 0 0 0 0 2.4Z",
   haken: "M4.5 12.5 9.5 17.5 19.5 6.5",
   kreuz: "M6 6l12 12M18 6 6 18",
 };
