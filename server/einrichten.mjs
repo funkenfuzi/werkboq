@@ -610,8 +610,19 @@ async function collectionAbgleichen(def) {
   }
   // Bestehende Felder behalten (IDs!), neue anhängen, Regeln setzen
   const alteFelder = new Map(vorhanden.schema.map((f) => [f.name, f]));
-  const schema = def.schema.map((f) => (alteFelder.has(f.name) ? { ...alteFelder.get(f.name), ...f, id: alteFelder.get(f.name).id } : f));
-  for (const [name, f] of alteFelder) if (!def.schema.some((d) => d.name === name)) schema.push(f);
+
+  // Felder, deren Typ sich geändert hat, müssen neu angelegt werden —
+  // PocketBase lehnt einen Typwechsel ab ("Field type cannot be changed").
+  const getauscht = await typwechselBehandeln(def, vorhanden, alteFelder);
+
+  const schema = def.schema.map((f) =>
+    alteFelder.has(f.name) && !getauscht.has(f.name)
+      ? { ...alteFelder.get(f.name), ...f, id: alteFelder.get(f.name).id }
+      : f,
+  );
+  for (const [name, f] of alteFelder) {
+    if (!def.schema.some((d) => d.name === name)) schema.push(f);
+  }
   await pb.collections.update(vorhanden.id, {
     schema,
     indexes: def.indexes ?? vorhanden.indexes,
@@ -623,6 +634,71 @@ async function collectionAbgleichen(def) {
   });
   console.log(`${def.name}: abgeglichen`);
   return vorhanden.id;
+}
+
+/**
+ * Behandelt Felder, deren Typ sich zwischen zwei Ständen geändert hat.
+ *
+ * PocketBase kann den Typ einer Spalte nicht ändern und antwortet mit
+ * "Field type cannot be changed" — der Abgleich bliebe sonst für immer
+ * stecken. Ein Typwechsel heißt immer: alte Spalte weg, neue anlegen. Der
+ * Inhalt ist dabei verloren, das lässt sich nicht wegdiskutieren.
+ *
+ * Deshalb die Unterscheidung:
+ *   - Collection leer  → wortlos tauschen, es geht nichts verloren.
+ *   - Collection voll  → abbrechen und sagen, was passieren würde.
+ *                        Mit WERKBOQ_FELDER_TAUSCHEN=ja wird trotzdem
+ *                        getauscht.
+ *
+ * Gibt die Namen der getauschten Felder zurück; der Aufrufer setzt sie ohne
+ * alte Kennung neu ins Schema, damit PocketBase sie als neue Spalte anlegt.
+ */
+async function typwechselBehandeln(def, vorhanden, alteFelder) {
+  const konflikte = def.schema.filter((f) => {
+    const alt = alteFelder.get(f.name);
+    return alt && alt.type !== f.type;
+  });
+  if (konflikte.length === 0) return new Set();
+
+  const liste = konflikte
+    .map((f) => `${f.name}: ${alteFelder.get(f.name).type} → ${f.type}`)
+    .join(", ");
+
+  const anzahl = (await pb.collection(def.name).getList(1, 1)).totalItems;
+
+  if (anzahl > 0 && process.env.WERKBOQ_FELDER_TAUSCHEN !== "ja") {
+    console.error(
+      `\nAbbruch bei "${def.name}": Der Typ dieser Felder hat sich geändert —\n` +
+        `  ${liste}\n` +
+        `PocketBase kann den Typ einer Spalte nicht ändern; die Spalte muss neu\n` +
+        `angelegt werden und ihr bisheriger Inhalt geht dabei verloren. In\n` +
+        `"${def.name}" stehen ${anzahl} Datensätze.\n\n` +
+        `Wenn dieser Inhalt entbehrlich ist:\n` +
+        `  WERKBOQ_FELDER_TAUSCHEN=ja npm run einrichten\n` +
+        `Wenn nicht: vorher sichern (Admin-UI → Export) oder die Werte von Hand\n` +
+        `in ein neues Feld übertragen.\n`,
+    );
+    process.exit(1);
+  }
+
+  // Erst entfernen, dann legt der Aufrufer sie als neue Felder wieder an.
+  // In einem Zug ginge es nicht: derselbe Name, zwei Typen.
+  const rest = vorhanden.schema.filter((f) => !konflikte.some((k) => k.name === f.name));
+  // Ein Index auf einer Spalte, die gerade verschwindet, lässt das Entfernen
+  // scheitern. Er wird unten ohnehin aus def.indexes neu gesetzt.
+  const indexeOhne = (vorhanden.indexes ?? []).filter(
+    (i) => !konflikte.some((k) => new RegExp(`[(,\\s\`"]${k.name}[)\\s,\`"]`).test(i)),
+  );
+  await pb.collections.update(vorhanden.id, { schema: rest, indexes: indexeOhne });
+
+  console.log(
+    anzahl > 0
+      ? `${def.name}: Felder getauscht, Inhalt verworfen (${liste})`
+      : `${def.name}: Felder getauscht, Collection war leer (${liste})`,
+  );
+
+  for (const k of konflikte) alteFelder.delete(k.name);
+  return new Set(konflikte.map((f) => f.name));
 }
 
 function ladeEnv(pfad) {
