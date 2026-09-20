@@ -16,6 +16,7 @@
     "test": "npm run test --workspaces --if-present",
     "server": "node server/start.mjs",
     "einrichten": "node server/einrichten.mjs",
+    "beispieldaten": "node scripts/beispieldaten.mjs",
     "entwicklung-weg": "node server/entwicklung-weg.mjs"
   },
   "engines": {

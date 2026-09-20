@@ -14,6 +14,11 @@ import {
   type Mahnung,
 } from "../daten/mahnwesen";
 
+/** "10,73" statt "10.73" — auf Deutsch trennt das Komma. */
+function prozent(wert: number): string {
+  return wert.toFixed(2).replace(".", ",");
+}
+
 /**
  * Mahnungen zu einer Rechnung.
  *
@@ -96,7 +101,7 @@ export function Mahnblock({
       )}
       {kunde?.unternehmer && (
         <p className="wb-leer wb-notiz">
-          Unternehmer: Verzugszinsen {VERZUGSZINSEN_B2B.toFixed(2)} % nach § 456 UGB
+          Unternehmer: Verzugszinsen {prozent(VERZUGSZINSEN_B2B)} % nach § 456 UGB
           (Basiszinssatz plus 9,2 Punkte) und einmalig {alsEuro(BETREIBUNGSKOSTEN_B2B)}{" "}
           Betreibungskosten nach § 458 UGB.
         </p>
@@ -222,7 +227,7 @@ function Mahnmaske({
         <span>{MAHNSTUFE_TEXT[stufe]}</span>
         <p className="wb-notiz">
           {vorschlag.tage} Tage über der Fälligkeit, offen {alsEuro(offen)}. Zinsen gerechnet mit{" "}
-          {(unternehmer ? VERZUGSZINSEN_B2B : VERZUGSZINSEN_B2C).toFixed(2)} % taggenau auf 365
+          {prozent(unternehmer ? VERZUGSZINSEN_B2B : VERZUGSZINSEN_B2C)} % taggenau auf 365
           Tage.
         </p>
       </div>
