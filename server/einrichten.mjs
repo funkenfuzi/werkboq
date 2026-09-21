@@ -216,9 +216,53 @@ const KERN = [
       // dreißig Handyfotos wären dann hundert Megabyte über eine
       // Mobilverbindung, und niemandem fällt auf, warum es so lahm ist.
       { name: "datei", type: "file", required: true, options: { maxSelect: 1, maxSize: 20971520, mimeTypes: ["image/jpeg", "image/png", "image/heic", "image/webp"], thumbs: ["400x0", "1200x0"] } },
+      // Ein Foto ohne Einordnung beweist wenig: "da war ein Loch in der
+      // Wand" sagt nichts darüber, ob es vorher schon da war.
+      { name: "art", type: "select", options: { maxSelect: 1, values: ["vorab", "vorher", "nachher", "schaden", "sonstiges"] } },
       { name: "beschreibung", type: "text" },
       { name: "aufgenommen", type: "date" },
+      // Wer das Bild aufgenommen hat. Für die Beweiskraft so wichtig wie
+      // das Bild selbst.
+      { name: "mitarbeiter", type: "relation", options: { collectionId: "mitarbeiter", maxSelect: 1 } },
     ],
+    indexes: ["CREATE INDEX idx_fotos_auftrag_art ON fotos (auftrag, art)"],
+  },
+  {
+    // Unterschrift des Kunden, am Tablet auf der Baustelle.
+    //
+    // DIE ERKLÄRUNG WIRD MITGESPEICHERT UND EINGEFROREN.
+    //
+    // Eine Unterschrift ohne den Text, den sie bestätigt, ist wertlos — im
+    // Streit zählt nicht der Strich, sondern wozu er gesetzt wurde. Deshalb
+    // steht der volle Wortlaut im Datensatz, nicht bloß ein Verweis auf
+    // eine Vorlage, die sich später ändern kann.
+    //
+    // Und deshalb ist sie unveränderlich: updateRule null, Löschen nur für
+    // Administratoren. Eine nachträglich änderbare Unterschrift beweist
+    // nichts.
+    name: "unterschriften",
+    listRule: angemeldet,
+    viewRule: angemeldet,
+    createRule: angemeldet,
+    updateRule: null,
+    deleteRule: nurAdmin,
+    schema: [
+      { name: "auftrag", type: "relation", required: true, options: { collectionId: "auftraege", maxSelect: 1 } },
+      { name: "zweck", type: "select", required: true, options: { maxSelect: 1, values: ["abnahme", "stundennachweis", "zustand_vorher", "uebergabe"] } },
+      // Wer unterschrieben hat — in Blockschrift daneben, weil eine
+      // Unterschrift oft nicht lesbar ist.
+      { name: "name", type: "text", required: true },
+      { name: "funktion", type: "text" },
+      { name: "datum", type: "date", required: true },
+      { name: "ort", type: "text" },
+      // Der Wortlaut, dem zugestimmt wurde. Eingefroren.
+      { name: "erklaerung", type: "text", required: true },
+      { name: "bild", type: "file", required: true, options: { maxSelect: 1, maxSize: 2097152, mimeTypes: ["image/png"], thumbs: ["400x0"] } },
+      // Wer die Unterschrift eingeholt hat.
+      { name: "mitarbeiter", type: "relation", options: { collectionId: "mitarbeiter", maxSelect: 1 } },
+      { name: "vorbehalt", type: "text" },
+    ],
+    indexes: ["CREATE INDEX idx_unterschriften_auftrag ON unterschriften (auftrag, datum)"],
   },
   {
     name: "ansprechpartner",
@@ -249,6 +293,39 @@ const KERN = [
     viewRule: angemeldet,
     createRule: angemeldet,
     updateRule: null,
+    deleteRule: null,
+  },
+  {
+    // Versandprotokoll: wann ist welches Dokument an wen hinausgegangen.
+    //
+    // Das ist der Teil, der wirklich trägt. Ob die Mail über das
+    // Mailprogramm oder über WhatsApp ging, ist zweitrangig — die Frage
+    // im Streit lautet "haben Sie die Rechnung je bekommen?", und darauf
+    // muss man ein Datum nennen können.
+    //
+    // Unveränderlich wie der Änderungsverlauf: ein Versandnachweis, den man
+    // nachträglich eintragen oder löschen kann, ist keiner.
+    name: "versand",
+    schema: [
+      { name: "bereich", type: "text", required: true },
+      { name: "datensatz", type: "text", required: true },
+      { name: "bezeichnung", type: "text", required: true },
+      { name: "weg", type: "select", required: true, options: { maxSelect: 1, values: ["mail", "whatsapp", "druck", "uebergabe", "post"] } },
+      { name: "empfaenger", type: "text" },
+      { name: "betreff", type: "text" },
+      { name: "nachricht", type: "text" },
+      // Hat der Anwender bestätigt, dass er es wirklich abgeschickt hat?
+      // Werkboq öffnet nur das Mailprogramm — ob dort auf Senden gedrückt
+      // wurde, kann es nicht wissen und behauptet es deshalb nicht.
+      { name: "bestaetigt", type: "bool" },
+      { name: "benutzer", type: "relation", options: { collectionId: "users", maxSelect: 1 } },
+      { name: "benutzername", type: "text" },
+    ],
+    indexes: ["CREATE INDEX idx_versand_datensatz ON versand (datensatz, created)"],
+    listRule: angemeldet,
+    viewRule: angemeldet,
+    createRule: angemeldet,
+    updateRule: angemeldet,
     deleteRule: null,
   },
 ];

@@ -1,17 +1,22 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
-  AUFTRAG_PHASEN,
   auftragAendern,
   auftragAnlegen,
   auftragLaden,
   kundenSuchen,
   LEERER_AUFTRAG,
   naechsteNummer,
+  AUFTRAGSART_HINWEIS,
+  AUFTRAGSART_TEXT,
+  AUFTRAGSARTEN,
+  artVon,
+  phasenFuer,
   PHASENTEXT,
   type Auftrag,
   type AuftragEingabe,
   type AuftragPhase,
+  type Auftragsart,
   type Kunde,
 } from "@werkboq/core";
 
@@ -130,17 +135,35 @@ export function AuftragBearbeiten() {
         </label>
 
         <label className="wb-feld">
+          <span>Art</span>
+          <select
+            value={artVon(werte)}
+            onChange={(e) => feld("art", e.target.value as Auftragsart)}
+          >
+            {AUFTRAGSARTEN.map((a) => (
+              <option key={a} value={a}>
+                {AUFTRAGSART_TEXT[a]}
+              </option>
+            ))}
+          </select>
+          <small className="wb-notiz">{AUFTRAGSART_HINWEIS[artVon(werte)]}</small>
+        </label>
+
+        <label className="wb-feld">
           <span>Phase</span>
           <select
             value={werte.phase}
             onChange={(e) => feld("phase", e.target.value as AuftragPhase)}
           >
-            {AUFTRAG_PHASEN.map((p) => (
+            {phasenFuer(werte).map((p) => (
               <option key={p} value={p}>
                 {PHASENTEXT[p]}
               </option>
             ))}
           </select>
+          <small className="wb-notiz">
+            Die Auftragsart bestimmt, welche Phasen zur Wahl stehen.
+          </small>
         </label>
 
         <label className="wb-feld">

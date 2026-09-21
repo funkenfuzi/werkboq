@@ -21,7 +21,10 @@ Zahlen, denen niemand traut, sind schlimmer als keine Zahlen.
 
 ## Was zuerst kommt und warum
 
-### 1. Baustellendokumentation — Fotos am Auftrag
+Die Punkte 1, 2 und 4 stehen seit September 2026, dazu die Unterschrift und
+der Dokumentenversand (unten). 3, 5, 6 und 7 sind offen.
+
+### 1. Baustellendokumentation — Fotos am Auftrag — **steht**
 
 Die Collections `fotos` und `dokumente` liegen seit Scheibe 0 im Schema. Es
 gab bis September 2026 keine Oberfläche dafür. Das Programm heißt
@@ -32,7 +35,7 @@ Für einen Elektriker ist das Foto der offenen Wand vor dem Verputzen der
 wertvollste Datensatz überhaupt: Wo liegt die Leitung. Im Streitfall zählt es
 mehr als jede Stundenaufzeichnung, und es kostet fünf Sekunden.
 
-### 2. Die Tagesansicht für den Monteur
+### 2. Die Tagesansicht für den Monteur — **steht**
 
 Die Startseite zeigte „Hallo Julian. Aktive Module: …". Der Mensch, der die
 App am häufigsten öffnet, ist der Monteur um sieben Uhr früh — und für den
@@ -52,7 +55,7 @@ die fallen auf —, sondern vergessenes Material: drei Meter Kabel hier, eine
 Dose dort, am Monatsende ein vierstelliger Betrag, den niemand vermisst, weil
 ihn niemand je gesehen hat.
 
-### 4. Auftragsarten statt zehn Phasen für alles
+### 4. Auftragsarten statt zehn Phasen für alles — **steht**
 
 Heute hat jeder Auftrag dieselben zehn Phasen: Anfrage, Spezifikation,
 Angebot, Termine, Projekt, Errichtung, Abnahme, Wartung, Materialverkauf,
@@ -64,10 +67,50 @@ Abgeschlossen. Zwei Probleme:
 * Für eine Störungsbehebung — anrufen, hinfahren, Sicherung tauschen,
   verrechnen — sind sieben der zehn Phasen Lärm.
 
-Vorschlag: **Auftragsart** (Störung, Regie, Projekt, Wartung, Materialverkauf)
+Gebaut: **Auftragsart** (Störung, Regie, Projekt, Wartung, Materialverkauf)
 getrennt von der **Phase**, und die Art entscheidet, welche Phasen es gibt.
-Eine Störung hat drei, ein Projekt acht. Wenig Arbeit, großer Unterschied im
-täglichen Gefühl.
+Eine Störung hat drei, ein Projekt acht.
+
+Ein Auftrag ohne Art gilt als Projekt — so sehen alte Datensätze aus wie
+vorher. Steht ein Auftrag in einer Phase, die seine Art nicht kennt (weil
+jemand die Art nachträglich umgestellt hat), wird diese Phase angehängt
+statt versteckt: ein Auftrag verschwindet nicht aus seiner eigenen Leiste.
+
+### 4a. Unterschrift am Tablet — **steht**
+
+Zum Foto gehört die Unterschrift: Abnahme, Stundennachweis, Zustand vor
+Arbeitsbeginn, Übergabe. Der volle Wortlaut der Erklärung wird mitgespeichert
+und eingefroren — nicht ein Verweis auf eine Vorlage, die sich nächstes Jahr
+ändert. Eine Unterschrift ohne den Text, den sie bestätigt, beweist nichts.
+
+Die Collection kennt kein Ändern; gelöscht werden darf nur von einem
+Administrator. Das ist gegen die API geprüft, nicht nur in der Oberfläche
+ausgeblendet.
+
+Rechtlich ist das eine *einfache* elektronische Signatur nach eIDAS. Artikel
+25 verbietet, ihr die Wirkung allein wegen der elektronischen Form
+abzusprechen — die Beweiskraft einer qualifizierten Signatur mit Zertifikat
+hat sie damit nicht. Für den Abnahmeschein auf der Baustelle reicht das; für
+einen Vertrag mit Schriftformerfordernis nicht.
+
+### 4b. Dokumentenversand mit Nachweis — **steht**
+
+Rechnung, Angebot, Abnahmeschein per Mail oder WhatsApp hinausschicken.
+
+Werkboq verschickt nichts selbst und behauptet es auch nicht. Es öffnet das
+Mailprogramm (`mailto:`) oder WhatsApp (`wa.me`) mit fertigem Betreff und
+Text; die Datei hängt der Anwender an. **Ein Anhang lässt sich über keinen
+der beiden Wege mitgeben** — das erlauben beide Standards nicht, und kein
+Programm umgeht das. Ein eigener Mailserver wäre der einzige Ausweg: dann
+müsste jeder Betrieb SMTP, SPF und DKIM einrichten, und wenn das schiefgeht,
+landen die Rechnungen wortlos im Spam. Das ist ein eigenes Vorhaben mit
+eigenem Betrieb, kein Nachmittag.
+
+Der Wert liegt ohnehin nicht im Kanal, sondern im Nachweis: im Streit lautet
+die Frage „haben Sie die Rechnung je bekommen?", und darauf muss man ein
+Datum nennen können. Deshalb fragt Werkboq hinterher nach, ob wirklich
+abgeschickt wurde. Es kann es nicht wissen — ein Versandnachweis, der bloß
+sagt „wir haben ein Fenster geöffnet", wäre eine Lüge mit Zeitstempel.
 
 ### 5. Fahrzeuge mit Fristen
 

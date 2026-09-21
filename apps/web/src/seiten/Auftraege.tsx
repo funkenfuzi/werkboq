@@ -7,6 +7,8 @@ import {
   nachPhase,
   phaseSetzen,
   PHASENFARBE,
+  AUFTRAGSART_TEXT,
+  artVon,
   PHASENTEXT,
   type Auftrag,
   type AuftragPhase,
@@ -241,6 +243,7 @@ function Auftragsliste({ auftraege }: { auftraege: Auftrag[] }) {
             <th scope="col">Nummer</th>
             <th scope="col">Titel</th>
             <th scope="col">Kunde</th>
+            <th scope="col">Art</th>
             <th scope="col">Phase</th>
             <th scope="col">Beginn</th>
           </tr>
@@ -258,6 +261,7 @@ function Auftragsliste({ auftraege }: { auftraege: Auftrag[] }) {
                 <td className="wb-tabelle__kennung">{a.nummer}</td>
                 <td>{a.titel}</td>
                 <td>{kunde?.name ?? "—"}</td>
+                <td className="wb-zelle--gedaempft">{AUFTRAGSART_TEXT[artVon(a)]}</td>
                 <td>
                   <span className={`wb-plakette wb-plakette--${PHASENFARBE[a.phase]}`}>
                     {PHASENTEXT[a.phase]}

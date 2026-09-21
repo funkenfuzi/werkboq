@@ -1,4 +1,10 @@
-import { AUFTRAG_PHASEN, KERN_COLLECTIONS, type Auftrag, type AuftragPhase } from "./typen";
+import {
+  AUFTRAG_PHASEN,
+  KERN_COLLECTIONS,
+  type Auftrag,
+  type AuftragPhase,
+  type Auftragsart,
+} from "./typen";
 import { pb } from "./client";
 import { schreiben } from "./offline";
 import { protokollieren, unterschiede } from "./protokoll";
@@ -17,6 +23,7 @@ export type AuftragEingabe = {
   standort?: string;
   nummer: string;
   titel: string;
+  art?: Auftragsart;
   phase: AuftragPhase;
   modul?: string;
   beschreibung?: string;
@@ -56,6 +63,7 @@ const FELDNAMEN: Record<string, string> = {
   standort: "Standort",
   nummer: "Nummer",
   titel: "Titel",
+  art: "Auftragsart",
   phase: "Phase",
   modul: "Modul",
   beschreibung: "Beschreibung",
@@ -68,6 +76,7 @@ export const LEERER_AUFTRAG: AuftragEingabe = {
   standort: "",
   nummer: "",
   titel: "",
+  art: "projekt",
   phase: "anfrage",
   modul: "",
   beschreibung: "",

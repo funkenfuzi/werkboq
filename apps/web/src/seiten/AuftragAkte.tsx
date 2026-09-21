@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
-  AUFTRAG_PHASEN,
   auftragLaden,
   auftragLoeschen,
   darf,
   erweiterungen,
   phaseSetzen,
+  AUFTRAGSART_TEXT,
+  artVon,
+  phasenFuer,
   PHASENFARBE,
   PHASENTEXT,
   Symbol,
@@ -20,6 +22,7 @@ import {
 import { Verlaufsliste } from "../komponenten/Verlaufsliste";
 import { Fotoblock } from "../komponenten/Fotoblock";
 import { Dokumentenblock } from "../komponenten/Dokumentenblock";
+import { Unterschriftsblock } from "../komponenten/Unterschriftsblock";
 
 /** Auftragsakte mit Phasenleiste, Stammdaten und Verlauf. */
 export function AuftragAkte() {
@@ -109,17 +112,22 @@ export function AuftragAkte() {
             begriff="Ende"
             wert={auftrag.ende ? new Date(auftrag.ende).toLocaleDateString("de-AT") : undefined}
           />
+          <Fakt begriff="Art" wert={AUFTRAGSART_TEXT[artVon(auftrag)]} />
           <Fakt begriff="Modul" wert={auftrag.modul} />
         </dl>
       </header>
 
       <section className="wb-block">
-        <h2>Phase</h2>
+        <div className="wb-block__kopf">
+          <h2>Phase</h2>
+          <span className="wb-block__summe">{AUFTRAGSART_TEXT[artVon(auftrag)]}</span>
+        </div>
         <p className="wb-leer">
-          Ein Klick setzt die Phase und schreibt den Wechsel in den Verlauf.
+          Ein Klick setzt die Phase und schreibt den Wechsel in den Verlauf. Welche Phasen es
+          gibt, hängt an der Auftragsart.
         </p>
         <div className="wb-phasenleiste">
-          {AUFTRAG_PHASEN.map((p) => (
+          {phasenFuer(auftrag).map((p) => (
             <button
               key={p}
               type="button"
@@ -142,6 +150,7 @@ export function AuftragAkte() {
           wer die Akte im Büro öffnet, will zuerst Zeiten und Positionen
           sehen — wer sie auf der Baustelle öffnet, scrollt ohnehin. */}
       <Fotoblock auftragId={auftrag.id} />
+      <Unterschriftsblock auftragId={auftrag.id} />
       <Dokumentenblock auftragId={auftrag.id} />
 
       <div className="wb-spalten">

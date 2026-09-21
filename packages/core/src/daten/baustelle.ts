@@ -1,7 +1,8 @@
 import { pb } from "./client";
 import { protokollieren } from "./protokoll";
 import { sicher } from "../werkzeug/zeitrechnung";
-import type { Dokument, Foto } from "./typen";
+import { eigenerMitarbeiter } from "./mitarbeiter";
+import { FOTOARTEN, type Dokument, type Foto, type Fotoart } from "./typen";
 
 /**
  * Baustellendokumentation: Fotos und Dokumente am Auftrag.
@@ -26,7 +27,70 @@ import type { Dokument, Foto } from "./typen";
 // Die Typen Foto und Dokument stehen seit Scheibe 0 in daten/typen.ts und
 // werden hier nur benutzt — zwei Fassungen desselben Datensatzes laufen
 // früher oder später auseinander.
-export type { Dokument, Foto };
+export type { Dokument, Foto, Fotoart };
+export { FOTOARTEN };
+
+export const FOTOART_TEXT: Record<Fotoart, string> = {
+  vorab: "Vorab vom Kunden",
+  vorher: "Vor der Arbeit",
+  nachher: "Nach der Arbeit",
+  schaden: "Schaden",
+  sonstiges: "Sonstiges",
+};
+
+export const FOTOART_HINWEIS: Record<Fotoart, string> = {
+  vorab: "Was der Kunde mit der Anfrage geschickt hat",
+  vorher: "Der vorgefundene Zustand, bevor angefangen wurde",
+  nachher: "Das Ergebnis — und was hinter Putz und Verkleidung verschwindet",
+  schaden: "Beschädigung, die festgehalten gehört",
+  sonstiges: "Alles Übrige",
+};
+
+export const FOTOART_FARBE: Record<Fotoart, string> = {
+  vorab: "info",
+  vorher: "warn",
+  nachher: "ok",
+  schaden: "fehler",
+  sonstiges: "neutral",
+};
+
+/** In dieser Reihenfolge wird die Galerie gegliedert. */
+export const FOTOART_REIHENFOLGE: Fotoart[] = [
+  "vorab",
+  "vorher",
+  "nachher",
+  "schaden",
+  "sonstiges",
+];
+
+/** Die Art eines Fotos, mit der Voreinstellung für alte Datensätze. */
+export function fotoartVon(f: Pick<Foto, "art">): Fotoart {
+  return f.art && (FOTOARTEN as readonly string[]).includes(f.art) ? f.art : "sonstiges";
+}
+
+/** Fotos nach Art gruppiert, leere Gruppen fallen weg. */
+export function nachArt(fotos: Foto[]): { art: Fotoart; fotos: Foto[] }[] {
+  return FOTOART_REIHENFOLGE.map((art) => ({
+    art,
+    fotos: fotos.filter((f) => fotoartVon(f) === art),
+  })).filter((g) => g.fotos.length > 0);
+}
+
+/**
+ * Fehlt etwas an der Dokumentation?
+ *
+ * Kein Zwang, nur ein Hinweis. Ein Monteur, den die Software am Abschließen
+ * hindert, macht irgendein Foto, damit die Meldung verschwindet — und dann
+ * ist die Kontrolle nicht nur nutzlos, sondern schädlich, weil sie ein
+ * Häkchen erzeugt, dem man nicht trauen kann.
+ */
+export function dokumentationsluecken(fotos: Foto[]): string[] {
+  const hat = (a: Fotoart) => fotos.some((f) => fotoartVon(f) === a);
+  const fehlt: string[] = [];
+  if (!hat("vorher")) fehlt.push("Kein Bild vom Zustand vor der Arbeit.");
+  if (!hat("nachher")) fehlt.push("Kein Bild vom Ergebnis.");
+  return fehlt;
+}
 
 /** Was in einem Elektrobetrieb tatsächlich am Auftrag hängt. */
 export const DOKUMENTARTEN_AUFTRAG = [
@@ -52,7 +116,7 @@ export async function fotosZuAuftrag(auftragId: string): Promise<Foto[]> {
     .collection("fotos")
     .getFullList<Foto>({
       filter: `auftrag = "${sicher(auftragId)}"`,
-      sort: "-aufgenommen,-created",
+      sort: "aufgenommen,created",
     });
 }
 
@@ -67,23 +131,37 @@ export async function fotosZuAuftrag(auftragId: string): Promise<Foto[]> {
 export async function fotoHochladen(
   auftragId: string,
   datei: File,
+  art: Fotoart = "sonstiges",
   beschreibung = "",
   aufgenommen = heute(),
 ): Promise<Foto> {
   const formular = new FormData();
   formular.append("auftrag", auftragId);
   formular.append("datei", datei);
+  formular.append("art", art);
   formular.append("beschreibung", beschreibung);
   formular.append("aufgenommen", aufgenommen);
+
+  // Wer das Bild gemacht hat, gehört dazu — für die Beweiskraft so wichtig
+  // wie das Bild. Fehlt die Verknüpfung, bleibt das Feld leer statt zu
+  // scheitern: ein Bürozugang ohne Mitarbeiterdatensatz darf Fotos ablegen.
+  const ich = await eigenerMitarbeiter().catch(() => null);
+  if (ich) formular.append("mitarbeiter", ich.id);
 
   const neu = await pb().collection("fotos").create<Foto>(formular);
   await protokollieren(
     "auftraege",
     auftragId,
     "anlegen",
-    beschreibung ? `Foto abgelegt: ${beschreibung}` : "Foto abgelegt",
+    `${FOTOART_TEXT[art]}: Foto abgelegt${beschreibung ? ` — ${beschreibung}` : ""}`,
   );
   return neu;
+}
+
+/** Die Einordnung nachträglich ändern. */
+export async function fotoEinordnen(f: Foto, art: Fotoart): Promise<void> {
+  await pb().collection("fotos").update(f.id, { art });
+  await protokollieren("auftraege", f.auftrag, "aendern", `Foto eingeordnet als ${FOTOART_TEXT[art]}`);
 }
 
 export async function fotoBeschriften(f: Foto, beschreibung: string): Promise<void> {

@@ -1,31 +1,45 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  dokumentationsluecken,
   fehlersatz,
+  fotoartVon,
+  FOTOART_FARBE,
+  FOTOART_HINWEIS,
+  FOTOART_TEXT,
+  FOTOARTEN,
   fotoBeschriften,
+  fotoEinordnen,
   fotoHochladen,
   fotoLoeschen,
   fotosZuAuftrag,
   dateiAdresse,
+  nachArt,
   Symbol,
   vorschauAdresse,
   type Foto,
+  type Fotoart,
 } from "@werkboq/core";
 
 /**
- * Fotos einer Baustelle.
+ * Fotos einer Baustelle, nach Abschnitten.
  *
- * DIE WICHTIGSTE SCHALTFLÄCHE IM GANZEN PROGRAMM steht hier oben, und sie
- * heißt „Foto aufnehmen". Auf dem Handy öffnet `capture="environment"`
- * direkt die Kamera statt eines Dateiwählers — ein Griff, kein Formular. Die
- * Beschreibung kommt danach, wenn überhaupt: ein Bild ohne Text ist
- * hundertmal mehr wert als ein Bild, das nie gemacht wurde, weil erst ein
+ * DIE EINORDNUNG WIRD VOR DEM AUSLÖSEN GEWÄHLT, NICHT DANACH.
+ *
+ * Das ist der ganze Unterschied. Ein Monteur, der zehn Bilder macht und
+ * hinterher jedes einzeln einsortieren soll, sortiert keines ein — und ein
+ * Foto ohne Einordnung beweist nichts: "da war ein Loch in der Wand" sagt
+ * nicht, ob es vorher schon da war. Also steht oben, woran gerade
+ * gearbeitet wird, und der Auslöser übernimmt das für jedes Bild dieser
+ * Serie.
+ *
+ * Auf dem Handy öffnet `capture="environment"` direkt die Kamera. Die
+ * Beschreibung kommt später, wenn überhaupt: ein Bild ohne Text ist
+ * hundertmal mehr wert als eines, das nie gemacht wurde, weil erst ein
  * Pflichtfeld auszufüllen war.
- *
- * Mehrere Fotos auf einmal gehen auch — nach dem Verputzen steht man vor
- * einem Raum und knipst sechsmal.
  */
 export function Fotoblock({ auftragId }: { auftragId: string }) {
   const [fotos, setFotos] = useState<Foto[]>([]);
+  const [art, setArt] = useState<Fotoart>("vorher");
   const [laedt, setLaedt] = useState(true);
   const [laeuft, setLaeuft] = useState(0);
   const [fehler, setFehler] = useState<string | null>(null);
@@ -36,7 +50,13 @@ export function Fotoblock({ auftragId }: { auftragId: string }) {
   const laden = useCallback(() => {
     setLaedt(true);
     fotosZuAuftrag(auftragId)
-      .then(setFotos)
+      .then((liste) => {
+        setFotos(liste);
+        // Ist der Vorher-Abschnitt schon gefüllt, geht es beim nächsten Griff
+        // vermutlich um das Ergebnis. Nur ein Vorschlag, umstellbar.
+        const hat = (a: Fotoart) => liste.some((f) => fotoartVon(f) === a);
+        if (hat("vorher") && !hat("nachher")) setArt("nachher");
+      })
       .catch((e: unknown) => setFehler(fehlersatz(e)))
       .finally(() => setLaedt(false));
   }, [auftragId]);
@@ -50,25 +70,48 @@ export function Fotoblock({ auftragId }: { auftragId: string }) {
     let misslungen = 0;
     for (const datei of Array.from(dateien)) {
       try {
-        await fotoHochladen(auftragId, datei);
+        await fotoHochladen(auftragId, datei, art);
       } catch (e: unknown) {
         misslungen += 1;
         setFehler(fehlersatz(e));
       }
       setLaeuft((n) => n - 1);
     }
-    // Auch bei Teilerfolg neu laden: was durchging, soll sichtbar sein.
     if (misslungen < dateien.length) laden();
     setLaeuft(0);
     if (kamera.current) kamera.current.value = "";
     if (dateiwahl.current) dateiwahl.current.value = "";
   }
 
+  const gruppen = nachArt(fotos);
+  const luecken = dokumentationsluecken(fotos);
+
   return (
     <section className="wb-block">
       <div className="wb-block__kopf">
         <h2>Fotos</h2>
         <span className="wb-block__summe">{fotos.length}</span>
+      </div>
+
+      <div className="wb-aufnahme">
+        <fieldset className="wb-aufnahme__wahl">
+          <legend>Was wird aufgenommen?</legend>
+          <div className="wb-aufnahme__arten">
+            {FOTOARTEN.filter((a) => a !== "sonstiges").map((a) => (
+              <label key={a} className={`wb-artwahl ${art === a ? "ist-aktiv" : ""}`}>
+                <input
+                  type="radio"
+                  name="fotoart"
+                  value={a}
+                  checked={art === a}
+                  onChange={() => setArt(a)}
+                />
+                <span>{FOTOART_TEXT[a]}</span>
+              </label>
+            ))}
+          </div>
+          <small className="wb-notiz">{FOTOART_HINWEIS[art]}</small>
+        </fieldset>
 
         <input
           ref={kamera}
@@ -88,23 +131,25 @@ export function Fotoblock({ auftragId }: { auftragId: string }) {
           onChange={(e) => void aufnehmen(e.target.files)}
         />
 
-        <button
-          className="wb-button"
-          type="button"
-          disabled={laeuft > 0}
-          onClick={() => kamera.current?.click()}
-        >
-          <Symbol name="kamera" groesse={18} />
-          {laeuft > 0 ? `${laeuft} wird geladen …` : "Foto aufnehmen"}
-        </button>
-        <button
-          className="wb-button wb-button--sekundaer"
-          type="button"
-          disabled={laeuft > 0}
-          onClick={() => dateiwahl.current?.click()}
-        >
-          Aus Galerie
-        </button>
+        <div className="wb-aufnahme__knoepfe">
+          <button
+            className="wb-button wb-button--gross"
+            type="button"
+            disabled={laeuft > 0}
+            onClick={() => kamera.current?.click()}
+          >
+            <Symbol name="kamera" groesse={20} />
+            {laeuft > 0 ? `${laeuft} wird geladen …` : `${FOTOART_TEXT[art]} aufnehmen`}
+          </button>
+          <button
+            className="wb-button wb-button--sekundaer"
+            type="button"
+            disabled={laeuft > 0}
+            onClick={() => dateiwahl.current?.click()}
+          >
+            Aus Galerie
+          </button>
+        </div>
       </div>
 
       {fehler && (
@@ -113,37 +158,52 @@ export function Fotoblock({ auftragId }: { auftragId: string }) {
         </p>
       )}
 
+      {!laedt && luecken.length > 0 && fotos.length > 0 && (
+        <p className="wb-hinweis">
+          {luecken.join(" ")} Kein Zwang — aber genau diese beiden Bilder sind es, die im
+          Streitfall zählen.
+        </p>
+      )}
+
       {laedt && fotos.length === 0 && <p className="wb-leer">Wird geladen …</p>}
 
       {!laedt && fotos.length === 0 && (
         <p className="wb-leer">
-          Noch keine Fotos. Der beste Zeitpunkt ist, bevor die Wand zugeht — was dann noch
-          sichtbar ist, weiß in zwei Jahren niemand mehr.
+          Noch keine Fotos. Der beste Zeitpunkt für das Vorher-Bild ist, bevor der erste
+          Handgriff getan ist — und für das Nachher-Bild, bevor die Wand zugeht.
         </p>
       )}
 
-      {fotos.length > 0 && (
-        <ul className="wb-galerie">
-          {fotos.map((f) => (
-            <li key={f.id} className="wb-galerie__bild">
-              <button
-                type="button"
-                className="wb-galerie__knopf"
-                onClick={() => setGross(f)}
-                aria-label={f.beschreibung || "Foto vergrößern"}
-              >
-                <img src={vorschauAdresse(f)} alt={f.beschreibung || ""} loading="lazy" />
-              </button>
-              <p className="wb-galerie__zeile">
-                {f.aufgenommen
-                  ? new Date(`${f.aufgenommen.slice(0, 10)}T00:00:00`).toLocaleDateString("de-AT")
-                  : ""}
-                {f.beschreibung && <span>{f.beschreibung}</span>}
-              </p>
-            </li>
-          ))}
-        </ul>
-      )}
+      {gruppen.map(({ art: gruppenart, fotos: bilder }) => (
+        <div key={gruppenart} className="wb-galerie__gruppe">
+          <h3 className="wb-galerie__titel">
+            <span className={`wb-plakette wb-plakette--${FOTOART_FARBE[gruppenart]}`}>
+              {FOTOART_TEXT[gruppenart]}
+            </span>
+            <span className="wb-galerie__anzahl">{bilder.length}</span>
+          </h3>
+          <ul className="wb-galerie">
+            {bilder.map((f) => (
+              <li key={f.id} className="wb-galerie__bild">
+                <button
+                  type="button"
+                  className="wb-galerie__knopf"
+                  onClick={() => setGross(f)}
+                  aria-label={f.beschreibung || `${FOTOART_TEXT[gruppenart]} vergrößern`}
+                >
+                  <img src={vorschauAdresse(f)} alt={f.beschreibung || ""} loading="lazy" />
+                </button>
+                <p className="wb-galerie__zeile">
+                  {f.aufgenommen
+                    ? new Date(`${f.aufgenommen.slice(0, 10)}T00:00:00`).toLocaleDateString("de-AT")
+                    : ""}
+                  {f.beschreibung && <span>{f.beschreibung}</span>}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
 
       {gross && (
         <Grossansicht
@@ -161,11 +221,11 @@ export function Fotoblock({ auftragId }: { auftragId: string }) {
 }
 
 /**
- * Ein Foto groß, mit Beschriftung und Löschen.
+ * Ein Foto groß, mit Beschriftung, Einordnung und Löschen.
  *
- * Bewusst kein `dialog`-Element mit `showModal`: das öffnet in manchen
- * mobilen Browsern eine Ebene, aus der die Zurück-Taste nicht herausführt,
- * und dann sitzt der Monteur fest.
+ * Bewusst kein `dialog` mit `showModal`: das öffnet in manchen mobilen
+ * Browsern eine Ebene, aus der die Zurück-Taste nicht herausführt, und dann
+ * sitzt der Monteur fest.
  */
 function Grossansicht({
   foto,
@@ -179,6 +239,7 @@ function Grossansicht({
   beiFehler: (f: string) => void;
 }) {
   const [text, setText] = useState(foto.beschreibung ?? "");
+  const [art, setArt] = useState<Fotoart>(fotoartVon(foto));
   const [laeuft, setLaeuft] = useState(false);
 
   useEffect(() => {
@@ -188,6 +249,8 @@ function Grossansicht({
     window.addEventListener("keydown", taste);
     return () => window.removeEventListener("keydown", taste);
   }, [beiSchliessen]);
+
+  const geaendert = text !== (foto.beschreibung ?? "") || art !== fotoartVon(foto);
 
   async function tu(was: () => Promise<void>) {
     setLaeuft(true);
@@ -209,6 +272,17 @@ function Grossansicht({
         <img src={dateiAdresse(foto)} alt={foto.beschreibung || "Foto der Baustelle"} />
 
         <div className="wb-bildschau__leiste">
+          <label className="wb-feld">
+            <span>Einordnung</span>
+            <select value={art} onChange={(e) => setArt(e.target.value as Fotoart)}>
+              {FOTOARTEN.map((a) => (
+                <option key={a} value={a}>
+                  {FOTOART_TEXT[a]}
+                </option>
+              ))}
+            </select>
+          </label>
+
           <label className="wb-feld wb-feld--breit">
             <span>Beschreibung</span>
             <input
@@ -223,8 +297,13 @@ function Grossansicht({
             <button
               className="wb-button"
               type="button"
-              disabled={laeuft || text === (foto.beschreibung ?? "")}
-              onClick={() => void tu(() => fotoBeschriften(foto, text))}
+              disabled={laeuft || !geaendert}
+              onClick={() =>
+                void tu(async () => {
+                  if (art !== fotoartVon(foto)) await fotoEinordnen(foto, art);
+                  if (text !== (foto.beschreibung ?? "")) await fotoBeschriften(foto, text);
+                })
+              }
             >
               Speichern
             </button>
@@ -236,11 +315,7 @@ function Grossansicht({
             >
               Original
             </a>
-            <button
-              className="wb-button wb-button--sekundaer"
-              type="button"
-              onClick={beiSchliessen}
-            >
+            <button className="wb-button wb-button--sekundaer" type="button" onClick={beiSchliessen}>
               Schließen
             </button>
             <button

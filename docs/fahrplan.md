@@ -205,9 +205,24 @@ listet den Rückstand am Ende namentlich auf; siehe docs/rechte.md.
 Reihenfolge, wenn es soweit ist: Belege (Geld), dann Artikel (Preise und
 Einkaufspreise), dann Aufträge (der Monteur soll lesen, aber nicht ändern).
 
+Die Unterschrift ist die Ausnahme: `unterschriften` hat keine `updateRule`,
+gelöscht werden darf nur von einem Administrator. Das ist gegen die API
+geprüft, nicht bloß in der Oberfläche ausgeblendet.
+
+Beim Versandnachweis ist es lockerer, und das ist bekannt: `versand` lässt
+Ändern durch jeden Angemeldeten zu, weil die Rückfrage („wirklich
+hinausgegangen?") das Feld `bestaetigt` umlegen muss. Damit ließe sich auch
+Bezeichnung oder Empfänger nachträglich umschreiben. Sauber wäre eine Regel,
+die nur `bestaetigt` freigibt — PocketBase kennt Regeln aber je Datensatz,
+nicht je Feld, also braucht es dafür einen eigenen Endpunkt. Solange der
+Nachweis nur intern gilt, ist der Aufwand nicht gerechtfertigt; sobald er
+gegenüber Dritten gelten soll, schon.
+
 ## Handybreite — was noch offen ist
 
-Die Anwendung passt jetzt ab 360 px ohne waagrechtes Schieben. Auf 320 px
+Die Anwendung passt ab 360 px ohne waagrechtes Schieben — zuletzt am
+20. September 2026 über Start, Aufträge, Auftragsakte, Belegakte, Personal
+und Einstellungen bei 360, 390, 768 und 1280 px nachgemessen. Auf 320 px
 (iPhone SE der ersten Reihe) ragt die Einstellungsseite um sieben Pixel
 hinaus; das ist bewusst nicht gejagt worden.
 
@@ -218,6 +233,10 @@ gegen `window.visualViewport.width` vergleichen, **nicht** gegen
 `scrollWidth > innerWidth` meldet fröhlich "passt", während die Seite auf
 dem Gerät 1066 px breit ist. Genau dieser Fehler hat die Überläufe bis
 September 2026 verdeckt.
+
+Und eine Gegenprobe gehört dazu: einen 900 px breiten Kasten in die Seite
+hängen und nachsehen, ob die Messung ihn meldet. Eine Prüfung, die nur „ok"
+sagen kann, prüft nichts.
 
 ## Offene Punkte
 

@@ -6,9 +6,16 @@ damit die nächste Funktion gleich am richtigen Platz entsteht.
 
 ## Was im Kern bleibt
 
-Kunde, Standort, Ansprechpartner, Auftrag, Dokument, Foto, Mitarbeiter,
-Zugänge, Betriebsstammdaten, Änderungsverlauf, Suche, Offline-Warteschlange,
-Modulschnittstelle, Symbolsatz, Zeitrechnung.
+Kunde, Standort, Ansprechpartner, Auftrag, Dokument, Foto, Unterschrift,
+Versandnachweis, Mitarbeiter, Zugänge, Betriebsstammdaten, Änderungsverlauf,
+Suche, Offline-Warteschlange, Modulschnittstelle, Symbolsatz, Zeitrechnung.
+
+Foto, Unterschrift und Versandnachweis gehören in den Kern und nicht in
+einen Baustein: das Programm heißt Auftrags- **und
+Baustellendokumentation**, und ein Betrieb, der Aufträge führt, macht Fotos
+und lässt unterschreiben. Der Versandnachweis hängt an keinem Belegtyp — er
+gilt für Rechnung, Angebot und Abnahmeschein gleichermaßen —, deshalb steht
+er über der Verrechnung, nicht in ihr.
 
 Der Kern ist die Auftragsverwaltung. Ein Handwerksbetrieb ohne Aufträge ist
 kein Kunde für Werkboq, und Kunde und Auftrag sind die Wurzel, an der alles

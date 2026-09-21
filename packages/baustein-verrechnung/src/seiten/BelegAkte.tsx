@@ -12,6 +12,7 @@ import {
   kundeLaden,
   schreibweiseVon,
   Symbol,
+  Versandblock,
   zahlText,
   type Betrieb,
   type Kunde,
@@ -384,6 +385,22 @@ export function BelegAkte() {
         </section>
       )}
 
+      {beleg.festgeschrieben && (
+        <Versandblock
+          vorlage={{
+            bereich: "belege",
+            datensatz: beleg.id,
+            bezeichnung: `${BELEGART_TEXT[beleg.belegart]} ${beleg.nummer}`,
+            betreff: `${BELEGART_TEXT[beleg.belegart]} ${beleg.nummer}`,
+            nachricht: versandtext(beleg, betrieb, raum),
+            empfaengerMail: kunde?.email ?? "",
+            empfaengerTelefon: kunde?.telefon ?? "",
+            rechtsraum: raum.id,
+          }}
+          beiDrucken={() => navigate(`/belege/${beleg.id}/druck`)}
+        />
+      )}
+
       {istRechnung && beleg.festgeschrieben && offen > 1 && (
         <Mahnblock beleg={beleg} kunde={kunde} offen={offen} beiAenderung={laden} />
       )}
@@ -698,6 +715,39 @@ function Zahlungsmaske({
       </div>
     </form>
   );
+}
+
+/**
+ * Der Text, der im Mailprogramm steht, bevor der Anwender ihn anpasst.
+ *
+ * Kurz und ohne Floskeln: lange Vorlagen werden ohnehin überschrieben, und
+ * eine Rechnungsmail, die mit "wir freuen uns, Ihnen mitteilen zu dürfen"
+ * beginnt, liest sich wie Werbung.
+ */
+function versandtext(
+  b: Beleg,
+  betrieb: Betrieb | null,
+  raum: ReturnType<typeof aktuellerRechtsraum>,
+): string {
+  const sw = schreibweiseVon(raum.id);
+  const gruss = betrieb?.name ? `\n\nMit freundlichen Grüßen\n${betrieb.name}` : "";
+  const bezeichnung = `${BELEGART_TEXT[b.belegart]} ${b.nummer}`;
+  const datum = new Date(b.datum).toLocaleDateString("de-AT");
+
+  if (b.belegart === "rechnung") {
+    return (
+      `Guten Tag,\n\nanbei ${bezeichnung} vom ${datum} über ${alsEuro(b.brutto, sw)}.\n` +
+      `Zahlbar ohne Abzug bis ${new Date(faelligAm(b)).toLocaleDateString("de-AT")}.` +
+      `${gruss}`
+    );
+  }
+  if (b.belegart === "angebot") {
+    return (
+      `Guten Tag,\n\nanbei ${bezeichnung} vom ${datum} über ${alsEuro(b.brutto, sw)}.\n` +
+      `Für Rückfragen stehen wir gerne zur Verfügung.${gruss}`
+    );
+  }
+  return `Guten Tag,\n\nanbei ${bezeichnung} vom ${datum}.${gruss}`;
 }
 
 function Fakt({ begriff, wert }: { begriff: string; wert?: string }) {
