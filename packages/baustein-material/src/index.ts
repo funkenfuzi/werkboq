@@ -2,10 +2,11 @@ import { dienstAnbieten, type WerkboqModul } from "@werkboq/core";
 import { Katalog } from "./seiten/Katalog";
 import { AuftragPositionen } from "./erweiterungen/AuftragPositionen";
 import { MATERIAL_COLLECTIONS } from "./daten/collections";
-import { positionenZuAuftrag, positionswert, summieren } from "./daten/positionen";
+import { nurFreigegebene, positionenZuAuftrag, positionswert, summieren } from "./daten/positionen";
 
 export * from "./daten/artikel";
 export * from "./daten/positionen";
+export * from "./daten/schnellwahl";
 
 /**
  * Baustein Material.
@@ -51,9 +52,15 @@ export const bausteinMaterial: WerkboqModul = {
 
   initialisieren: () => {
     dienstAnbieten("auftragspositionen", async (auftragId) => {
-      const positionen = await positionenZuAuftrag(auftragId);
+      const alle = await positionenZuAuftrag(auftragId);
+      // Nur Freigegebenes darf auf einen Beleg. Die Zahl der offenen
+      // Vorschläge geht trotzdem mit, damit die Verrechnung warnen kann,
+      // statt sie stillschweigend zu unterschlagen.
+      const positionen = nurFreigegebene(alle);
+      const offeneVorschlaege = alle.length - positionen.length;
       const summen = summieren(positionen);
       return {
+        offeneVorschlaege,
         positionen: positionen.map((p) => ({
           pos: p.pos,
           art: p.art,

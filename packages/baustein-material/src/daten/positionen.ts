@@ -40,6 +40,34 @@ export interface Position extends Basisdatensatz {
   ustsatz: UstSatz;
   /** Schon verrechnet — gesetzt, sobald die Position auf einer Rechnung steht. */
   verrechnet?: boolean;
+  /**
+   * "vorschlag" = vom Monteur auf der Baustelle erfasst, vom Büro noch
+   * nicht geprüft. Leer oder "freigegeben" = zählt.
+   *
+   * LEER BEDEUTET FREIGEGEBEN. Positionen aus der Zeit vor dieser
+   * Unterscheidung dürfen nicht plötzlich in der Schwebe hängen, und was
+   * das Büro selbst eintippt, braucht keine Freigabe von sich selbst.
+   */
+  zustand?: Zustand;
+  /** Wer sie auf der Baustelle erfasst hat. */
+  erfasstVon?: string;
+  freigabeVon?: string;
+  freigabeAm?: string;
+}
+
+export type Zustand = "vorschlag" | "freigegeben";
+
+/** Zählt die Position mit — oder wartet sie noch auf das Büro? */
+export function istFreigegeben(p: Pick<Position, "zustand">): boolean {
+  return p.zustand !== "vorschlag";
+}
+
+export function nurFreigegebene<T extends Pick<Position, "zustand">>(liste: T[]): T[] {
+  return liste.filter(istFreigegeben);
+}
+
+export function nurVorschlaege<T extends Pick<Position, "zustand">>(liste: T[]): T[] {
+  return liste.filter((p) => !istFreigegeben(p));
 }
 
 export type PositionEingabe = Omit<Position, keyof Basisdatensatz>;
@@ -54,6 +82,8 @@ export const LEERE_POSITION: Omit<PositionEingabe, "auftrag" | "pos"> = {
   rabatt: 0,
   ustsatz: 20,
   verrechnet: false,
+  // Was im Büro eingetippt wird, braucht keine Freigabe von sich selbst.
+  zustand: "freigegeben",
 };
 
 /**
@@ -127,6 +157,7 @@ export function ausArtikel(a: Artikel, auftrag: string, pos: number, menge = 1):
     rabatt: 0,
     ustsatz: a.ustsatz,
     verrechnet: false,
+    zustand: "freigegeben",
   };
 }
 
@@ -146,6 +177,60 @@ export async function positionAnlegen(eingabe: PositionEingabe): Promise<Positio
     `Position ${eingabe.pos} „${eingabe.bezeichnung}" hinzugefügt`,
   );
   return neu;
+}
+
+/**
+ * Was der Monteur auf der Baustelle erfasst.
+ *
+ * Landet als Vorschlag in derselben Liste wie alles andere, zählt aber
+ * noch nicht: erst die Freigabe macht daraus eine Position, die auf eine
+ * Rechnung darf. Der Umweg kostet das Büro einen Klick und erspart ihm den
+ * Anruf „was ist das für ein Posten auf Seite zwei".
+ *
+ * Absichtlich über denselben Weg wie jede andere Position — also auch
+ * über die Offline-Warteschlange. Im Keller gibt es kein Netz, und genau
+ * dort wird erfasst.
+ */
+export async function vorschlagAnlegen(
+  eingabe: PositionEingabe,
+  mitarbeiterId?: string,
+): Promise<Position | undefined> {
+  return await positionAnlegen({
+    ...eingabe,
+    zustand: "vorschlag",
+    ...(mitarbeiterId ? { erfasstVon: mitarbeiterId } : {}),
+  });
+}
+
+/**
+ * Das Büro nimmt den Vorschlag an.
+ *
+ * Wer freigegeben hat und wann, bleibt am Datensatz stehen. Nicht aus
+ * Misstrauen, sondern weil bei einer Rückfrage drei Monate später jemand
+ * sagen können muss, wer das geprüft hat.
+ */
+export async function freigeben(p: Position, benutzerId?: string): Promise<void> {
+  await schreiben({
+    art: "aendern",
+    collection: "positionen",
+    id: p.id,
+    daten: {
+      zustand: "freigegeben",
+      freigabeVon: benutzerId ?? null,
+      freigabeAm: new Date().toISOString().slice(0, 10),
+    },
+  });
+  await protokollieren(
+    "auftraege",
+    p.auftrag,
+    "aendern",
+    `Position ${p.pos} „${p.bezeichnung}" freigegeben`,
+  );
+}
+
+/** Mehrere auf einmal — der Normalfall, wenn das Büro einen Tag durchsieht. */
+export async function alleFreigeben(liste: Position[], benutzerId?: string): Promise<void> {
+  for (const p of nurVorschlaege(liste)) await freigeben(p, benutzerId);
 }
 
 export async function positionAendern(p: Position, eingabe: PositionEingabe): Promise<void> {

@@ -197,8 +197,9 @@ Ablauf, Auftragsbestätigung aus dem angenommenen Angebot.
 
 ## Zweiter Durchgang Rechte
 
-Serverseitig durchgesetzt ist bisher nur das Personalwesen. Aufträge,
-Material und Verrechnung stehen noch auf „jeder Angemeldete darf alles“ —
+Serverseitig durchgesetzt sind bisher das Personalwesen, die Unveränderlich-
+keit der Unterschriften und die Freigabe von Positionen. Aufträge, Artikel
+und Verrechnung stehen noch auf „jeder Angemeldete darf alles“ —
 die Stufe in der Oberfläche blendet dort nur aus. `npm run rechte-pruefen`
 listet den Rückstand am Ende namentlich auf; siehe docs/rechte.md.
 
@@ -208,6 +209,14 @@ Einkaufspreise), dann Aufträge (der Monteur soll lesen, aber nicht ändern).
 Die Unterschrift ist die Ausnahme: `unterschriften` hat keine `updateRule`,
 gelöscht werden darf nur von einem Administrator. Das ist gegen die API
 geprüft, nicht bloß in der Oberfläche ausgeblendet.
+
+Bei den Positionen ist seit September 2026 die Freigabe gesperrt — ohne
+Schreibrecht `lager` lässt sich `zustand` nicht auf „freigegeben" setzen,
+auch nicht über einen Umweg beim Anlegen. Menge und Preis einer schon
+freigegebenen Position kann dagegen weiterhin jeder Angemeldete ändern; das
+gehört in denselben Durchgang wie die Artikelpreise. Wie man ein einzelnes
+Feld absichert, obwohl PocketBase nur Regeln je Datensatz kennt, steht in
+docs/rechte.md.
 
 Beim Versandnachweis ist es lockerer, und das ist bekannt: `versand` lässt
 Ändern durch jeden Angemeldeten zu, weil die Rückfrage („wirklich
@@ -237,6 +246,19 @@ September 2026 verdeckt.
 Und eine Gegenprobe gehört dazu: einen 900 px breiten Kasten in die Seite
 hängen und nachsehen, ob die Messung ihn meldet. Eine Prüfung, die nur „ok"
 sagen kann, prüft nichts.
+
+## Strichcode auf dem iPhone
+
+Die Materialerfassung liest Strichcodes über `BarcodeDetector`. Den gibt es
+in Chrome auf Android, nicht in Safari auf dem iPhone — und iPhones stehen
+auf Baustellen. Wo der Leser fehlt, erscheint kein Kameraknopf, sondern ein
+Feld zum Eintippen und ein Satz, der sagt, warum.
+
+Wenn das zu wenig ist, bleibt eine Fremdbibliothek (ZXing oder quagga2,
+beides in der Größenordnung eines halben Megabyte). Dann aber nachgeladen
+erst beim ersten Scanversuch, nicht im Grundpaket: im Keller mit einem
+Balken Empfang lädt niemand ein halbes Megabyte, nur um eine Seite zu
+öffnen.
 
 ## Offene Punkte
 

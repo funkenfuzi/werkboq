@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import {
+  aktuellerBenutzer,
   aktuellerRechtsraum,
   alsEuro,
   alsGeld,
   alsMenge,
   ausGeld,
+  darfSchreiben,
+  fehlersatz,
   satzText,
   schreibweiseVon,
   Symbol,
@@ -20,9 +23,14 @@ import {
   type Artikel,
   type Artikelart,
 } from "../daten/artikel";
+import { Materialerfassung } from "../komponenten/Materialerfassung";
 import {
+  alleFreigeben,
   ausArtikel,
+  freigeben,
   LEERE_POSITION,
+  nurFreigegebene,
+  nurVorschlaege,
   naechstePos,
   positionAendern,
   positionAnlegen,
@@ -63,7 +71,13 @@ export function AuftragPositionen({ datensatzId }: ErweiterungsProps) {
 
   if (!datensatzId) return null;
 
-  const summen = summieren(positionen);
+  // Nur Freigegebenes zählt in der Summe — genau das geht auch auf den
+  // Beleg. Die Vorschläge stehen darüber in ihrem eigenen Block, damit
+  // niemand sie übersieht, aber sie verfälschen keine Zahl.
+  const gueltig = nurFreigegebene(positionen);
+  const vorschlaege = nurVorschlaege(positionen);
+  const summen = summieren(gueltig);
+  const darfFreigeben = darfSchreiben("lager");
 
   async function entfernen(p: Position) {
     if (!confirm(`Position ${p.pos} „${p.bezeichnung}" entfernen?`)) return;
@@ -71,22 +85,65 @@ export function AuftragPositionen({ datensatzId }: ErweiterungsProps) {
     laden();
   }
 
-  async function schieben(i: number, richtung: -1 | 1) {
-    const a = positionen[i];
-    const b = positionen[i + richtung];
+  /**
+   * Reihenfolge tauschen. Gerechnet wird über die angezeigte Liste, nicht
+   * über alle Positionen — sonst tauscht der Pfeil mit einem Vorschlag,
+   * der gar nicht in der Tabelle steht.
+   */
+  async function schieben(sichtbar: Position[], i: number, richtung: -1 | 1) {
+    const a = sichtbar[i];
+    const b = sichtbar[i + richtung];
     if (!a || !b) return;
     await positionVerschieben(a, b);
     laden();
   }
 
+  async function freigabe(p: Position) {
+    try {
+      await freigeben(p, aktuellerBenutzer()?.id);
+      laden();
+    } catch (e: unknown) {
+      setFehler(fehlersatz(e));
+    }
+  }
+
+  async function alleFreigabe() {
+    try {
+      await alleFreigeben(vorschlaege, aktuellerBenutzer()?.id);
+      laden();
+    } catch (e: unknown) {
+      setFehler(fehlersatz(e));
+    }
+  }
+
   return (
+    <>
+      {/*
+        Die Erfassung steht vor der Liste: sie ist die Eingabe, die Liste
+        das Ergebnis. Für wen sie aufgeklappt ist, entscheidet das Recht —
+        wer Material verwalten darf, sitzt im Büro und will zuerst die
+        Positionen sehen; wer es nicht darf, ist auf der Baustelle.
+      */}
+      <Materialerfassung
+        auftragId={datensatzId}
+        offenAnfangs={!darfFreigeben}
+        beiAenderung={laden}
+      />
+
     <section className="wb-block">
       <div className="wb-block__kopf">
         <h2>Positionen</h2>
         <span className="wb-block__summe">
           {alsEuro(summen.netto, geld)} netto · {alsEuro(summen.brutto, geld)} brutto
         </span>
-        {!maske && (
+        {/*
+          Eine Position von Hand anzulegen setzt sie sofort auf
+          freigegeben — das lässt der Server ohne Lagerrecht nicht zu.
+          Der Knopf wäre dort also ein Knopf, der eine Fehlermeldung
+          erzeugt. Wer das Recht nicht hat, erfasst über den Block
+          darüber, und das ist auch der schnellere Weg.
+        */}
+        {!maske && darfFreigeben && (
           <button className="wb-button" type="button" onClick={() => setMaske("neu")}>
             <Symbol name="plus" groesse={18} />
             Position
@@ -114,10 +171,23 @@ export function AuftragPositionen({ datensatzId }: ErweiterungsProps) {
         />
       )}
 
-      {positionen.length === 0 ? (
+      {vorschlaege.length > 0 && (
+        <Vorschlagsblock
+          liste={vorschlaege}
+          geld={geld}
+          darfFreigeben={darfFreigeben}
+          beiFreigeben={(p) => void freigabe(p)}
+          beiAlleFreigeben={() => void alleFreigabe()}
+          beiAendern={(p) => setMaske(p)}
+          beiVerwerfen={(p) => void entfernen(p)}
+        />
+      )}
+
+      {gueltig.length === 0 ? (
         <p className="wb-leer">
-          Noch keine Positionen. Material und Leistungen hier eintragen — daraus entsteht später
-          Angebot und Rechnung.
+          {vorschlaege.length > 0
+            ? "Noch nichts freigegeben. Was oben steht, kommt erst nach der Freigabe auf einen Beleg."
+            : "Noch keine Positionen. Material und Leistungen hier eintragen — daraus entsteht später Angebot und Rechnung."}
         </p>
       ) : (
         <>
@@ -137,7 +207,7 @@ export function AuftragPositionen({ datensatzId }: ErweiterungsProps) {
                 </tr>
               </thead>
               <tbody>
-                {positionen.map((p, i) => (
+                {gueltig.map((p, i) => (
                   <tr key={p.id} className={p.verrechnet ? "ist-verrechnet" : ""}>
                     <td className="wb-tabelle__kennung">{p.pos}</td>
                     <td>
@@ -160,10 +230,12 @@ export function AuftragPositionen({ datensatzId }: ErweiterungsProps) {
                       {alsGeld(positionswert(p), geld)}
                     </td>
                     <td className="wb-zelle--rechts">
+                      {darfFreigeben && (
+                      <>
                       <button
                         type="button"
                         className="wb-zeilenknopf wb-zeilenknopf--neutral"
-                        onClick={() => void schieben(i, -1)}
+                        onClick={() => void schieben(gueltig, i, -1)}
                         disabled={i === 0}
                         title="nach oben"
                       >
@@ -172,8 +244,8 @@ export function AuftragPositionen({ datensatzId }: ErweiterungsProps) {
                       <button
                         type="button"
                         className="wb-zeilenknopf wb-zeilenknopf--neutral"
-                        onClick={() => void schieben(i, 1)}
-                        disabled={i === positionen.length - 1}
+                        onClick={() => void schieben(gueltig, i, 1)}
+                        disabled={i === gueltig.length - 1}
                         title="nach unten"
                       >
                         ↓
@@ -194,6 +266,8 @@ export function AuftragPositionen({ datensatzId }: ErweiterungsProps) {
                       >
                         <Symbol name="muell" groesse={16} />
                       </button>
+                      </>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -226,6 +300,7 @@ export function AuftragPositionen({ datensatzId }: ErweiterungsProps) {
         </>
       )}
     </section>
+    </>
   );
 }
 
@@ -296,7 +371,19 @@ function Positionsmaske({
     setSpeichert(true);
     setFehler(null);
     try {
-      const fertig = { ...werte, einzelpreis: preis };
+      // Wer einen Vorschlag von der Baustelle bearbeitet und speichert,
+      // hat ihn damit geprüft — das ist die Freigabe. Ein zweiter Klick
+      // auf "Freigeben" danach wäre eine Frage, die sich schon erübrigt
+      // hat, und genau solche Klicks bleiben im Alltag liegen.
+      const freigabe =
+        vorhanden?.zustand === "vorschlag" && darfSchreiben("lager")
+          ? {
+              zustand: "freigegeben" as const,
+              freigabeVon: aktuellerBenutzer()?.id,
+              freigabeAm: new Date().toISOString().slice(0, 10),
+            }
+          : {};
+      const fertig = { ...werte, einzelpreis: preis, ...freigabe };
       if (vorhanden) await positionAendern(vorhanden, fertig);
       else await positionAnlegen(fertig);
       beiGespeichert();
@@ -474,5 +561,106 @@ function Positionsmaske({
         </button>
       </div>
     </form>
+  );
+}
+
+/**
+ * Was von der Baustelle hereingekommen ist und noch niemand geprüft hat.
+ *
+ * Steht ÜBER der Positionsliste und nicht darin: eine Zeile, die noch
+ * nicht zählt, darf nicht zwischen Zeilen stehen, die zählen — sonst
+ * verrechnet sich jemand beim Überfliegen, und genau darum geht es bei
+ * einer Rechnung.
+ *
+ * Wer Material nicht verwalten darf, sieht seine eigenen Vorschläge, aber
+ * keine Freigabeknöpfe. Das Recht liegt serverseitig noch nicht fest —
+ * siehe docs/rechte.md; hier ist es bisher nur die Oberfläche.
+ */
+function Vorschlagsblock({
+  liste,
+  geld,
+  darfFreigeben,
+  beiFreigeben,
+  beiAlleFreigeben,
+  beiAendern,
+  beiVerwerfen,
+}: {
+  liste: Position[];
+  geld: ReturnType<typeof schreibweiseVon>;
+  darfFreigeben: boolean;
+  beiFreigeben: (p: Position) => void;
+  beiAlleFreigeben: () => void;
+  beiAendern: (p: Position) => void;
+  beiVerwerfen: (p: Position) => void;
+}) {
+  const summe = liste.reduce((s, p) => s + positionswert(p), 0);
+
+  return (
+    <div className="wb-vorschlaege">
+      <div className="wb-vorschlaege__kopf">
+        <Symbol name="warnung" groesse={18} />
+        <div>
+          <strong>
+            {liste.length === 1
+              ? "Eine Position von der Baustelle"
+              : `${liste.length} Positionen von der Baustelle`}
+          </strong>
+          <span>
+            {alsEuro(summe, geld)} netto — zählt erst nach der Freigabe und kommt bis dahin auf
+            keinen Beleg.
+          </span>
+        </div>
+        {darfFreigeben && liste.length > 1 && (
+          <button className="wb-button" type="button" onClick={beiAlleFreigeben}>
+            <Symbol name="haken" groesse={18} />
+            Alle freigeben
+          </button>
+        )}
+      </div>
+
+      <ul className="wb-vorschlagsliste">
+        {liste.map((p) => (
+          <li key={p.id}>
+            <span className="wb-vorschlagsliste__menge">
+              {alsMenge(p.menge, geld)} {p.einheit}
+            </span>
+            <span className="wb-vorschlagsliste__name">
+              {p.bezeichnung}
+              <small>
+                {ARTIKELART_TEXT[p.art]} · {alsGeld(p.einzelpreis, geld)} / {p.einheit}
+              </small>
+            </span>
+            <span className="wb-vorschlagsliste__betrag">{alsGeld(positionswert(p), geld)}</span>
+            {darfFreigeben && (
+              <span className="wb-aktionen wb-aktionen--eng">
+                <button
+                  type="button"
+                  className="wb-button wb-button--klein"
+                  onClick={() => beiFreigeben(p)}
+                >
+                  Freigeben
+                </button>
+                <button
+                  type="button"
+                  className="wb-zeilenknopf wb-zeilenknopf--neutral"
+                  onClick={() => beiAendern(p)}
+                  title="ändern"
+                >
+                  <Symbol name="stift" groesse={16} />
+                </button>
+                <button
+                  type="button"
+                  className="wb-zeilenknopf"
+                  onClick={() => beiVerwerfen(p)}
+                  title="verwerfen"
+                >
+                  <Symbol name="muell" groesse={16} />
+                </button>
+              </span>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

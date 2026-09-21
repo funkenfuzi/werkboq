@@ -21,8 +21,8 @@ Zahlen, denen niemand traut, sind schlimmer als keine Zahlen.
 
 ## Was zuerst kommt und warum
 
-Die Punkte 1, 2 und 4 stehen seit September 2026, dazu die Unterschrift und
-der Dokumentenversand (unten). 3, 5, 6 und 7 sind offen.
+Die Punkte 1 bis 4 stehen seit September 2026, dazu die Unterschrift und
+der Dokumentenversand. 5, 6 und 7 sind offen.
 
 ### 1. Baustellendokumentation — Fotos am Auftrag — **steht**
 
@@ -45,15 +45,52 @@ Das ist der Schlussstein, nicht ein Extra: Öffnet der Monteur die App nicht,
 kommen keine Stunden und kein Material herein, und alles Nachgelagerte —
 Rechnung, Nachkalkulation, Lohnvorbereitung — rechnet mit Schätzwerten.
 
-### 3. Material, das der Monteur erfasst
+### 3. Material, das der Monteur erfasst — **steht**
 
-Positionen werden heute im Büro getippt. Nichts verbindet „was verbaut wurde"
-mit „was auf die Rechnung kommt“.
+Positionen wurden bis September 2026 im Büro getippt. Nichts verband „was
+verbaut wurde" mit „was auf die Rechnung kommt".
 
 Das ist die klassische Verlustquelle im Handwerk. Nicht vergessene Stunden —
 die fallen auf —, sondern vergessenes Material: drei Meter Kabel hier, eine
 Dose dort, am Monatsende ein vierstelliger Betrag, den niemand vermisst, weil
 ihn niemand je gesehen hat.
+
+**Der Maßstab war ein Tipp.** Ein Monteur steht im Keller, hat eine Hand
+frei und schlechtes Licht. Scrollt er durch fünfhundert Artikel, macht er es
+beim dritten Mal nicht mehr — und dann ist die Erfassung schlimmer als
+nichts, weil sich das Büro darauf verlässt. Deshalb drei Wege in dieser
+Reihenfolge:
+
+* **Zuletzt verwendet.** Der beste Vorschlag ist fast immer das, was gerade
+  eben schon verbaut wurde: wer eine Steckdose setzt, setzt mehrere. Die
+  Liste entsteht aus den Positionen selbst und muss von niemandem gepflegt
+  werden. Wer noch nichts erfasst hat, sieht die des Betriebs.
+* **Schnellauswahl.** Betriebsweit, nicht je Person — eine Liste, die jeder
+  für sich pflegen müsste, pflegt niemand.
+* **Suche und Strichcode.** Die Suche nimmt mehrere Wörter in beliebiger
+  Reihenfolge: „nym 1,5" findet „NYM-J 3x1,5 mm²", wonach sonst niemand
+  suchen könnte. Gesucht wird zuerst im schon Geladenen und erst dann am
+  Server, damit es im Keller ohne Netz nicht stehenbleibt.
+
+**Zum Scannen gehört eine unangenehme Wahrheit:** die eingebaute
+Schnittstelle dafür (`BarcodeDetector`) hat Chrome auf Android, Safari auf
+dem iPhone nicht. Eine Fremdbibliothek würde ein halbes Megabyte kosten, das
+über eine Mobilverbindung im Keller niemand lädt. Wo der Leser fehlt,
+erscheint deshalb gar kein Kameraknopf, sondern ein Feld zum Eintippen der
+EAN und ein Satz, der sagt, warum. Ein Knopf, der beim Draufdrücken nichts
+tut, ist schlimmer als kein Knopf.
+
+**Was der Monteur erfasst, ist ein Vorschlag.** Er steht sofort in der Akte,
+zählt aber nicht mit und kommt auf keinen Beleg, bis das Büro ihn freigibt.
+Der Umweg kostet einen Klick und erspart den Anruf „was ist das für ein
+Posten auf Seite zwei". Freigeben darf nur, wer Lager schreiben darf — und
+das ist serverseitig durchgesetzt, gegen die API geprüft, nicht bloß in der
+Oberfläche ausgeblendet.
+
+Damit dabei nichts verlorengeht, sind zwei Dinge gebaut: die Summe am
+Auftrag zählt nur Freigegebenes, und beim Erzeugen einer Rechnung fragt
+Werkboq nach, wenn noch etwas offen ist. Eine festgeschriebene Rechnung ohne
+das Material ist genau der Verlust, den diese Funktion verhindern soll.
 
 ### 4. Auftragsarten statt zehn Phasen für alles — **steht**
 
@@ -122,6 +159,13 @@ läuft ab, und es fällt niemandem auf, bis es zu spät ist. Die Maschinerie
 dafür steht seit dem Personalwesen, es ist im Wesentlichen eine zweite
 Collection.
 
+**Daran hängt das Fahrzeuglager als Nachfüllliste** — „was fehlt im Bus",
+mit Mindestbestand je Sorte, vom Monteur in zehn Sekunden abgehakt. Es
+gehört zur Materialerfassung und ist auch schon gewünscht, lässt sich aber
+nicht sinnvoll bauen, bevor es Fahrzeuge gibt: eine Nachfüllliste ohne
+Fahrzeug wäre eine Liste ohne Besitzer. Deshalb hier und nicht bei Punkt 3.
+Keine Bestandsführung — warum nicht, steht weiter unten.
+
 ### 6. Angebotsverfolgung
 
 Welche Angebote sind offen, welche sind kalt geworden, wann wurde nachgefasst.
@@ -137,7 +181,8 @@ Wert liegt nicht im Bestellen, sondern in der Kette:
 > Rechnung.
 
 Ohne diese Verknüpfung ist es ein schlechteres Bestellformular. Mit ihr
-schließt es die Lücke aus Punkt 3 von der anderen Seite.
+schließt es die Lücke aus Punkt 3 von der anderen Seite: was bestellt wurde,
+taucht beim Monteur als Vorschlag auf, statt dass er es suchen muss.
 
 Die Großhändler haben IDS- und OCI-Schnittstellen. Das ist die eigentliche
 Arbeit und der eigentliche Verkaufsgrund — und ein Brocken, kein Nachmittag.

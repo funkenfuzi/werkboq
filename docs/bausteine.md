@@ -34,6 +34,12 @@ Grundfunktionen, die einzeln verkauft werden. `art: "baustein"`.
 | Verrechnung | `belege`, `belegpositionen`, `zahlungen`, `mahnungen` | Kunde, Auftrag (Kern) | — |
 | Personalwesen | `personaldaten`, `abwesenheiten`, `personaldokumente` | Mitarbeiter (Kern) | Planung |
 
+Der Baustein Material enthält seit September 2026 auch die Erfassung auf
+der Baustelle: der Monteur trägt ein, was er verbaut hat, das Büro gibt es
+frei. Der Dienst `auftragspositionen` liefert deshalb nur Freigegebenes und
+meldet die Zahl der offenen Vorschläge mit — damit die Verrechnung warnen
+kann, ohne den Baustein Material zu kennen.
+
 Die Zeiterfassung ist allein verkaufbar: eine Arbeitszeitaufzeichnung nach
 § 26 AZG braucht jeder Betrieb. Ein Zeiteintrag ohne Auftrag ist allgemeine
 Arbeitszeit — deshalb ist der Auftrag dort optional.

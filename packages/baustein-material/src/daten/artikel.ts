@@ -44,6 +44,10 @@ export interface Artikel extends Basisdatensatz {
   ustsatz: UstSatz;
   beschreibung?: string;
   aktiv?: boolean;
+  /** EAN/GTIN für den Strichcode. Freiwillig. */
+  ean?: string;
+  /** In der Schnellauswahl auf der Baustelle ganz oben. */
+  favorit?: boolean;
 }
 
 export type ArtikelEingabe = Omit<Artikel, keyof Basisdatensatz>;
@@ -58,6 +62,8 @@ export const LEERER_ARTIKEL: ArtikelEingabe = {
   ustsatz: 20,
   beschreibung: "",
   aktiv: true,
+  ean: "",
+  favorit: false,
 };
 
 export async function alleArtikel(nurAktive = false): Promise<Artikel[]> {
@@ -69,12 +75,35 @@ export async function alleArtikel(nurAktive = false): Promise<Artikel[]> {
     });
 }
 
+/**
+ * Artikel suchen.
+ *
+ * MEHRERE WÖRTER WERDEN EINZELN GESUCHT UND MÜSSEN ALLE VORKOMMEN.
+ * Niemand tippt "NYM-J 3x1,5 mm²" so, wie es im Katalog steht; getippt
+ * wird "nym 1,5". Ein einziges `~` über die ganze Eingabe findet das
+ * nicht, weil dazwischen "3x" steht — und dann sucht man zweimal, gibt
+ * auf und trägt das Material gar nicht ein.
+ *
+ * Reihenfolge spielt keine Rolle: "1,5 nym" findet dasselbe.
+ */
 export async function artikelSuchen(text: string, grenze = 50): Promise<Artikel[]> {
-  const t = sicher(text.trim());
+  const worte = text
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 6) // mehr als sechs Wörter ist keine Suche mehr, sondern ein Satz
+    .map((w) => sicher(w));
+
+  const bedingung = worte.length
+    ? worte
+        .map((w) => `(bezeichnung ~ "${w}" || nummer ~ "${w}" || ean ~ "${w}")`)
+        .join(" && ")
+    : "";
+
   return await pb()
     .collection("artikel")
     .getList<Artikel>(1, grenze, {
-      filter: t ? `aktiv = true && (bezeichnung ~ "${t}" || nummer ~ "${t}")` : "aktiv = true",
+      filter: bedingung ? `aktiv = true && ${bedingung}` : "aktiv = true",
       sort: "bezeichnung",
     })
     .then((l) => l.items);
@@ -106,6 +135,22 @@ export async function artikelAendern(id: string, eingabe: ArtikelEingabe): Promi
 export async function artikelStilllegen(a: Artikel): Promise<void> {
   await schreiben({ art: "aendern", collection: "artikel", id: a.id, daten: { aktiv: false } });
   await protokollieren("artikel", a.id, "aendern", `${a.bezeichnung} stillgelegt`);
+}
+
+/**
+ * Artikel in die Schnellauswahl der Baustelle nehmen oder herausnehmen.
+ *
+ * Betriebsweit: was hier steht, sehen alle. Eine Liste, die jeder für sich
+ * pflegen müsste, pflegt niemand.
+ */
+export async function favoritSetzen(a: Artikel, ja: boolean): Promise<void> {
+  await schreiben({ art: "aendern", collection: "artikel", id: a.id, daten: { favorit: ja } });
+  await protokollieren(
+    "artikel",
+    a.id,
+    "aendern",
+    ja ? `${a.bezeichnung} in die Schnellauswahl genommen` : `${a.bezeichnung} aus der Schnellauswahl genommen`,
+  );
 }
 
 /** Nächste freie Artikelnummer in der gewählten Art, etwa "M-0042". */

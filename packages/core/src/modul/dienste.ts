@@ -46,12 +46,24 @@ export interface Fremdposition {
   quelle: string;
 }
 
-/** Positionen eines Auftrags mit Summen, aus dem Baustein Material. */
+/**
+ * Positionen eines Auftrags mit Summen, aus dem Baustein Material.
+ *
+ * Geliefert wird nur, was freigegeben ist. Was der Monteur auf der
+ * Baustelle erfasst hat und das Büro noch nicht geprüft hat, gehört auf
+ * keine Rechnung — es darf aber auch nicht wortlos verschwinden, sonst
+ * fehlt genau das Material, dessentwegen die Erfassung gebaut wurde.
+ *
+ * Deshalb `offeneVorschlaege`: die Zahl dessen, was zurückgehalten wurde.
+ * Die Verrechnung kann damit warnen, ohne den Baustein Material zu kennen.
+ */
 export type AuftragspositionenDienst = (auftragId: string) => Promise<{
   positionen: Fremdposition[];
   netto: number;
   ust: number;
   brutto: number;
+  /** Vom Monteur erfasst, noch nicht freigegeben — nicht in den Summen. */
+  offeneVorschlaege: number;
 }>;
 
 /**

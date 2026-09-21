@@ -22,10 +22,20 @@ export const MATERIAL_COLLECTIONS: ModulCollection[] = [
       { name: "ustsatz", type: "number", required: true, options: { min: 0, max: 100 } },
       { name: "beschreibung", type: "text" },
       { name: "aktiv", type: "bool" },
+      // EAN/GTIN für den Scanner. Keine Pflicht und nicht eindeutig:
+      // derselbe Strichcode klebt manchmal auf zwei Artikeln, und ein
+      // eindeutiger Index würde dann das Anlegen verweigern statt zu
+      // helfen. Die Suche zeigt in dem Fall beide zur Auswahl.
+      { name: "ean", type: "text", options: { max: 20 } },
+      // Schnellauswahl für die Baustelle — betriebsweit, nicht je Person.
+      // Was ein Elektriker ständig braucht, braucht der nächste auch.
+      { name: "favorit", type: "bool" },
     ],
     indexes: [
       "CREATE UNIQUE INDEX idx_artikel_nummer ON artikel (nummer)",
       "CREATE INDEX idx_artikel_aktiv ON artikel (aktiv)",
+      "CREATE INDEX idx_artikel_ean ON artikel (ean)",
+      "CREATE INDEX idx_artikel_favorit ON artikel (favorit)",
     ],
   },
   {
@@ -44,7 +54,17 @@ export const MATERIAL_COLLECTIONS: ModulCollection[] = [
       // Nachkommastellen erlaubt: die Schweiz kennt 8,1 %.
       { name: "ustsatz", type: "number", required: true, options: { min: 0, max: 100 } },
       { name: "verrechnet", type: "bool" },
+      // Vom Monteur erfasst und noch nicht geprüft, oder vom Büro
+      // freigegeben. Leer bedeutet freigegeben: Positionen, die es vor
+      // dieser Unterscheidung gab, ändern ihre Bedeutung nicht.
+      { name: "zustand", type: "select", options: { maxSelect: 1, values: ["vorschlag", "freigegeben"] } },
+      { name: "erfasstVon", type: "relation", options: { collectionId: "mitarbeiter", maxSelect: 1 } },
+      { name: "freigabeVon", type: "relation", options: { collectionId: "users", maxSelect: 1 } },
+      { name: "freigabeAm", type: "date" },
     ],
-    indexes: ["CREATE INDEX idx_positionen_auftrag ON positionen (auftrag, pos)"],
+    indexes: [
+      "CREATE INDEX idx_positionen_auftrag ON positionen (auftrag, pos)",
+      "CREATE INDEX idx_positionen_zustand ON positionen (zustand)",
+    ],
   },
 ];

@@ -23,6 +23,9 @@ import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
+/** Collection -> neu hinzugekommene Feldnamen, für die Schlussmeldung. */
+const geaendert = new Map();
+
 const hier = dirname(fileURLToPath(import.meta.url));
 ladeEnv(join(hier, "..", ".env"));
 
@@ -402,10 +405,19 @@ const BAUSTEINE = [
       { name: "ustsatz", type: "number", required: true, options: { min: 0, max: 100 } },
       { name: "beschreibung", type: "text" },
       { name: "aktiv", type: "bool" },
+      // EAN/GTIN für den Scanner. Keine Pflicht und bewusst nicht
+      // eindeutig: derselbe Strichcode klebt manchmal auf zwei Artikeln,
+      // und ein eindeutiger Index würde dann das Anlegen verweigern statt
+      // zu helfen. Die Suche zeigt in dem Fall beide zur Auswahl.
+      { name: "ean", type: "text", options: { max: 20 } },
+      // Schnellauswahl für die Baustelle — betriebsweit, nicht je Person.
+      { name: "favorit", type: "bool" },
     ],
     indexes: [
       "CREATE UNIQUE INDEX idx_artikel_nummer ON artikel (nummer)",
       "CREATE INDEX idx_artikel_aktiv ON artikel (aktiv)",
+      "CREATE INDEX idx_artikel_ean ON artikel (ean)",
+      "CREATE INDEX idx_artikel_favorit ON artikel (favorit)",
     ],
   },
   {
@@ -427,8 +439,45 @@ const BAUSTEINE = [
       // Nachkommastellen erlaubt: die Schweiz kennt 8,1 %.
       { name: "ustsatz", type: "number", required: true, options: { min: 0, max: 100 } },
       { name: "verrechnet", type: "bool" },
+      // Vom Monteur erfasst und noch ungeprüft, oder vom Büro freigegeben.
+      // LEER BEDEUTET FREIGEGEBEN: Positionen, die es vor dieser
+      // Unterscheidung gab, ändern ihre Bedeutung nicht, und was das Büro
+      // selbst eintippt, braucht keine Freigabe von sich selbst.
+      { name: "zustand", type: "select", options: { maxSelect: 1, values: ["vorschlag", "freigegeben"] } },
+      { name: "erfasstVon", type: "relation", options: { collectionId: "mitarbeiter", maxSelect: 1 } },
+      { name: "freigabeVon", type: "relation", options: { collectionId: "users", maxSelect: 1 } },
+      { name: "freigabeAm", type: "date" },
     ],
-    indexes: ["CREATE INDEX idx_positionen_auftrag ON positionen (auftrag, pos)"],
+    indexes: [
+      "CREATE INDEX idx_positionen_auftrag ON positionen (auftrag, pos)",
+      "CREATE INDEX idx_positionen_zustand ON positionen (zustand)",
+    ],
+    // FREIGEBEN DARF NUR, WER LAGER SCHREIBEN DARF — und zwar wirklich,
+    // nicht bloß in der Oberfläche ausgeblendet. Gegen die API geprüft.
+    //
+    // PocketBase kennt keine Regeln je Feld, wohl aber `@request.data`
+    // (was hereinkommt) und den Feldnamen allein (was gespeichert ist).
+    // Daraus lässt sich die Freigabe einzeln absichern:
+    //
+    //   ANLEGEN: wer kein Lagerrecht hat, darf nur Vorschläge anlegen.
+    //   Ausdrücklich `= "vorschlag"` und nicht `!= "freigegeben"` — sonst
+    //   legt man die Position einfach ganz ohne Zustandsfeld an, und weil
+    //   leer als freigegeben gilt, wäre die Freigabe umgangen.
+    //
+    //   ÄNDERN: an einer Position, die ein Vorschlag IST, darf ohne
+    //   Lagerrecht nur ändern, wer sie einen Vorschlag bleiben lässt. Das
+    //   sperrt beides: das Setzen auf "freigegeben" und das Leerräumen
+    //   des Feldes, was auf dasselbe hinausliefe.
+    //
+    // Der Rest der Positionsrechte steht noch aus, siehe docs/rechte.md:
+    // Menge und Preis einer bereits freigegebenen Position kann derzeit
+    // jeder Angemeldete ändern.
+    listRule: angemeldet,
+    viewRule: angemeldet,
+    createRule: `${angemeldet} && (@request.data.zustand = "vorschlag" || ${schreibt("lager")})`,
+    updateRule:
+      `${angemeldet} && (zustand != "vorschlag" || @request.data.zustand = "vorschlag" || ${schreibt("lager")})`,
+    deleteRule: angemeldet,
   },
   {
     // Belege: Angebot, Auftragsbestätigung, Rechnung, Gutschrift.
@@ -714,7 +763,9 @@ try {
   // schweigt, ist von einem Lauf, der nichts getan hat, nicht zu
   // unterscheiden — und genau das verunsichert zu Recht.
   console.log(
-    `${alle.length} Collections geprüft, ${angelegt} neu angelegt, ${alle.length - angelegt} unverändert.`,
+    `${alle.length} Collections geprüft, ${angelegt} neu angelegt, ` +
+      `${geaendert.size} um Felder erweitert, ` +
+      `${alle.length - angelegt - geaendert.size} unverändert.`,
   );
 
   // Ersten Anwendungsbenutzer anlegen, falls gewünscht und noch keiner da ist
@@ -1051,7 +1102,19 @@ async function collectionAbgleichen(def, still = false) {
     updateRule: def.updateRule,
     deleteRule: def.deleteRule,
   });
-  if (!still) console.log(`${def.name}: abgeglichen`);
+
+  // Welche Felder sind dazugekommen? Das interessiert beim Nachziehen einer
+  // bestehenden Installation — "abgeglichen" allein sagt nicht, ob etwas
+  // geschehen ist, und eine Meldung, die immer gleich lautet, liest niemand.
+  const neueFelder = def.schema.filter((f) => !alteFelder.has(f.name)).map((f) => f.name);
+  if (neueFelder.length) geaendert.set(def.name, neueFelder);
+  if (!still) {
+    console.log(
+      neueFelder.length
+        ? `${def.name}: abgeglichen, neu: ${neueFelder.join(", ")}`
+        : `${def.name}: abgeglichen`,
+    );
+  }
   return vorhanden.id;
 }
 

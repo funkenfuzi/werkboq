@@ -26,13 +26,17 @@ die Collection-Regeln hergeben — gleichgültig, welcher Menüpunkt ausgeblende
 ist. `darf()` und `darfSchreiben()` entscheiden, was angezeigt wird, sonst
 nichts.
 
-**Serverseitig durchgesetzt ist derzeit nur das Personalwesen:**
+**Serverseitig durchgesetzt sind derzeit das Personalwesen, die
+Unterschriften und die Freigabe von Positionen:**
 
 | Collection | lesen | ändern |
 |---|---|---|
 | `personaldaten` | Bereich `personal`, oder der Betroffene selbst | Bereich `personal` |
 | `personaldokumente` | Bereich `personal`, oder der Betroffene selbst | Bereich `personal` |
 | `abwesenheiten` | Bereich `personal`, oder der Betroffene selbst | Bereich `personal`; jeder darf für sich selbst einen Antrag im Status `beantragt` anlegen |
+
+| `unterschriften` | jeder Angemeldete | **niemand** — keine `updateRule`; löschen nur Administrator |
+| `positionen` | jeder Angemeldete | anlegen und ändern jeder Angemeldete, **aber freigeben nur mit Schreibrecht `lager`** |
 
 Dass der Betroffene die eigene Akte lesen darf, ist kein Entgegenkommen,
 sondern sein Auskunftsrecht. Ändern darf er sie nicht, und den eigenen
@@ -92,6 +96,35 @@ Soll die Planung wirklich grundblind sein, braucht es eine eigene, schmale
 Collection nur mit Tagen. Das ist bewusst noch nicht gebaut — der Dienst
 `abwesend` liefert immerhin schon nur Tage ohne Grund, aber das ist die
 zweite Hürde, nicht die erste.
+
+## Ein Feld einzeln absichern, ohne Feldrechte
+
+PocketBase kennt Regeln je Datensatz, nicht je Feld. Für die Freigabe von
+Positionen brauchte es aber genau das: der Monteur soll Menge und
+Bezeichnung ändern dürfen, den Zustand aber nicht auf „freigegeben" setzen.
+
+Das geht trotzdem, weil eine Regel zwei Dinge sehen kann — was hereinkommt
+(`@request.data.feld`) und was gespeichert ist (der Feldname allein):
+
+```js
+createRule: `${angemeldet} && (@request.data.zustand = "vorschlag" || ${schreibt("lager")})`
+updateRule: `${angemeldet} && (zustand != "vorschlag" || @request.data.zustand = "vorschlag" || ${schreibt("lager")})`
+```
+
+Zwei Feinheiten, die beim ersten Anlauf gefehlt haben und die man nur beim
+Prüfen gegen die API bemerkt:
+
+* Beim Anlegen steht bewusst `= "vorschlag"` und nicht `!= "freigegeben"`.
+  Sonst legt man die Position ganz **ohne** Zustandsfeld an, und weil leer
+  als freigegeben gilt, ist die Freigabe umgangen.
+* Beim Ändern muss auch das **Leerräumen** des Feldes gesperrt sein, sonst
+  führt derselbe Weg über einen zweiten Aufruf zum Ziel.
+
+Geprüft wird das mit einem Zugang, der nur `technik` hat, gegen die echte
+API — nicht in der Oberfläche. Die sieben Fälle: Vorschlag anlegen (geht),
+eigene Menge ändern (geht), eigenen Vorschlag freigeben (404), gleich
+freigegeben anlegen (400), ohne Zustandsfeld anlegen (400), Zustand
+leerräumen (404), Büro gibt frei (geht).
 
 ## Für Entwickler
 

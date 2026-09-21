@@ -43,12 +43,19 @@ export function AuftragBelege({ datensatzId }: ErweiterungsProps) {
   const [belege, setBelege] = useState<Beleg[]>([]);
   const [fehler, setFehler] = useState<string | null>(null);
   const [laeuft, setLaeuft] = useState(false);
+  /** Vom Monteur erfasst, noch nicht freigegeben — kommt nicht auf den Beleg. */
+  const [offen, setOffen] = useState(0);
 
   const laden = useCallback(() => {
     if (!datensatzId) return;
     belegeSuchen({})
       .then((alle) => setBelege(alle.filter((b) => b.auftrag === datensatzId)))
       .catch((e: unknown) => setFehler(fehlersatz(e)));
+    // Zurückgehaltene Positionen zählen. Ohne den Baustein Material
+    // antwortet niemand, dann gibt es auch nichts zurückzuhalten.
+    void dienst("auftragspositionen")?.(datensatzId)
+      .then((p) => setOffen(p.offeneVorschlaege))
+      .catch(() => setOffen(0));
   }, [datensatzId]);
 
   useEffect(laden, [laden]);
@@ -76,6 +83,25 @@ export function AuftragBelege({ datensatzId }: ErweiterungsProps) {
       let pos = 10;
 
       const positionen = await dienst("auftragspositionen")?.(datensatzId);
+
+      // Hier und nicht früher: der Kasten oben ist ein Schnappschuss vom
+      // Laden der Seite, aber verbindlich wird es in dieser Sekunde. Wer
+      // eine Rechnung mit fehlendem Material festschreibt, schreibt einen
+      // Verlust fest — dann lieber einmal nachfragen.
+      const zurueckgehalten = positionen?.offeneVorschlaege ?? 0;
+      if (zurueckgehalten > 0) {
+        const weiter = confirm(
+          `${zurueckgehalten === 1 ? "Eine Position ist" : `${zurueckgehalten} Positionen sind`} ` +
+            `von der Baustelle erfasst und noch nicht freigegeben. ` +
+            `${zurueckgehalten === 1 ? "Sie kommt" : "Sie kommen"} nicht auf diesen Beleg.\n\n` +
+            `Trotzdem fortfahren?`,
+        );
+        if (!weiter) {
+          setLaeuft(false);
+          return;
+        }
+      }
+
       for (const p of positionen?.positionen ?? []) {
         zeilen.push({
           pos,
@@ -168,6 +194,24 @@ export function AuftragBelege({ datensatzId }: ErweiterungsProps) {
         <p className="wb-fehler" role="alert">
           {fehler}
         </p>
+      )}
+
+      {offen > 0 && (
+        <div className="wb-warnkasten">
+          <Symbol name="warnung" groesse={18} />
+          <div>
+            <strong>
+              {offen === 1
+                ? "Eine Position wartet auf Freigabe"
+                : `${offen} Positionen warten auf Freigabe`}
+            </strong>
+            <p>
+              Von der Baustelle erfasst und noch nicht geprüft. Was hier steht, kommt{" "}
+              <strong>nicht</strong> auf den Beleg — erst freigeben, dann verrechnen. Der Block
+              „Positionen" weiter oben zeigt sie.
+            </p>
+          </div>
+        </div>
       )}
 
       {belege.length === 0 ? (

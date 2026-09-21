@@ -179,19 +179,19 @@ const DOKUMENTE = [
 
 /** Katalog. Preise netto in Cent, wie überall im Programm. */
 const ARTIKEL = [
-  { nummer: "M-9001", bezeichnung: "NYM-J 3x1,5 mm²", art: "material", einheit: "m", preis: 145, einkauf: 92, ustsatz: 20 },
-  { nummer: "M-9002", bezeichnung: "NYM-J 5x2,5 mm²", art: "material", einheit: "m", preis: 389, einkauf: 251, ustsatz: 20 },
-  { nummer: "M-9003", bezeichnung: "Schalterdose UP, tief", art: "material", einheit: "Stk", preis: 68, einkauf: 39, ustsatz: 20 },
-  { nummer: "M-9004", bezeichnung: "Steckdose UP, weiß", art: "material", einheit: "Stk", preis: 690, einkauf: 420, ustsatz: 20 },
-  { nummer: "M-9005", bezeichnung: "Wechselschalter UP, weiß", art: "material", einheit: "Stk", preis: 750, einkauf: 455, ustsatz: 20 },
-  { nummer: "M-9006", bezeichnung: "FI-Schutzschalter 40 A / 30 mA, 4-polig", art: "material", einheit: "Stk", preis: 6890, einkauf: 4120, ustsatz: 20 },
-  { nummer: "M-9007", bezeichnung: "Leitungsschutzschalter B16, 1-polig", art: "material", einheit: "Stk", preis: 640, einkauf: 372, ustsatz: 20 },
-  { nummer: "M-9008", bezeichnung: "Verteiler UP, 3-reihig, 36 TE", art: "material", einheit: "Stk", preis: 12400, einkauf: 7850, ustsatz: 20 },
-  { nummer: "M-9009", bezeichnung: "LED-Einbauleuchte 8 W, 3000 K", art: "material", einheit: "Stk", preis: 1890, einkauf: 1090, ustsatz: 20 },
-  { nummer: "M-9010", bezeichnung: "Kabelkanal 40x40, grau", art: "material", einheit: "lfm", preis: 420, einkauf: 260, ustsatz: 20 },
-  { nummer: "L-9001", bezeichnung: "Montagestunde Geselle", art: "leistung", einheit: "h", preis: 6500, einkauf: 0, ustsatz: 20 },
+  { nummer: "M-9001", bezeichnung: "NYM-J 3x1,5 mm²", art: "material", einheit: "m", preis: 145, einkauf: 92, ustsatz: 20, ean: "4001234000015", favorit: true },
+  { nummer: "M-9002", bezeichnung: "NYM-J 5x2,5 mm²", art: "material", einheit: "m", preis: 389, einkauf: 251, ustsatz: 20, ean: "4001234000022", favorit: false },
+  { nummer: "M-9003", bezeichnung: "Schalterdose UP, tief", art: "material", einheit: "Stk", preis: 68, einkauf: 39, ustsatz: 20, ean: "4001234000039", favorit: true },
+  { nummer: "M-9004", bezeichnung: "Steckdose UP, weiß", art: "material", einheit: "Stk", preis: 690, einkauf: 420, ustsatz: 20, ean: "4001234000046", favorit: true },
+  { nummer: "M-9005", bezeichnung: "Wechselschalter UP, weiß", art: "material", einheit: "Stk", preis: 750, einkauf: 455, ustsatz: 20, ean: "4001234000053", favorit: true },
+  { nummer: "M-9006", bezeichnung: "FI-Schutzschalter 40 A / 30 mA, 4-polig", art: "material", einheit: "Stk", preis: 6890, einkauf: 4120, ustsatz: 20, ean: "4001234000060", favorit: false },
+  { nummer: "M-9007", bezeichnung: "Leitungsschutzschalter B16, 1-polig", art: "material", einheit: "Stk", preis: 640, einkauf: 372, ustsatz: 20, ean: "4001234000077", favorit: true },
+  { nummer: "M-9008", bezeichnung: "Verteiler UP, 3-reihig, 36 TE", art: "material", einheit: "Stk", preis: 12400, einkauf: 7850, ustsatz: 20, ean: "4001234000084", favorit: false },
+  { nummer: "M-9009", bezeichnung: "LED-Einbauleuchte 8 W, 3000 K", art: "material", einheit: "Stk", preis: 1890, einkauf: 1090, ustsatz: 20, ean: "4001234000091", favorit: false },
+  { nummer: "M-9010", bezeichnung: "Kabelkanal 40x40, grau", art: "material", einheit: "lfm", preis: 420, einkauf: 260, ustsatz: 20, ean: "4001234000107", favorit: false },
+  { nummer: "L-9001", bezeichnung: "Montagestunde Geselle", art: "leistung", einheit: "h", preis: 6500, einkauf: 0, ustsatz: 20, ean: "", favorit: true },
   { nummer: "L-9002", bezeichnung: "Montagestunde Meister", art: "leistung", einheit: "h", preis: 8200, einkauf: 0, ustsatz: 20 },
-  { nummer: "L-9003", bezeichnung: "Anfahrtspauschale Umkreis 30 km", art: "leistung", einheit: "Pauschale", preis: 3500, einkauf: 0, ustsatz: 20 },
+  { nummer: "L-9003", bezeichnung: "Anfahrtspauschale Umkreis 30 km", art: "leistung", einheit: "Pauschale", preis: 3500, einkauf: 0, ustsatz: 20, ean: "", favorit: true },
   { nummer: "L-9004", bezeichnung: "Erstprüfung nach OVE E 8101 inkl. Protokoll", art: "leistung", einheit: "Pauschale", preis: 24000, einkauf: 0, ustsatz: 20 },
   { nummer: "F-9001", bezeichnung: "Kernbohrung durch Stahlbeton, Fremdleistung", art: "fremdleistung", einheit: "Stk", preis: 8500, einkauf: 6200, ustsatz: 20 },
 ];
@@ -312,10 +312,19 @@ async function anlegen() {
   await personalwesenFuellen(mitarbeiter);
 
   const artikel = new Map();
+  let nachgetragen = 0;
   for (const a of ARTIKEL) {
-    artikel.set(a.nummer, await einmalig("artikel", `nummer = "${a.nummer}"`, { ...a, aktiv: true }));
+    const d = await einmalig("artikel", `nummer = "${a.nummer}"`, { ...a, aktiv: true });
+    // EAN und Schnellauswahl kamen später dazu. Bei einer Datenbank, die
+    // die Beispielartikel schon hat, würde "einmalig" sie überspringen und
+    // die neuen Felder blieben leer — dann steht der Scanner ohne Daten da.
+    if ((a.ean && d.ean !== a.ean) || Boolean(d.favorit) !== Boolean(a.favorit)) {
+      await pb.collection("artikel").update(d.id, { ean: a.ean ?? "", favorit: Boolean(a.favorit) });
+      nachgetragen++;
+    }
+    artikel.set(a.nummer, d);
   }
-  console.log(`Artikel: ${artikel.size}`);
+  console.log(`Artikel: ${artikel.size}${nachgetragen ? `, ${nachgetragen} um EAN/Schnellauswahl ergänzt` : ""}`);
 
   const auftraege = new Map();
   for (const a of AUFTRAEGE) {
