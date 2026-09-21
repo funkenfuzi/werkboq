@@ -269,6 +269,25 @@ Balken Empfang lädt niemand ein halbes Megabyte, nur um eine Seite zu
 
 - Collection-Definitionen an einer Stelle halten statt in Modul und `einrichten.mjs`
   gespiegelt (z. B. `einrichten.mjs` per tsx laufen lassen).
+
+  **Das hat schon einmal zugeschlagen.** Am 21. September 2026 fehlte
+  `auftraege.art` in `einrichten.mjs`, obwohl die Oberfläche die
+  Auftragsart längst anbot. PocketBase nimmt ein unbekanntes Feld beim
+  Speichern widerspruchslos an und wirft es weg: „Störung" auswählen,
+  speichern, neu laden — wieder „Projekt". Keine Fehlermeldung, nichts im
+  Protokoll.
+
+  Gefunden hat es kein Test, sondern ein Blick in die Datenbank. Die
+  Browserprüfung lief daran vorbei, weil `artVon()` auf „projekt"
+  zurückfällt und ausgerechnet ein Projekt geprüft wurde — der Rückfall
+  sah aus wie ein Ergebnis. Merksatz: **einen Standardwert prüft man nie
+  am Standardfall.**
+
+  Bis die Definition an einer Stelle liegt, wacht
+  `packages/core/test/schema-spiegel.test.ts` darüber, dass die
+  Auswahlfelder in `einrichten.mjs` zu den Konstanten im Code passen. Der
+  Test ist mit Gegenprobe abgesichert: Feld entfernt → schlägt fehl, ein
+  Wert verdreht → schlägt fehl.
 - Datei-Uploads in der Offline-Warteschlange puffern.
 - Konfliktbehandlung beim Nachspielen (derzeit: letzter gewinnt).
 - Desktop-Verpackung (Tauri) und die Frage, ob das Tablet nativ oder als

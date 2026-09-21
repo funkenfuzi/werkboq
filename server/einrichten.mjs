@@ -192,6 +192,18 @@ const KERN = [
           values: ["anfrage", "spezifikation", "angebot", "termine", "projekt", "errichtung", "abnahme", "wartung", "materialverkauf", "abgeschlossen"],
         },
       },
+      // Die Art entscheidet, welche Phasen der Auftrag überhaupt hat.
+      // Leer gilt als "projekt" — Aufträge aus der Zeit davor sehen damit
+      // aus wie vorher. Die Werte müssen zu AUFTRAGSARTEN in
+      // packages/core/src/daten/typen.ts passen; ein Test wacht darüber.
+      {
+        name: "art",
+        type: "select",
+        options: {
+          maxSelect: 1,
+          values: ["stoerung", "regie", "projekt", "wartung", "materialverkauf"],
+        },
+      },
       { name: "modul", type: "text" },
       { name: "beschreibung", type: "editor" },
       { name: "beginn", type: "date" },
