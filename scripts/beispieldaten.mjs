@@ -208,7 +208,8 @@ const AUFTRAEGE = [
     titel: "Wohnbau Süd — Elektroinstallation Bauteil B",
     kunde: "Musterbau GmbH",
     standort: "Wohnbau Süd, Bauteil B",
-    phase: "errichtung",
+    art: "projekt",
+    phase: "in_arbeit",
     modul: "elektro",
     beschreibung:
       "<p>Komplette Elektroinstallation für zwölf Wohneinheiten. Leistung an einen Bauunternehmer — <strong>Übergang der Steuerschuld nach § 19 Abs 1a UStG</strong> prüfen.</p>",
@@ -229,7 +230,8 @@ const AUFTRAEGE = [
     nummer: "2026-902",
     titel: "Sanierung Einfamilienhaus Gruber",
     kunde: "Familie Gruber",
-    phase: "abnahme",
+    art: "projekt",
+    phase: "fertig",
     modul: "elektro",
     beschreibung:
       "<p>Erneuerung der Verteilung, neue Leitungen im Obergeschoß, Beleuchtung Wohnraum. Altbestand teilweise ohne Schutzleiter.</p>",
@@ -254,6 +256,7 @@ const AUFTRAEGE = [
     titel: "Lindenhof — wiederkehrende Prüfung Allgemeinteile",
     kunde: "Hausverwaltung Föhrenwald",
     standort: "Objekt Lindenhof",
+    art: "projekt",
     phase: "angebot",
     modul: "elektro",
     beschreibung:
@@ -265,6 +268,34 @@ const AUFTRAEGE = [
       { artikel: "L-9001", menge: 12 },
       { artikel: "L-9003", menge: 2 },
     ],
+  },
+  // Zwei Aufträge anderer Art, damit das Phasenbrett zeigt, dass eine
+  // Störung „Gemeldet" heißt und eine Wartung „Geplant" — in derselben
+  // Spalte wie die Projektanfrage bzw. der beauftragte Auftrag.
+  {
+    nummer: "2026-904",
+    titel: "FI löst aus — Küche",
+    kunde: "Familie Gruber",
+    art: "stoerung",
+    phase: "eingang",
+    modul: "elektro",
+    beschreibung: "<p>Fehlerstromschutzschalter fällt beim Einschalten des Geschirrspülers. Kundin ruft um 7:40 an.</p>",
+    vorTagen: 0,
+    dauerTage: 0,
+    positionen: [],
+  },
+  {
+    nummer: "2026-905",
+    titel: "Lindenhof — Notbeleuchtung, Jahresprüfung",
+    kunde: "Hausverwaltung Föhrenwald",
+    standort: "Objekt Lindenhof",
+    art: "wartung",
+    phase: "beauftragt",
+    modul: "elektro",
+    beschreibung: "<p>Jährliche Funktionsprüfung der Sicherheitsbeleuchtung nach Wartungsvertrag.</p>",
+    vorTagen: -12,
+    dauerTage: 1,
+    positionen: [{ artikel: "L-9001", menge: 3 }],
   },
 ];
 
@@ -340,6 +371,7 @@ async function anlegen() {
       titel: a.titel,
       kunde: kunden.get(a.kunde).id,
       standort: a.standort ? standorte.get(a.standort).id : null,
+      art: a.art ?? "projekt",
       phase: a.phase,
       modul: a.modul,
       beschreibung: a.beschreibung,

@@ -89,7 +89,15 @@ export interface NavEintrag {
 
 /** Stellen im Kern, an denen Module Oberfläche beisteuern können. */
 export type Erweiterungspunkt =
-  | "auftrag.abschnitt"     // eigener Block in der Auftragsakte, unter den Stammdaten
+  // Die Auftragsakte ist in Reiter geteilt (seit September 2026). Ein Modul
+  // hängt seinen Block in den Reiter, in den er fachlich gehört — nicht
+  // alles untereinander, wie es vorher war: das waren am Handy sieben
+  // Bildschirmhöhen.
+  | "auftrag.arbeit"        // Reiter Arbeit: was auf der Baustelle erfasst wird
+  | "auftrag.baustelle"     // Reiter Baustelle: Dokumentation, Nachweise
+  | "auftrag.abrechnung"    // Reiter Abrechnung: Positionen, Belege
+  | "auftrag.kachel"        // Kachel im Überblick, mit einer Zahl — siehe ui/Auftragskachel
+  | "auftrag.abschnitt"     // ALT: landet im Reiter Arbeit, damit nichts verschwindet
   | "auftrag.aktionen"      // Schaltflächen in der Kopfzeile eines Auftrags
   | "kunde.reiter"          // zusätzlicher Reiter in der Kundenansicht
   | "dashboard.kachel";     // Kachel auf der Startseite

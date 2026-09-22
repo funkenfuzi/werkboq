@@ -114,7 +114,36 @@ export type TagestermineDienst = (
   mitarbeiterId?: string,
 ) => Promise<Tagestermin[]>;
 
+/**
+ * Fahrten auf einem Auftrag, aus der Zeiterfassung.
+ *
+ * Die Verrechnung braucht zwei Zahlen: wie viele Fahrten (für eine
+ * Pauschale je Fahrt) und wie viele Kilometer (für km × Satz). Welche
+ * davon auf die Rechnung kommt, entscheidet der Betrieb — siehe
+ * fahrtkostenZeile() in daten/betrieb.ts.
+ */
+export type AuftragsfahrtenDienst = (auftragId: string) => Promise<{ fahrten: number; km: number }>;
+
+/**
+ * Die Fahrzeuge des Betriebs, aus dem Fuhrpark — so viel davon, wie eine
+ * Auswahlliste braucht.
+ *
+ * Damit kann die Zeiterfassung bei einer Fahrt das Fahrzeug anbieten,
+ * ohne den Fuhrpark zu kennen. Ohne Fuhrpark antwortet niemand, und das
+ * Feld entfällt.
+ */
+export interface Fahrzeugauswahl {
+  id: string;
+  kennzeichen: string;
+  bezeichnung: string;
+  /** Wem es zugeordnet ist — damit das eigene Fahrzeug vorausgewählt wird. */
+  mitarbeiter?: string;
+}
+export type FahrzeugeDienst = () => Promise<Fahrzeugauswahl[]>;
+
 export interface Dienste {
+  auftragsfahrten: AuftragsfahrtenDienst;
+  fahrzeuge: FahrzeugeDienst;
   tagesstunden: TagesstundenDienst;
   auftragsstunden: AuftragsstundenDienst;
   auftragspositionen: AuftragspositionenDienst;

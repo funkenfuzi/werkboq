@@ -123,6 +123,9 @@ export function App() {
             <Route path="/auftraege/neu" element={<AuftragBearbeiten />} />
             <Route path="/auftraege/:id" element={<AuftragAkte />} />
             <Route path="/auftraege/:id/bearbeiten" element={<AuftragBearbeiten />} />
+            {/* Reiter der Akte. "bearbeiten" darüber gewinnt, weil ein fester
+                Pfadteil in React Router vor einem Platzhalter kommt. */}
+            <Route path="/auftraege/:id/:reiter" element={<AuftragAkte />} />
             <Route path="/einstellungen" element={<Einstellungen />} />
             {alleRouten.map((n) => (
               <Route key={n.pfad} path={n.pfad} element={<n.komponente />} />

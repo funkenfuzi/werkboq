@@ -1,18 +1,24 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type DragEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   Symbol,
-  AUFTRAG_PHASEN,
   auftraegeSuchen,
-  nachPhase,
-  phaseSetzen,
-  PHASENFARBE,
   AUFTRAGSART_TEXT,
+  AUFTRAGSARTEN,
   artVon,
-  PHASENTEXT,
+  brettspalten,
+  fehlersatz,
+  phaseSetzen,
+  phasenFuer,
+  phasenText,
+  PHASENSTUFE_FARBE,
+  PHASENSTUFE_TEXT,
+  PHASENSTUFEN,
+  umschluesseln,
   type Auftrag,
-  type AuftragPhase,
+  type Auftragsart,
   type Kunde,
+  type Phasenstufe,
 } from "@werkboq/core";
 
 /**
@@ -28,6 +34,16 @@ import {
 
 type Ansicht = "brett" | "liste";
 const SCHLUESSEL = "werkboq.auftraege.ansicht";
+const SCHLUESSEL_ART = "werkboq.auftraege.art";
+
+function gemerkteArt(): Auftragsart | null {
+  try {
+    const wert = localStorage.getItem(SCHLUESSEL_ART);
+    return (AUFTRAGSARTEN as readonly (string | null)[]).includes(wert) ? (wert as Auftragsart) : null;
+  } catch {
+    return null;
+  }
+}
 
 export function Auftraege() {
   const [ansicht, setAnsicht] = useState<Ansicht>(() => {
@@ -38,6 +54,7 @@ export function Auftraege() {
     }
   });
   const [suche, setSuche] = useState("");
+  const [art, setArt] = useState<Auftragsart | null>(gemerkteArt);
   const [liste, setListe] = useState<Auftrag[]>([]);
   const [laedt, setLaedt] = useState(true);
   const [fehler, setFehler] = useState<string | null>(null);
@@ -49,6 +66,15 @@ export function Auftraege() {
       /* egal */
     }
   }, [ansicht]);
+
+  useEffect(() => {
+    try {
+      if (art) localStorage.setItem(SCHLUESSEL_ART, art);
+      else localStorage.removeItem(SCHLUESSEL_ART);
+    } catch {
+      /* egal */
+    }
+  }, [art]);
 
   const laden = useCallback(() => {
     setLaedt(true);
@@ -66,13 +92,27 @@ export function Auftraege() {
     return () => clearTimeout(zeitgeber);
   }, [laden]);
 
+  const gezeigt = useMemo(
+    () => (art ? liste.filter((a) => artVon(a) === art) : liste),
+    [liste, art],
+  );
+  const jeArt = useMemo(() => {
+    const zahl = Object.fromEntries(AUFTRAGSARTEN.map((x) => [x, 0])) as Record<Auftragsart, number>;
+    for (const a of liste) zahl[artVon(a)]++;
+    return zahl;
+  }, [liste]);
+
   return (
     <section>
       <div className="wb-kopf">
         <div>
           <h1>Aufträge</h1>
           <p className="wb-kopf__zahl">
-            {laedt ? "…" : `${liste.length} ${liste.length === 1 ? "Auftrag" : "Aufträge"}`}
+            {laedt
+              ? "…"
+              : `${gezeigt.length} ${gezeigt.length === 1 ? "Auftrag" : "Aufträge"}${
+                  art ? ` · ${AUFTRAGSART_TEXT[art]}` : ""
+                }`}
           </p>
         </div>
         <Link className="wb-button" to="/auftraege/neu">
@@ -92,6 +132,20 @@ export function Auftraege() {
             autoCapitalize="none"
           />
         </div>
+        <label className="wb-artwahl">
+          <select
+            aria-label="Auftragsart"
+            value={art ?? ""}
+            onChange={(e) => setArt((e.target.value || null) as Auftragsart | null)}
+          >
+            <option value="">Alle Arten ({liste.length})</option>
+            {AUFTRAGSARTEN.map((x) => (
+              <option key={x} value={x}>
+                {AUFTRAGSART_TEXT[x]} ({jeArt[x]})
+              </option>
+            ))}
+          </select>
+        </label>
         <div className="wb-umschalter" role="group" aria-label="Ansicht">
           <button
             type="button"
@@ -120,8 +174,8 @@ export function Auftraege() {
         <div className="wb-nichts">
           <p>{suche ? `Kein Auftrag passt zu „${suche}".` : "Noch kein Auftrag angelegt."}</p>
           <p className="wb-leer">
-            Ein Auftrag hängt immer an einem Kunden und wandert von der Anfrage bis zur Wartung
-            durch die Phasen.
+            Ein Auftrag hängt immer an einem Kunden. Je nach Art — Störung, Regie, Projekt,
+            Wartung, Materialverkauf — durchläuft er seine eigenen Phasen bis zur Rechnung.
           </p>
           {!suche && (
             <Link className="wb-button" to="/auftraege/neu">
@@ -134,82 +188,208 @@ export function Auftraege() {
 
       {liste.length > 0 &&
         (ansicht === "brett" ? (
-          <Phasenbrett auftraege={liste} beiAenderung={laden} />
+          <Phasenbrett auftraege={gezeigt} art={art} beiAenderung={laden} />
+        ) : gezeigt.length ? (
+          <Auftragsliste auftraege={gezeigt} />
         ) : (
-          <Auftragsliste auftraege={liste} />
+          <p className="wb-leer">Kein Auftrag der Art „{art ? AUFTRAGSART_TEXT[art] : ""}".</p>
         ))}
     </section>
   );
 }
 
+/**
+ * Das Phasenbrett.
+ *
+ * Über alle Aufträge zeigt es die Stufen des Gerüsts mit neutralen Namen —
+ * dieselbe Spalte enthält dann eine gemeldete Störung und eine
+ * Projektanfrage. Ist eine Art gewählt, zeigt es genau deren Phasen mit
+ * deren Namen, und nur die. So bleibt eine Störung bei vier Spalten statt
+ * sieben.
+ *
+ * „Abgeschlossen" ist eingeklappt: dort sammelt sich mit der Zeit fast
+ * alles, und wer das Brett öffnet, will sehen, was noch zu tun ist. Ziehen
+ * kann man trotzdem hinein.
+ *
+ * Ziehen geht nur in Phasen, die die Art des Auftrags kennt. Eine Störung
+ * im Angebot gibt es nicht; die Spalte wird beim Ziehen gedimmt und nimmt
+ * die Karte nicht an.
+ */
 function Phasenbrett({
   auftraege,
+  art,
   beiAenderung,
 }: {
   auftraege: Auftrag[];
+  art: Auftragsart | null;
   beiAenderung: () => void;
 }) {
-  const brett = useMemo(() => nachPhase(auftraege), [auftraege]);
   const [gezogen, setGezogen] = useState<Auftrag | null>(null);
-  const [ueber, setUeber] = useState<AuftragPhase | null>(null);
+  const [ueber, setUeber] = useState<Phasenstufe | null>(null);
+  const [abgeschlossenOffen, setAbgeschlossenOffen] = useState(false);
+  const [fehler, setFehler] = useState<string | null>(null);
 
-  async function ablegen(phase: AuftragPhase) {
+  const spalten = useMemo(
+    () => brettspalten(auftraege.map((a) => a.phase), art),
+    [auftraege, art],
+  );
+  const brett = useMemo(() => {
+    const b = Object.fromEntries(PHASENSTUFEN.map((s) => [s, [] as Auftrag[]])) as Record<
+      Phasenstufe,
+      Auftrag[]
+    >;
+    // umschluesseln: steht irgendwo noch eine alte Phase (Server noch nicht
+    // neu gestartet), landet der Auftrag trotzdem in einer Spalte.
+    for (const a of auftraege) b[umschluesseln(a.phase)].push(a);
+    return b;
+  }, [auftraege]);
+
+  function erlaubt(a: Auftrag | null, stufe: Phasenstufe): boolean {
+    if (!a) return true;
+    return phasenFuer(a).some((p) => p.stufe === stufe);
+  }
+
+  async function ablegen(stufe: Phasenstufe) {
     setUeber(null);
     const auftrag = gezogen;
     setGezogen(null);
-    if (!auftrag || auftrag.phase === phase) return;
-    await phaseSetzen(auftrag, phase);
-    beiAenderung();
+    if (!auftrag || auftrag.phase === stufe || !erlaubt(auftrag, stufe)) return;
+    try {
+      await phaseSetzen(auftrag, stufe);
+      setFehler(null);
+      beiAenderung();
+    } catch (e: unknown) {
+      setFehler(fehlersatz(e));
+    }
   }
 
-  return (
-    <div className="wb-brett">
-      {AUFTRAG_PHASEN.map((phase) => (
-        <div
-          key={phase}
-          className={`wb-spalte${ueber === phase ? " ist-ziel" : ""}`}
-          onDragOver={(e) => {
-            e.preventDefault();
-            setUeber(phase);
-          }}
-          onDragLeave={() => setUeber((u) => (u === phase ? null : u))}
-          onDrop={() => void ablegen(phase)}
-        >
-          <div className="wb-spalte__kopf">
-            <span className={`wb-plakette wb-plakette--${PHASENFARBE[phase]}`}>
-              {PHASENTEXT[phase]}
-            </span>
-            <span className="wb-spalte__zahl">{brett[phase].length}</span>
-          </div>
+  function zielProps(stufe: Phasenstufe) {
+    const geht = erlaubt(gezogen, stufe);
+    return {
+      onDragOver: (e: DragEvent) => {
+        // Ohne preventDefault nimmt der Browser nichts an — genau das
+        // wollen wir bei einer Phase, die die Art nicht kennt.
+        if (!geht) return;
+        e.preventDefault();
+        setUeber(stufe);
+      },
+      onDragLeave: () => setUeber((u) => (u === stufe ? null : u)),
+      onDrop: () => void ablegen(stufe),
+      gesperrt: Boolean(gezogen) && !geht,
+    };
+  }
 
-          <div className="wb-spalte__karten">
-            {brett[phase].map((a) => (
-              <Karte
-                key={a.id}
-                auftrag={a}
-                beiZiehstart={() => setGezogen(a)}
-                beiZiehende={() => setGezogen(null)}
-              />
-            ))}
-            {brett[phase].length === 0 && <p className="wb-spalte__leer">—</p>}
-          </div>
+  const zu = zielProps("abgeschlossen");
+  const offeneSpalten = spalten.filter((s) => s.stufe !== "abgeschlossen");
+  const abgeschlossen = brett.abgeschlossen;
+
+  return (
+    <>
+      {fehler && (
+        <p className="wb-fehler" role="alert">
+          {fehler}
+        </p>
+      )}
+      <div
+        className={`wb-brett${abgeschlossenOffen ? "" : " wb-brett--eingeklappt"}`}
+        style={{ ["--wb-spalten" as string]: offeneSpalten.length }}
+      >
+        {offeneSpalten.map(({ stufe, text }) => {
+          const z = zielProps(stufe);
+          return (
+            <div
+              key={stufe}
+              className={`wb-spalte${ueber === stufe ? " ist-ziel" : ""}${z.gesperrt ? " ist-gesperrt" : ""}`}
+              onDragOver={z.onDragOver}
+              onDragLeave={z.onDragLeave}
+              onDrop={z.onDrop}
+            >
+              <div className="wb-spalte__kopf">
+                <span className={`wb-plakette wb-plakette--${PHASENSTUFE_FARBE[stufe]}`}>{text}</span>
+                <span className="wb-spalte__zahl">{brett[stufe].length}</span>
+              </div>
+              <div className="wb-spalte__karten">
+                {brett[stufe].map((a) => (
+                  <Karte
+                    key={a.id}
+                    auftrag={a}
+                    spaltentext={text}
+                    mitArt={!art}
+                    beiZiehstart={() => setGezogen(a)}
+                    beiZiehende={() => {
+                      setGezogen(null);
+                      setUeber(null);
+                    }}
+                  />
+                ))}
+                {brett[stufe].length === 0 && <p className="wb-spalte__leer">—</p>}
+              </div>
+            </div>
+          );
+        })}
+
+        <div
+          className={`wb-spalte wb-spalte--abgeschlossen${abgeschlossenOffen ? " ist-offen" : ""}${
+            ueber === "abgeschlossen" ? " ist-ziel" : ""
+          }${zu.gesperrt ? " ist-gesperrt" : ""}`}
+          onDragOver={zu.onDragOver}
+          onDragLeave={zu.onDragLeave}
+          onDrop={zu.onDrop}
+        >
+          <button
+            type="button"
+            className="wb-spalte__klappe"
+            aria-expanded={abgeschlossenOffen}
+            onClick={() => setAbgeschlossenOffen((o) => !o)}
+            title={abgeschlossenOffen ? "Abgeschlossene einklappen" : "Abgeschlossene zeigen"}
+          >
+            <span className="wb-spalte__klappentext">{PHASENSTUFE_TEXT.abgeschlossen}</span>
+            <span className="wb-spalte__zahl">{abgeschlossen.length}</span>
+          </button>
+          {abgeschlossenOffen && (
+            <div className="wb-spalte__karten">
+              {abgeschlossen.map((a) => (
+                <Karte
+                  key={a.id}
+                  auftrag={a}
+                  spaltentext={PHASENSTUFE_TEXT.abgeschlossen}
+                  mitArt={!art}
+                  beiZiehstart={() => setGezogen(a)}
+                  beiZiehende={() => {
+                    setGezogen(null);
+                    setUeber(null);
+                  }}
+                />
+              ))}
+              {abgeschlossen.length === 0 && <p className="wb-spalte__leer">—</p>}
+            </div>
+          )}
         </div>
-      ))}
-    </div>
+      </div>
+    </>
   );
 }
 
 function Karte({
   auftrag,
+  spaltentext,
+  mitArt,
   beiZiehstart,
   beiZiehende,
 }: {
   auftrag: Auftrag;
+  spaltentext: string;
+  mitArt: boolean;
   beiZiehstart: () => void;
   beiZiehende: () => void;
 }) {
   const navigate = useNavigate();
   const kunde = (auftrag as Auftrag & { expand?: { kunde?: Kunde } }).expand?.kunde;
+  const art = artVon(auftrag);
+  // Heißt die Phase bei dieser Art anders als die Spalte (Wartung
+  // „Durchgeführt" in „Fertig"), steht der eigene Name auf der Karte.
+  const eigenerName = phasenText(umschluesseln(auftrag.phase), art);
+  const anders = eigenerName !== spaltentext;
 
   return (
     <article
@@ -224,6 +404,12 @@ function Karte({
       <span className="wb-karte__nummer">{auftrag.nummer}</span>
       <span className="wb-karte__titel">{auftrag.titel}</span>
       {kunde && <span className="wb-karte__kunde">{kunde.name}</span>}
+      {(mitArt || anders) && (
+        <span className="wb-karte__art">
+          {mitArt && <span className={`wb-artmarke wb-artmarke--${art}`}>{AUFTRAGSART_TEXT[art]}</span>}
+          {anders && <span className="wb-karte__phase">{eigenerName}</span>}
+        </span>
+      )}
       {auftrag.beginn && (
         <span className="wb-karte__datum">
           ab {new Date(auftrag.beginn).toLocaleDateString("de-AT")}
@@ -263,8 +449,10 @@ function Auftragsliste({ auftraege }: { auftraege: Auftrag[] }) {
                 <td>{kunde?.name ?? "—"}</td>
                 <td className="wb-zelle--gedaempft">{AUFTRAGSART_TEXT[artVon(a)]}</td>
                 <td>
-                  <span className={`wb-plakette wb-plakette--${PHASENFARBE[a.phase]}`}>
-                    {PHASENTEXT[a.phase]}
+                  <span
+                    className={`wb-plakette wb-plakette--${PHASENSTUFE_FARBE[umschluesseln(a.phase)]}`}
+                  >
+                    {phasenText(umschluesseln(a.phase), artVon(a))}
                   </span>
                 </td>
                 <td>{a.beginn ? new Date(a.beginn).toLocaleDateString("de-AT") : "—"}</td>

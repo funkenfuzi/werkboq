@@ -1,10 +1,11 @@
 import {
-  AUFTRAG_PHASEN,
   KERN_COLLECTIONS,
+  artVon,
   type Auftrag,
   type AuftragPhase,
   type Auftragsart,
 } from "./typen";
+import { AUFTRAG_PHASEN, phasenText, PHASENSTUFE_FARBE, PHASENSTUFE_TEXT } from "./phasen";
 import { pb } from "./client";
 import { schreiben } from "./offline";
 import { protokollieren, unterschiede } from "./protokoll";
@@ -31,32 +32,14 @@ export type AuftragEingabe = {
   ende?: string;
 };
 
-export const PHASENTEXT: Record<AuftragPhase, string> = {
-  anfrage: "Anfrage",
-  spezifikation: "Spezifikation",
-  angebot: "Angebot",
-  termine: "Termine",
-  projekt: "Projekt",
-  errichtung: "Errichtung",
-  abnahme: "Abnahme",
-  wartung: "Wartung",
-  materialverkauf: "Materialverkauf",
-  abgeschlossen: "Abgeschlossen",
-};
-
-/** Farbrolle je Phase — Leiterfarben-Metapher aus den Tokens. */
-export const PHASENFARBE: Record<AuftragPhase, string> = {
-  anfrage: "neutral",
-  spezifikation: "info",
-  angebot: "info",
-  termine: "info",
-  projekt: "warn",
-  errichtung: "warn",
-  abnahme: "ok",
-  wartung: "ok",
-  materialverkauf: "neutral",
-  abgeschlossen: "neutral",
-};
+/**
+ * Namen und Farben der Stufen ohne Bezug auf eine Art — für Stellen, die
+ * über alle Aufträge gehen. Wo eine Art bekannt ist, gehört phasenText()
+ * aus ./phasen.ts hin, damit eine Störung „Gemeldet" heißt und nicht
+ * „Eingang".
+ */
+export const PHASENTEXT: Record<AuftragPhase, string> = PHASENSTUFE_TEXT;
+export const PHASENFARBE: Record<AuftragPhase, string> = PHASENSTUFE_FARBE;
 
 const FELDNAMEN: Record<string, string> = {
   kunde: "Kunde",
@@ -77,7 +60,7 @@ export const LEERER_AUFTRAG: AuftragEingabe = {
   nummer: "",
   titel: "",
   art: "projekt",
-  phase: "anfrage",
+  phase: "eingang",
   modul: "",
   beschreibung: "",
   beginn: "",
@@ -171,7 +154,10 @@ export async function phaseSetzen(auftrag: Auftrag, neu: AuftragPhase): Promise<
     "auftraege",
     auftrag.id,
     "aendern",
-    `Phase von ${PHASENTEXT[auftrag.phase]} auf ${PHASENTEXT[neu]} gesetzt`,
+    // Mit den Namen der Art, so wie der Anwender sie sieht — und so, wie
+    // sie zum Zeitpunkt des Wechsels hießen. Benennt der Betrieb eine Phase
+    // später um, bleibt der Verlauf, wie er war.
+    `Phase von ${phasenText(auftrag.phase, artVon(auftrag))} auf ${phasenText(neu, artVon(auftrag))} gesetzt`,
   );
 }
 

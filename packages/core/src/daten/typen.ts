@@ -1,3 +1,4 @@
+import type { Phasenstufe } from "./phasen";
 /**
  * Datenmodell Werkboq Basic.
  *
@@ -87,19 +88,11 @@ export const AUFTRAGSART_HINWEIS: Record<Auftragsart, string> = {
   materialverkauf: "Nur Ware über die Budel",
 };
 
-export const AUFTRAG_PHASEN = [
-  "anfrage",
-  "spezifikation",
-  "angebot",
-  "termine",
-  "projekt",
-  "errichtung",
-  "abnahme",
-  "wartung",
-  "materialverkauf",
-  "abgeschlossen",
-] as const;
-export type AuftragPhase = (typeof AUFTRAG_PHASEN)[number];
+/**
+ * Die Phase eines Auftrags ist eine Phasenstufe des festen Gerüsts — siehe
+ * ./phasen.ts. Wie sie je Auftragsart heißt, steht dort auch.
+ */
+export type AuftragPhase = Phasenstufe;
 
 export interface Auftrag extends Basisdatensatz {
   kunde: string;
@@ -116,49 +109,9 @@ export interface Auftrag extends Basisdatensatz {
   ende?: string;
 }
 
-/**
- * Welche Phasen eine Auftragsart durchläuft, in dieser Reihenfolge.
- *
- * Bewusst dieselben Phasenkennungen für alle Arten: ein Auftrag, der von
- * Regie auf Projekt umgestellt wird, behält seine Phase, statt in einen
- * unbekannten Zustand zu fallen. Nur die Auswahl wird kürzer.
- */
-export const PHASEN_JE_ART: Record<Auftragsart, AuftragPhase[]> = {
-  // Eine Störung kennt kein Angebot und keine Spezifikation. Wer sie
-  // trotzdem bräuchte, hat keine Störung, sondern einen Auftrag.
-  stoerung: ["anfrage", "errichtung", "abgeschlossen"],
-  regie: ["anfrage", "errichtung", "abnahme", "abgeschlossen"],
-  projekt: [
-    "anfrage",
-    "spezifikation",
-    "angebot",
-    "termine",
-    "projekt",
-    "errichtung",
-    "abnahme",
-    "abgeschlossen",
-  ],
-  wartung: ["anfrage", "termine", "errichtung", "abnahme", "wartung", "abgeschlossen"],
-  materialverkauf: ["anfrage", "materialverkauf", "abgeschlossen"],
-};
-
 /** Die Art eines Auftrags, mit der Voreinstellung für alte Datensätze. */
 export function artVon(a: Pick<Auftrag, "art">): Auftragsart {
   return a.art && (AUFTRAGSARTEN as readonly string[]).includes(a.art) ? a.art : "projekt";
-}
-
-/**
- * Die Phasen, die dieser Auftrag anbieten soll.
- *
- * Steht der Auftrag in einer Phase, die seine Art nicht kennt — etwa nach
- * einer Umstellung von Projekt auf Störung —, wird sie trotzdem angezeigt.
- * Eine Phasenleiste, in der der aktuelle Zustand fehlt, ist schlimmer als
- * eine mit einem Eintrag zu viel.
- */
-export function phasenFuer(a: Pick<Auftrag, "art" | "phase">): AuftragPhase[] {
-  const vorgesehen = PHASEN_JE_ART[artVon(a)];
-  if (vorgesehen.includes(a.phase)) return vorgesehen;
-  return [...vorgesehen, a.phase];
 }
 
 // Termine stehen im Baustein Planung, Zeiten im Baustein Zeiterfassung.

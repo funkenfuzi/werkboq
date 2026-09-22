@@ -1,10 +1,12 @@
 import { dienstAnbieten, type WerkboqModul } from "@werkboq/core";
 import { Zeiten } from "./seiten/Zeiten";
-import { AuftragZeiten } from "./erweiterungen/AuftragZeiten";
+import { AuftragArbeit, ArbeitKacheln } from "./erweiterungen/AuftragArbeit";
 import { ZEITERFASSUNG_COLLECTIONS } from "./daten/collections";
 import { dauer, summe, zeitenVonBisAlle, zeitenZuAuftrag } from "./daten/zeiten";
+import { fahrtenZuAuftrag, summeKm } from "./daten/fahrten";
 
 export * from "./daten/zeiten";
+export * from "./daten/fahrten";
 export { Zeitmaske } from "./erweiterungen/Zeitmaske";
 
 /**
@@ -18,8 +20,11 @@ export { Zeitmaske } from "./erweiterungen/Zeitmaske";
  * Was dieser Baustein anderen anbietet:
  *   tagesstunden    — gebuchte Minuten je Mitarbeiter und Tag. Die Planung
  *                     stellt damit geplant und gebucht nebeneinander.
- *   auftragsstunden — gebuchte Minuten auf einem Auftrag. Später rechnet die
- *                     Verrechnung damit.
+ *   auftragsstunden — gebuchte Minuten auf einem Auftrag. Die Verrechnung
+ *                     macht daraus eine Zeile.
+ *   auftragsfahrten — Fahrten und Kilometer auf einem Auftrag. Die
+ *                     Verrechnung macht daraus die Fahrtkosten, so wie der
+ *                     Betrieb es eingestellt hat.
  * Beide über die Dienstschnittstelle des Kerns: wer sie nutzt, muss diesen
  * Baustein nicht kennen, und ohne ihn fehlt die Zahl, sonst nichts.
  */
@@ -44,7 +49,8 @@ export const bausteinZeiterfassung: WerkboqModul = {
   ],
 
   erweiterungen: {
-    "auftrag.abschnitt": AuftragZeiten,
+    "auftrag.arbeit": AuftragArbeit,
+    "auftrag.kachel": ArbeitKacheln,
   },
 
   initialisieren: () => {
@@ -57,6 +63,11 @@ export const bausteinZeiterfassung: WerkboqModul = {
         karte[schluessel] = (karte[schluessel] ?? 0) + dauer(z);
       }
       return karte;
+    });
+
+    dienstAnbieten("auftragsfahrten", async (auftragId) => {
+      const fahrten = await fahrtenZuAuftrag(auftragId);
+      return { fahrten: fahrten.length, km: summeKm(fahrten) };
     });
 
     dienstAnbieten("auftragsstunden", async (auftragId) => {

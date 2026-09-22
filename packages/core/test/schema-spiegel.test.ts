@@ -6,6 +6,8 @@ import { describe, it } from "node:test";
 import { AUFTRAGSARTEN, FOTOARTEN } from "../src/daten/typen";
 import { UNTERSCHRIFT_ZWECKE } from "../src/daten/unterschrift";
 import { VERSANDWEGE } from "../src/daten/versand";
+import { PHASENSTUFEN } from "../src/daten/phasen";
+import { FAHRTKOSTENARTEN } from "../src/daten/betrieb";
 
 /**
  * Die Konstanten der Bausteine liegen absichtlich hier als Kopie und
@@ -74,6 +76,8 @@ function auswahlwerte(collection: string, feld: string): string[] | null {
 
 const faelle: [string, string, readonly string[]][] = [
   ["auftraege", "art", AUFTRAGSARTEN],
+  ["auftraege", "phase", PHASENSTUFEN],
+  ["betrieb", "fahrtkostenArt", FAHRTKOSTENARTEN],
   ["fotos", "art", FOTOARTEN],
   ["unterschriften", "zweck", UNTERSCHRIFT_ZWECKE],
   ["versand", "weg", VERSANDWEGE],

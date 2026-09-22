@@ -208,6 +208,27 @@ es Fahrzeuge gibt, lässt es sich bauen; es gehört in den Baustein Material
 und fragt die Fahrzeuge über einen Dienst ab, damit kein Modul das andere
 kennt.
 
+## Scheibe 10b – Phasen, Reiter, Kilometer (erledigt)
+
+Phasengerüst mit Namen je Auftragsart, einstellbar je Betrieb; Phasenbrett
+mit Filter nach Art, passt bei 1280 px ohne Seitwärtsscrollen; Auftragsakte
+in Reitern mit Kacheln; Fahrten am Auftrag mit Fahrtkosten auf der Rechnung.
+Einzelheiten in `produkt.md`, Punkt 4.
+
+Beim Umbau gelernt:
+
+* **PocketBase ohne `--automigrate=0`** schreibt bei jeder Schemaänderung
+  Migrationsdateien und bricht dabei gelegentlich mit einer nackten 400 ab
+  („Failed to update the collection."). `server/start.mjs` startet richtig;
+  wer PocketBase von Hand startet, muss den Schalter selbst setzen.
+  `einrichten.mjs` versucht es bei dieser Meldung dreimal. Eine frühere
+  Aussage in dieser Sitzung, jede Neuinstallation breche ab, war falsch —
+  sie kam aus dem Testaufbau.
+* **Farbnamen:** Die Daten sagten „fehler", das Stylesheet kannte nur
+  „error". Abgelaufene Fristen und Schadensfotos waren grau statt rot.
+  Behoben; `farben.test.ts` prüft jetzt jede Farbe aus den Daten gegen das
+  Stylesheet.
+
 ## Vor der ersten echten Inbetriebnahme
 
 - `npm run entwicklung-weg` ausführen: löscht den Zugang adm/adm und setzt die

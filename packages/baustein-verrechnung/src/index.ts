@@ -2,7 +2,7 @@ import { dienstAnbieten, pb, type WerkboqModul } from "@werkboq/core";
 import { Belege } from "./seiten/Belege";
 import { BelegAkte } from "./seiten/BelegAkte";
 import { BelegDruck } from "./seiten/BelegDruck";
-import { AuftragBelege } from "./erweiterungen/AuftragBelege";
+import { AuftragBelege, BelegKachel } from "./erweiterungen/AuftragBelege";
 import { VERRECHNUNG_COLLECTIONS } from "./daten/collections";
 import "./gestaltung/beleg.css";
 
@@ -67,7 +67,8 @@ export const bausteinVerrechnung: WerkboqModul = {
   ],
 
   erweiterungen: {
-    "auftrag.abschnitt": AuftragBelege,
+    "auftrag.abrechnung": AuftragBelege,
+    "auftrag.kachel": BelegKachel,
   },
 
   async initialisieren() {

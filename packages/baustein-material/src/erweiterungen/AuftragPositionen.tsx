@@ -3,6 +3,7 @@ import {
   aktuellerBenutzer,
   aktuellerRechtsraum,
   alsEuro,
+  Auftragskachel,
   alsGeld,
   alsMenge,
   ausGeld,
@@ -116,20 +117,11 @@ export function AuftragPositionen({ datensatzId }: ErweiterungsProps) {
     }
   }
 
+  // Die Erfassung durch den Monteur steht seit der Aufteilung in Reiter
+  // unter „Arbeit" (siehe MaterialImAuftrag unten). Hier, unter
+  // „Abrechnung", steht nur noch das Ergebnis: was zählt und was wartet.
   return (
     <>
-      {/*
-        Die Erfassung steht vor der Liste: sie ist die Eingabe, die Liste
-        das Ergebnis. Für wen sie aufgeklappt ist, entscheidet das Recht —
-        wer Material verwalten darf, sitzt im Büro und will zuerst die
-        Positionen sehen; wer es nicht darf, ist auf der Baustelle.
-      */}
-      <Materialerfassung
-        auftragId={datensatzId}
-        offenAnfangs={!darfFreigeben}
-        beiAenderung={laden}
-      />
-
     <section className="wb-block">
       <div className="wb-block__kopf">
         <h2>Positionen</h2>
@@ -662,5 +654,54 @@ function Vorschlagsblock({
         ))}
       </ul>
     </div>
+  );
+}
+
+/**
+ * Reiter „Arbeit": die Materialerfassung.
+ *
+ * Aufgeklappt für den, der Material nicht verwalten darf — das ist der
+ * Monteur, und der kommt genau dafür her. Wer es darf, sitzt im Büro und
+ * klappt sie bei Bedarf auf.
+ */
+export function MaterialImAuftrag({ datensatzId }: ErweiterungsProps) {
+  if (!datensatzId) return null;
+  return <Materialerfassung auftragId={datensatzId} offenAnfangs={!darfSchreiben("lager")} />;
+}
+
+/** Zwei Kacheln im Überblick: was von der Baustelle wartet, und was zählt. */
+export function MaterialKacheln({ datensatzId }: ErweiterungsProps) {
+  const [positionen, setPositionen] = useState<Position[] | null>(null);
+
+  useEffect(() => {
+    if (!datensatzId) return;
+    positionenZuAuftrag(datensatzId)
+      .then(setPositionen)
+      .catch(() => setPositionen([]));
+  }, [datensatzId]);
+
+  if (!datensatzId || positionen === null) return null;
+  const geld = schreibweiseVon(aktuellerRechtsraum().id);
+  const offen = nurVorschlaege(positionen).length;
+  const summe = summieren(nurFreigegebene(positionen));
+
+  return (
+    <>
+      <Auftragskachel
+        auftragId={datensatzId}
+        reiter="arbeit"
+        titel="Material"
+        wert={offen ? `${offen} offen` : "—"}
+        zusatz={offen ? "von der Baustelle, nicht freigegeben" : "nichts wartet"}
+        achtung={offen > 0}
+      />
+      <Auftragskachel
+        auftragId={datensatzId}
+        reiter="abrechnung"
+        titel="Positionen"
+        wert={alsEuro(summe.netto, geld)}
+        zusatz={`${nurFreigegebene(positionen).length} Zeilen, netto`}
+      />
+    </>
   );
 }

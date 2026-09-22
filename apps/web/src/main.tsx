@@ -11,6 +11,7 @@ import {
   moduleStarten,
   offlineStarten,
   rechtsraumLaden,
+  phasenLaden,
 } from "@werkboq/core";
 import bausteinZeiterfassung from "@werkboq/baustein-zeiterfassung";
 import bausteinPlanung from "@werkboq/baustein-planung";
@@ -41,6 +42,7 @@ async function start() {
   // Vor allem anderen das Land: Steuersätze, Währung und Pflichtangaben
   // hängen daran, und eine Maske kann darauf nicht warten.
   await rechtsraumLaden(betriebLaden);
+  await phasenLaden(betriebLaden);
 
   // Erst wissen, was freigegeben ist, dann starten: ein nicht gekaufter
   // Baustein soll nicht einmal seine Dienste anmelden.

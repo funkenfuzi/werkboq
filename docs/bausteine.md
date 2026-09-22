@@ -72,7 +72,12 @@ Jedes Modul darf den Kern verwenden. Der Kern verwendet kein Modul. Steht in
 *Erweiterungspunkte* reichen Oberfläche durch
 (`packages/core/src/modul/typen.ts`). Ein Modul hängt eine Komponente an einen
 benannten Punkt, der Kern rendert sie, ohne zu wissen, was sie tut. Der
-Zeiten-Block in der Auftragsakte ist so gebaut: `auftrag.abschnitt`.
+Zeiten-Block in der Auftragsakte ist so gebaut. Die Akte hat Reiter, und
+jeder Reiter einen eigenen Punkt: `auftrag.arbeit`, `auftrag.baustelle`,
+`auftrag.abrechnung`; dazu `auftrag.kachel` für die kleinen Kacheln im
+Überblick (Komponente `Auftragskachel` aus dem Kern, damit alle gleich
+aussehen). `auftrag.abschnitt` gibt es noch für ältere Module; es landet im
+Reiter Arbeit.
 
 *Dienste* reichen Daten durch (`packages/core/src/modul/dienste.ts`). Ein
 Modul bietet eine Funktion unter einem Namen an, ein anderes fragt danach.
@@ -87,6 +92,8 @@ sonst niemand. Bisher vergeben:
 | `abwesend` | Personalwesen | Planung |
 | `rechtsraumSperre` | Verrechnung | Kern (Einstellungen) |
 | `tagestermine` | Planung | Kern (Startseite) |
+| `auftragsfahrten` | Zeiterfassung | Verrechnung |
+| `fahrzeuge` | Fuhrpark | Zeiterfassung (Fahrten) |
 
 Der Kern kennt die *Namen und Formen* beider — so wie eine Steckdose die Form
 des Steckers kennt, aber kein Gerät. Anbieter kennt er keine.

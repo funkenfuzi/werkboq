@@ -187,6 +187,11 @@
 .wb-plakette--warn { background: var(--wb-status-warn-soft); color: var(--wb-status-warn); }
 .wb-plakette--info { background: var(--wb-status-info-soft); color: var(--wb-status-info); }
 .wb-plakette--error { background: var(--wb-status-error-soft); color: var(--wb-status-error); }
+/* Die Daten sagen "fehler", die ersten Regeln hießen "error". Bis September
+   2026 gab es nur "error" — abgelaufene Fristen und Schadensfotos waren
+   deshalb grau statt rot. Beide Namen gelten; der Test farben.test.ts
+   prüft, dass jede Farbe aus den Daten hier eine Regel hat. */
+.wb-plakette--fehler { background: var(--wb-status-error-soft); color: var(--wb-status-error); }
 
 .wb-phasen {
   list-style: none;

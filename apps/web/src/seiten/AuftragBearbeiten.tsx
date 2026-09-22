@@ -12,7 +12,6 @@ import {
   AUFTRAGSARTEN,
   artVon,
   phasenFuer,
-  PHASENTEXT,
   type Auftrag,
   type AuftragEingabe,
   type AuftragPhase,
@@ -156,13 +155,14 @@ export function AuftragBearbeiten() {
             onChange={(e) => feld("phase", e.target.value as AuftragPhase)}
           >
             {phasenFuer(werte).map((p) => (
-              <option key={p} value={p}>
-                {PHASENTEXT[p]}
+              <option key={p.stufe} value={p.stufe}>
+                {p.text}
               </option>
             ))}
           </select>
           <small className="wb-notiz">
-            Die Auftragsart bestimmt, welche Phasen zur Wahl stehen.
+            Die Auftragsart bestimmt, welche Phasen zur Wahl stehen und wie sie heißen.
+            Die Namen lassen sich unter Einstellungen → Phasen ändern.
           </small>
         </label>
 

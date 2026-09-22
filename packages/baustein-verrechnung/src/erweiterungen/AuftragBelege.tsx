@@ -3,9 +3,11 @@ import { useNavigate } from "react-router-dom";
 import {
   aktuellerRechtsraum,
   alsEuro,
+  Auftragskachel,
   auftragLaden,
   betriebLaden,
   dienst,
+  fahrtkostenZeile,
   fehlersatz,
   kundeLaden,
   schreibweiseVon,
@@ -126,7 +128,7 @@ export function AuftragBelege({ datensatzId }: ErweiterungsProps) {
           art: "leistung",
           bezeichnung: "Arbeitszeit laut Aufzeichnung",
           beschreibung:
-            satz > 0 ? "" : "Stundensatz in den Betriebsstammdaten hinterlegen",
+            satz > 0 ? "" : "Stundensatz unter Einstellungen → Betrieb hinterlegen",
           menge: Math.round((stunden.verrechenbar / 60) * 100) / 100,
           einheit: "h",
           einzelpreis: satz,
@@ -134,6 +136,27 @@ export function AuftragBelege({ datensatzId }: ErweiterungsProps) {
           ustsatz: aktuellerRechtsraum().normalsatz,
           quelle: "zeiterfassung",
         });
+        // Bis September 2026 war das die letzte Zeile, und die Nummer wurde
+        // danach nicht weitergezählt. Mit den Fahrten dahinter bekäme sonst
+        // die Fahrtzeile dieselbe Positionsnummer wie die Stunden.
+        pos += 10;
+      }
+
+      // Fahrten: ob und wie sie auf den Beleg kommen, entscheidet der
+      // Betrieb in den Stammdaten — km × Satz, Pauschale je Fahrt oder gar
+      // nicht. Die Rechnung dazu steht in fahrtkostenZeile() im Kern.
+      const fahrten = await dienst("auftragsfahrten")?.(datensatzId);
+      const fahrtzeile = fahrten ? fahrtkostenZeile(betrieb, fahrten) : null;
+      if (fahrtzeile) {
+        zeilen.push({
+          pos,
+          art: "leistung",
+          ...fahrtzeile,
+          rabatt: 0,
+          ustsatz: aktuellerRechtsraum().normalsatz,
+          quelle: "fahrten",
+        });
+        pos += 10;
       }
 
       const nummer = await naechsteBelegnummer(art);
@@ -256,5 +279,45 @@ export function AuftragBelege({ datensatzId }: ErweiterungsProps) {
         </div>
       )}
     </section>
+  );
+}
+
+/**
+ * Kachel im Überblick: wie viele Belege, und ob eine Rechnung offen ist.
+ *
+ * „Offen" heißt hier: festgeschrieben und noch nicht bezahlt. Ein Entwurf
+ * ist noch keine Forderung und zählt deshalb nicht als offen.
+ */
+export function BelegKachel({ datensatzId }: ErweiterungsProps) {
+  const [belege, setBelege] = useState<Beleg[] | null>(null);
+
+  useEffect(() => {
+    if (!datensatzId) return;
+    belegeSuchen({})
+      .then((alle) => setBelege(alle.filter((b) => b.auftrag === datensatzId)))
+      .catch(() => setBelege([]));
+  }, [datensatzId]);
+
+  if (!datensatzId || belege === null) return null;
+  const offen = belege.filter((b) => b.belegart === "rechnung" && b.status === "offen").length;
+  const entwuerfe = belege.filter((b) => b.status === "entwurf").length;
+
+  return (
+    <Auftragskachel
+      auftragId={datensatzId}
+      reiter="abrechnung"
+      titel="Belege"
+      wert={String(belege.length)}
+      zusatz={
+        offen
+          ? `${offen} Rechnung${offen === 1 ? "" : "en"} offen`
+          : entwuerfe
+            ? `${entwuerfe} Entwurf${entwuerfe === 1 ? "" : "e"}`
+            : belege.length
+              ? "nichts offen"
+              : "noch keiner"
+      }
+      achtung={offen > 0 || entwuerfe > 0}
+    />
   );
 }

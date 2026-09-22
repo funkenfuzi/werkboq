@@ -1,6 +1,6 @@
 import { dienstAnbieten, type WerkboqModul } from "@werkboq/core";
 import { Katalog } from "./seiten/Katalog";
-import { AuftragPositionen } from "./erweiterungen/AuftragPositionen";
+import { AuftragPositionen, MaterialImAuftrag, MaterialKacheln } from "./erweiterungen/AuftragPositionen";
 import { MATERIAL_COLLECTIONS } from "./daten/collections";
 import { nurFreigegebene, positionenZuAuftrag, positionswert, summieren } from "./daten/positionen";
 
@@ -47,7 +47,9 @@ export const bausteinMaterial: WerkboqModul = {
   ],
 
   erweiterungen: {
-    "auftrag.abschnitt": AuftragPositionen,
+    "auftrag.arbeit": MaterialImAuftrag,
+    "auftrag.abrechnung": AuftragPositionen,
+    "auftrag.kachel": MaterialKacheln,
   },
 
   initialisieren: () => {

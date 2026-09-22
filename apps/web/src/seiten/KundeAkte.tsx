@@ -3,6 +3,10 @@ import { Link, useParams } from "react-router-dom";
 import {
   Symbol,
   AUFTRAG_PHASEN,
+  PHASENFARBE,
+  PHASENTEXT,
+  phasenText,
+  artVon,
   ansprechpartnerAnlegen,
   ansprechpartnerLoeschen,
   ansprechpartnerZuKunde,
@@ -14,7 +18,6 @@ import {
   verlauf,
   type Ansprechpartner,
   type Auftrag,
-  type AuftragPhase,
   type Kunde,
   type Protokollzeile,
   type Standort,
@@ -40,33 +43,6 @@ const REITER = [
 ] as const;
 
 type ReiterId = (typeof REITER)[number]["id"];
-
-/** Phasen zu Farbrollen — Leiterfarben-Metapher aus den Tokens. */
-const PHASENFARBE: Record<AuftragPhase, string> = {
-  anfrage: "neutral",
-  spezifikation: "info",
-  angebot: "info",
-  termine: "info",
-  projekt: "warn",
-  errichtung: "warn",
-  abnahme: "ok",
-  wartung: "ok",
-  materialverkauf: "neutral",
-  abgeschlossen: "neutral",
-};
-
-const PHASENTEXT: Record<AuftragPhase, string> = {
-  anfrage: "Anfrage",
-  spezifikation: "Spezifikation",
-  angebot: "Angebot",
-  termine: "Termine",
-  projekt: "Projekt",
-  errichtung: "Errichtung",
-  abnahme: "Abnahme",
-  wartung: "Wartung",
-  materialverkauf: "Materialverkauf",
-  abgeschlossen: "Abgeschlossen",
-};
 
 export function KundeAkte() {
   const { id } = useParams<{ id: string }>();
@@ -290,7 +266,7 @@ function Auftragstabelle({ auftraege, kundeId }: { auftraege: Auftrag[]; kundeId
               </td>
               <td>
                 <span className={`wb-plakette wb-plakette--${PHASENFARBE[a.phase]}`}>
-                  {PHASENTEXT[a.phase]}
+                  {phasenText(a.phase, artVon(a))}
                 </span>
               </td>
               <td>{a.beginn ? new Date(a.beginn).toLocaleDateString("de-AT") : "—"}</td>

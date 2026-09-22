@@ -1,8 +1,9 @@
-import type { WerkboqModul } from "@werkboq/core";
+import { dienstAnbieten, type WerkboqModul } from "@werkboq/core";
 import { Fuhrpark } from "./seiten/Fuhrpark";
 import { Fahrzeugakte } from "./seiten/Fahrzeugakte";
 import { Fristenkachel } from "./erweiterungen/Fristenkachel";
 import { FUHRPARK_COLLECTIONS } from "./daten/collections";
+import { alleFahrzeuge } from "./daten/fahrzeuge";
 
 export * from "./daten/fahrzeuge";
 export * from "./daten/fristen";
@@ -56,6 +57,19 @@ export const bausteinFuhrpark: WerkboqModul = {
 
   erweiterungen: {
     "dashboard.kachel": Fristenkachel,
+  },
+
+  initialisieren: () => {
+    // Die Zeiterfassung bietet bei einer Fahrt das Fahrzeug an, ohne
+    // diesen Baustein zu kennen — sie fragt, und der Fuhrpark antwortet.
+    dienstAnbieten("fahrzeuge", async () =>
+      (await alleFahrzeuge(true)).map((f) => ({
+        id: f.id,
+        kennzeichen: f.kennzeichen,
+        bezeichnung: f.bezeichnung,
+        mitarbeiter: f.mitarbeiter || undefined,
+      })),
+    );
   },
 };
 

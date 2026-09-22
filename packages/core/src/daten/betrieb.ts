@@ -44,7 +44,34 @@ export interface Betrieb extends Basisdatensatz {
    * bestehende Belege mit falscher Rechtsgrundlage zurücklassen.
    */
   rechtsraum?: string;
+  /**
+   * Phasen je Auftragsart, wie dieser Betrieb sie nennt — siehe
+   * ./phasen.ts. Leer heißt: die Voreinstellung.
+   */
+  phasen?: unknown;
+  /**
+   * Wie Fahrten auf die Rechnung kommen.
+   *
+   * Einstellbar, weil Betriebe das verschieden handhaben und keiner der
+   * Wege falsch ist: der eine verrechnet Kilometer, der andere eine
+   * Anfahrtspauschale je Einsatz, der dritte schreibt nur auf und
+   * verrechnet pauschal im Stundensatz.
+   */
+  fahrtkostenArt?: Fahrtkostenart;
+  /** Netto je Kilometer, in Cent. */
+  kmSatz?: number;
+  /** Netto je Fahrt, in Cent. */
+  anfahrtPauschale?: number;
 }
+
+export const FAHRTKOSTENARTEN = ["km", "pauschale", "keine"] as const;
+export type Fahrtkostenart = (typeof FAHRTKOSTENARTEN)[number];
+
+export const FAHRTKOSTENART_TEXT: Record<Fahrtkostenart, string> = {
+  km: "Kilometer × Satz",
+  pauschale: "Anfahrtspauschale je Fahrt",
+  keine: "Nur erfassen, nicht verrechnen",
+};
 
 export type BetriebEingabe = Omit<Betrieb, keyof Basisdatensatz>;
 
@@ -66,6 +93,9 @@ export const LEERER_BETRIEB: BetriebEingabe = {
   bank: "",
   stundensatz: 0,
   rechtsraum: "at",
+  fahrtkostenArt: "keine",
+  kmSatz: 0,
+  anfahrtPauschale: 0,
 };
 
 export async function betriebLaden(): Promise<Betrieb | null> {
@@ -73,13 +103,23 @@ export async function betriebLaden(): Promise<Betrieb | null> {
   return liste.items[0] ?? null;
 }
 
-export async function betriebSpeichern(id: string, eingabe: BetriebEingabe): Promise<void> {
+/**
+ * Speichert, was übergeben wird — auch nur einen Teil. Die Phasen- und die
+ * Verrechnungseinstellung schicken nur ihre Felder; alles mitzuschicken
+ * hieße, einen Stand zu überschreiben, den ein anderer Reiter vielleicht
+ * gerade geändert hat.
+ */
+export async function betriebSpeichern(
+  id: string,
+  eingabe: Partial<BetriebEingabe>,
+  was = "Betriebsstammdaten geändert",
+): Promise<void> {
   const daten: Record<string, unknown> = {};
   for (const [schluessel, wert] of Object.entries(eingabe)) {
     daten[schluessel] = typeof wert === "string" ? wert.trim() : wert;
   }
   await schreiben({ art: "aendern", collection: "betrieb", id, daten });
-  await protokollieren("betrieb", id, "aendern", "Betriebsstammdaten geändert");
+  await protokollieren("betrieb", id, "aendern", was);
 }
 
 /**
@@ -97,4 +137,51 @@ export function fehlendeRechnungsangaben(b: Betrieb | null): string[] {
     ["uid", "UID-Nummer"],
   ];
   return pflicht.filter(([feld]) => !String(b[feld] ?? "").trim()).map(([, text]) => text);
+}
+
+/**
+ * Die Fahrtkostenzeile für einen Beleg — oder null, wenn keine hingehört.
+ *
+ * Reine Rechnung ohne Datenbank, damit sie unter Test steht: hier wird
+ * entschieden, ob ein Kunde Kilometer oder eine Pauschale bezahlt.
+ *
+ * Steht der Satz auf null, entsteht die Zeile trotzdem, mit einem Hinweis
+ * statt eines Betrags. Sie still wegzulassen hieße, dass Fahrten nie auf
+ * einer Rechnung auftauchen, bis jemand merkt, dass der Satz fehlt — und
+ * das merkt man an der Rechnung nicht.
+ */
+export function fahrtkostenZeile(
+  betrieb: Pick<Betrieb, "fahrtkostenArt" | "kmSatz" | "anfahrtPauschale"> | null,
+  fahrten: { fahrten: number; km: number },
+): { bezeichnung: string; beschreibung: string; menge: number; einheit: string; einzelpreis: number } | null {
+  const art = betrieb?.fahrtkostenArt ?? "keine";
+  if (art === "keine") return null;
+  if (fahrten.fahrten <= 0) return null;
+
+  if (art === "km") {
+    if (fahrten.km <= 0) return null;
+    const satz = betrieb?.kmSatz ?? 0;
+    return {
+      bezeichnung: "Fahrtkosten laut Aufzeichnung",
+      beschreibung:
+        satz > 0
+          ? `${fahrten.fahrten} ${fahrten.fahrten === 1 ? "Fahrt" : "Fahrten"}`
+          : "Kilometersatz unter Einstellungen → Betrieb hinterlegen",
+      menge: fahrten.km,
+      einheit: "km",
+      einzelpreis: satz,
+    };
+  }
+
+  const pauschale = betrieb?.anfahrtPauschale ?? 0;
+  return {
+    bezeichnung: "Anfahrt",
+    beschreibung:
+      pauschale > 0
+        ? `${fahrten.km.toLocaleString("de-AT")} km laut Aufzeichnung`
+        : "Anfahrtspauschale unter Einstellungen → Betrieb hinterlegen",
+    menge: fahrten.fahrten,
+    einheit: "Pauschale",
+    einzelpreis: pauschale,
+  };
 }

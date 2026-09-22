@@ -113,6 +113,44 @@ vorher. Steht ein Auftrag in einer Phase, die seine Art nicht kennt (weil
 jemand die Art nachträglich umgestellt hat), wird diese Phase angehängt
 statt versteckt: ein Auftrag verschwindet nicht aus seiner eigenen Leiste.
 
+**Zweiter Schritt, September 2026: die Phasen selbst aufgeräumt.** Mit den
+Arten allein blieb es unübersichtlich — die zehn Phasen waren darunter
+dieselben, und das Phasenbrett war 2.608 px breit. Jetzt:
+
+* Ein festes **Gerüst** aus sieben Stufen: Eingang, Angebot, Beauftragt,
+  In Arbeit, Fertig, Verrechnen, Abgeschlossen. Daran hängt Verhalten —
+  „Verrechnen" ist rot, weil dort Geld liegen bleibt; „Abgeschlossen" ist im
+  Brett eingeklappt.
+* Darüber **Phasen je Art**, mit eigenen Namen: Störung = Gemeldet → In
+  Arbeit → Verrechnen → Abgeschlossen; Wartung = Geplant → Durchgeführt → …
+* **Einstellbar je Betrieb** unter Einstellungen → Phasen: umbenennen und
+  ausblenden, aber keine erfundenen Phasen und keine andere Reihenfolge.
+  „Verrechnen" und „Abgeschlossen" bleiben immer.
+* Jeder Auftrag lässt sich jederzeit in jede seiner Phasen setzen, auch
+  zurück — in der Phasenleiste der Akte ist jeder Schritt klickbar.
+* Das Phasenbrett filtert nach Art; ohne Filter zeigt es das Gerüst, und
+  die Karte trägt Art und eigenen Phasennamen.
+
+Die alten zehn Phasen schlüsselt `npm start` beim ersten Lauf um
+(`ALTE_PHASEN` in `phasen.ts` und `einrichten.mjs`, unter Test gegeneinander
+abgeglichen). „Wartung" als alte Phase wird „Fertig", nicht „Abgeschlossen":
+lieber einmal zu viel prüfen als stillschweigend ablegen.
+
+**Die Auftragsakte in Reitern.** Vorher stand alles untereinander. Jetzt:
+Überblick (nächster Schritt mit Prüfliste, Kacheln mit je einer Zahl),
+Arbeit (Zeiten, Fahrten, Material), Baustelle (Fotos, Unterschriften,
+Dokumente), Abrechnung (Positionen, Belege), Verlauf. Der Monteur landet
+auf „Arbeit", das Büro auf „Überblick". Bausteine hängen sich über die
+Erweiterungspunkte `auftrag.arbeit`, `auftrag.baustelle`,
+`auftrag.abrechnung` und `auftrag.kachel` ein.
+
+**Kilometer am Auftrag.** Der Monteur tippt die einfache Strecke, „hin und
+retour" ist vorgewählt, das eigene Fahrzeug aus dem Fuhrpark auch. Wie das
+auf die Rechnung kommt, stellt der Betrieb ein: km × Satz, Pauschale je
+Fahrt, oder gar nicht (weil es im Stundensatz steckt). Stundensatz und
+Fahrtkosten stehen unter Einstellungen → Betrieb → Verrechnung — den
+Stundensatz konnte man vorher nirgends eintragen.
+
 ### 4a. Unterschrift am Tablet — **steht**
 
 Zum Foto gehört die Unterschrift: Abnahme, Stundennachweis, Zustand vor

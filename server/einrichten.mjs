@@ -23,6 +23,69 @@ import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
+/**
+ * Aufträge von den alten zehn Phasen auf das Gerüst aus sieben Stufen
+ * umschlüsseln.
+ *
+ * Idempotent: gibt es keinen Auftrag mit alter Phase mehr, tut die Funktion
+ * nichts. Die Zuordnung ist dieselbe wie ALTE_PHASEN in
+ * packages/core/src/daten/phasen.ts; ein Test hält beide beieinander.
+ *
+ * Der Ablauf hat eine Reihenfolge, die man nicht umdrehen darf: erst das
+ * Auswahlfeld um die neuen Werte ERWEITERN, dann die Datensätze
+ * umschreiben, und erst danach — im normalen Abgleich — die alten Werte
+ * streichen. Andersherum lehnt PocketBase das Umschreiben ab, weil der neue
+ * Wert noch nicht erlaubt ist, oder das Streichen, weil noch Datensätze den
+ * alten tragen.
+ */
+const ALTE_PHASEN = {
+  anfrage: "eingang",
+  spezifikation: "eingang",
+  angebot: "angebot",
+  termine: "beauftragt",
+  projekt: "beauftragt",
+  errichtung: "in_arbeit",
+  abnahme: "fertig",
+  wartung: "fertig",
+  materialverkauf: "beauftragt",
+  abgeschlossen: "abgeschlossen",
+};
+const NEUE_PHASEN = ["eingang", "angebot", "beauftragt", "in_arbeit", "fertig", "verrechnen", "abgeschlossen"];
+
+async function phasenUmschluesseln() {
+  let c;
+  try {
+    c = await pb.collections.getOne("auftraege");
+  } catch {
+    return; // frische Datenbank, nichts umzuschlüsseln
+  }
+  const feld = c.schema.find((f) => f.name === "phase");
+  if (!feld) return;
+
+  const alt = Object.keys(ALTE_PHASEN).filter((p) => !NEUE_PHASEN.includes(p));
+  const betroffen = await pb
+    .collection("auftraege")
+    .getFullList({ filter: alt.map((p) => `phase = "${p}"`).join(" || "), fields: "id,phase,nummer" });
+  if (!betroffen.length) return;
+
+  // 1. Feld erweitern, damit beide Welten gleichzeitig gültig sind.
+  const vereinigt = [...new Set([...(feld.options?.values ?? []), ...NEUE_PHASEN])];
+  await pb.collections.update(c.id, {
+    schema: c.schema.map((f) => (f.name === "phase" ? { ...f, options: { ...f.options, values: vereinigt } } : f)),
+  });
+
+  // 2. Umschreiben.
+  const zaehler = {};
+  for (const a of betroffen) {
+    const neu = ALTE_PHASEN[a.phase] ?? "eingang";
+    await pb.collection("auftraege").update(a.id, { phase: neu });
+    zaehler[`${a.phase} → ${neu}`] = (zaehler[`${a.phase} → ${neu}`] ?? 0) + 1;
+  }
+  console.log(`auftraege: ${betroffen.length} Phasen umgeschlüsselt`);
+  for (const [was, n] of Object.entries(zaehler)) console.log(`  ${n} × ${was}`);
+  // 3. Das Streichen der alten Werte übernimmt der normale Abgleich.
+}
+
 /** Collection -> neu hinzugekommene Feldnamen, für die Schlussmeldung. */
 const geaendert = new Map();
 
@@ -102,6 +165,12 @@ const KERN = [
     name: "betrieb",
     schema: [
       { name: "name", type: "text", required: true },
+      // Phasen je Auftragsart, wie dieser Betrieb sie nennt. Leer heißt
+      // Voreinstellung. JSON, weil es je Art eine geordnete Liste ist.
+      { name: "phasen", type: "json", options: { maxSize: 20000 } },
+      { name: "fahrtkostenArt", type: "select", options: { maxSelect: 1, values: ["km", "pauschale", "keine"] } },
+      { name: "kmSatz", type: "number", options: { min: 0, noDecimal: true } },
+      { name: "anfahrtPauschale", type: "number", options: { min: 0, noDecimal: true } },
       { name: "inhaber", type: "text" },
       { name: "strasse", type: "text" },
       { name: "plz", type: "text" },
@@ -184,12 +253,17 @@ const KERN = [
       { name: "nummer", type: "text", required: true },
       { name: "titel", type: "text", required: true },
       {
+        // Das feste Gerüst — siehe packages/core/src/daten/phasen.ts. Wie
+        // eine Stufe je Auftragsart heißt, steht am Betrieb, nicht hier.
+        // Bestandsdaten mit den alten zehn Phasen schlüsselt
+        // phasenUmschluesseln() weiter unten um, bevor dieses Feld
+        // eingeschränkt wird.
         name: "phase",
         type: "select",
         required: true,
         options: {
           maxSelect: 1,
-          values: ["anfrage", "spezifikation", "angebot", "termine", "projekt", "errichtung", "abnahme", "wartung", "materialverkauf", "abgeschlossen"],
+          values: ["eingang", "angebot", "beauftragt", "in_arbeit", "fertig", "verrechnen", "abgeschlossen"],
         },
       },
       // Die Art entscheidet, welche Phasen der Auftrag überhaupt hat.
@@ -382,6 +456,24 @@ const BAUSTEINE = [
       "CREATE INDEX idx_zeiten_benutzer_datum ON zeiten (benutzer, datum)",
       "CREATE INDEX idx_zeiten_auftrag ON zeiten (auftrag)",
     ],
+  },
+  {
+    // Fahrten zu einem Auftrag. Das Fahrzeug steht als Kennung und als
+    // Kennzeichen da, nicht als Verknüpfung: die Zeiterfassung darf den
+    // Fuhrpark nicht kennen, und ohne ihn soll die Fahrt lesbar bleiben.
+    // Regeln wie bei den Zeiten: der Monteur erfasst seine eigenen.
+    name: "fahrten",
+    schema: [
+      { name: "auftrag", type: "relation", required: true, options: { collectionId: "auftraege", maxSelect: 1, cascadeDelete: true } },
+      { name: "mitarbeiter", type: "relation", options: { collectionId: "mitarbeiter", maxSelect: 1 } },
+      { name: "datum", type: "date", required: true },
+      { name: "kmEinfach", type: "number", required: true, options: { min: 1, noDecimal: true } },
+      { name: "hinRetour", type: "bool" },
+      { name: "fahrzeug", type: "text" },
+      { name: "kennzeichen", type: "text", options: { max: 20 } },
+      { name: "notiz", type: "text" },
+    ],
+    indexes: ["CREATE INDEX idx_fahrten_auftrag ON fahrten (auftrag, datum)"],
   },
   {
     // Termine sind die Planung: wer soll wann wo sein. Was daraus wurde,
@@ -780,6 +872,11 @@ try {
   // fertig eingerichtete Datenbank braucht den zweiten gar nicht.
   for (const c of await pb.collections.getFullList()) ids.set(c.name, c.id);
 
+  // Muss VOR dem Abgleich laufen: der schränkt das Phasenfeld auf die
+  // neuen Werte ein, und ein Auftrag mit alter Phase wäre danach nicht mehr
+  // speicherbar.
+  await phasenUmschluesseln();
+
   const alle = [...KERN, ...BAUSTEINE, ...MODULE];
 
   /**
@@ -1133,6 +1230,39 @@ function farbeFuer(name) {
   return palette[summe % palette.length];
 }
 
+/**
+ * Eine Schemaänderung, die PocketBase 0.22 mit einer nackten 400
+ * „Failed to update the collection." beantwortet — obwohl sie gespeichert
+ * ist.
+ *
+ * WANN DAS PASSIERT, UND WANN NICHT. Gesehen beim Nachstellen eines Updates
+ * auf alten Daten, und zwar nur, wenn PocketBase OHNE `--automigrate=0` lief:
+ * dann schreibt es bei jeder Schemaänderung zusätzlich eine
+ * Migrationsdatei, und dieser zweite Schritt scheitert gelegentlich (einmal
+ * in drei Läufen). Mit `--automigrate=0`, so wie `server/start.mjs`
+ * PocketBase startet, trat es in drei von drei Läufen nicht auf.
+ *
+ * Die Wiederholung bleibt trotzdem, als schmale Absicherung für
+ * Installationen, die PocketBase anders starten — ein Hoster, ein eigener
+ * Dienst. Wiederholt wird NUR genau dieser Fehler: Status 400 ohne
+ * Feldmeldungen. Alles andere kommt sofort durch, damit ein echter Fehler
+ * nicht hinter Wartezeit verschwindet.
+ */
+async function mitWiederholung(name, aufruf) {
+  const pausen = [1000, 2000, 4000];
+  for (let versuch = 0; ; versuch++) {
+    try {
+      return await aufruf();
+    } catch (e) {
+      const nackt =
+        e?.status === 400 && (!e?.response?.data || Object.keys(e.response.data).length === 0);
+      if (!nackt || versuch >= pausen.length) throw e;
+      console.log(`${name}: PocketBase meldet einen Fehler ohne Begründung — neuer Versuch in ${pausen[versuch] / 1000} s`);
+      await new Promise((r) => setTimeout(r, pausen[versuch]));
+    }
+  }
+}
+
 async function collectionAbgleichen(def, still = false) {
   let vorhanden = null;
   try {
@@ -1160,15 +1290,17 @@ async function collectionAbgleichen(def, still = false) {
   for (const [name, f] of alteFelder) {
     if (!def.schema.some((d) => d.name === name)) schema.push(f);
   }
-  await pb.collections.update(vorhanden.id, {
-    schema,
-    indexes: def.indexes ?? vorhanden.indexes,
-    listRule: def.listRule,
-    viewRule: def.viewRule,
-    createRule: def.createRule,
-    updateRule: def.updateRule,
-    deleteRule: def.deleteRule,
-  });
+  await mitWiederholung(def.name, () =>
+    pb.collections.update(vorhanden.id, {
+      schema,
+      indexes: def.indexes ?? vorhanden.indexes,
+      listRule: def.listRule,
+      viewRule: def.viewRule,
+      createRule: def.createRule,
+      updateRule: def.updateRule,
+      deleteRule: def.deleteRule,
+    }),
+  );
 
   // Welche Felder sind dazugekommen? Das interessiert beim Nachziehen einer
   // bestehenden Installation — "abgeglichen" allein sagt nicht, ob etwas

@@ -11,12 +11,19 @@ import {
   betriebLaden,
   betriebSpeichern,
   darf,
+  alsEingabe,
+  ausGeld,
+  FAHRTKOSTENARTEN,
+  FAHRTKOSTENART_TEXT,
   fehlendeRechnungsangaben,
+  schreibweiseVon,
+  type Fahrtkostenart,
   LEERER_BETRIEB,
   type Betrieb,
   type BetriebEingabe,
 } from "@werkboq/core";
 import { Bausteinverwaltung } from "../komponenten/Bausteinverwaltung";
+import { Phaseneinstellung } from "../komponenten/Phaseneinstellung";
 
 /**
  * Stammdaten des Betriebs und freigeschaltete Bausteine.
@@ -27,7 +34,7 @@ import { Bausteinverwaltung } from "../komponenten/Bausteinverwaltung";
  * ein Einstellungsmenü gehört.
  */
 export function Einstellungen() {
-  const [reiter, setReiter] = useState<"betrieb" | "bausteine">("betrieb");
+  const [reiter, setReiter] = useState<"betrieb" | "phasen" | "bausteine">("betrieb");
 
   if (!darf("verwaltung")) {
     return (
@@ -58,6 +65,14 @@ export function Einstellungen() {
         </button>
         <button
           role="tab"
+          aria-selected={reiter === "phasen"}
+          className={`wb-reiter__knopf${reiter === "phasen" ? " ist-aktiv" : ""}`}
+          onClick={() => setReiter("phasen")}
+        >
+          Phasen
+        </button>
+        <button
+          role="tab"
           aria-selected={reiter === "bausteine"}
           className={`wb-reiter__knopf${reiter === "bausteine" ? " ist-aktiv" : ""}`}
           onClick={() => setReiter("bausteine")}
@@ -67,6 +82,7 @@ export function Einstellungen() {
       </nav>
 
       {reiter === "betrieb" && <Betriebsdaten />}
+      {reiter === "phasen" && <Phaseneinstellung />}
       {reiter === "bausteine" && <Bausteinverwaltung />}
     </section>
   );
@@ -282,6 +298,54 @@ function Betriebsdaten() {
           <input type="text" value={werte.bank ?? ""} onChange={(e) => feld("bank", e.target.value)} />
         </label>
 
+        <h2 className="wb-feld--breit wb-maske__abschnitt">Verrechnung</h2>
+
+        <Geldfeld
+          titel={`Stundensatz netto (${raum.waehrungszeichen}/h)`}
+          cent={werte.stundensatz ?? 0}
+          land={werte.rechtsraum}
+          beiAenderung={(c) => feld("stundensatz", c)}
+          hinweis="Kommt mit den verrechenbaren Stunden auf die Rechnung."
+        />
+
+        <label className="wb-feld">
+          <span>Fahrtkosten</span>
+          <select
+            value={werte.fahrtkostenArt ?? "keine"}
+            onChange={(e) => feld("fahrtkostenArt", e.target.value as Fahrtkostenart)}
+          >
+            {FAHRTKOSTENARTEN.map((a) => (
+              <option key={a} value={a}>
+                {FAHRTKOSTENART_TEXT[a]}
+              </option>
+            ))}
+          </select>
+          <small className="wb-notiz">
+            {werte.fahrtkostenArt === "km"
+              ? "Die Kilometer aller Fahrten am Auftrag kommen als eine Zeile auf die Rechnung."
+              : werte.fahrtkostenArt === "pauschale"
+                ? "Je erfasster Fahrt eine Anfahrtspauschale."
+                : "Fahrten werden aufgezeichnet, aber nicht verrechnet — etwa wenn sie im Stundensatz stecken."}
+          </small>
+        </label>
+
+        {werte.fahrtkostenArt === "km" && (
+          <Geldfeld
+            titel={`Satz je Kilometer (${raum.waehrungszeichen})`}
+            cent={werte.kmSatz ?? 0}
+            land={werte.rechtsraum}
+            beiAenderung={(c) => feld("kmSatz", c)}
+          />
+        )}
+        {werte.fahrtkostenArt === "pauschale" && (
+          <Geldfeld
+            titel={`Anfahrtspauschale (${raum.waehrungszeichen})`}
+            cent={werte.anfahrtPauschale ?? 0}
+            land={werte.rechtsraum}
+            beiAenderung={(c) => feld("anfahrtPauschale", c)}
+          />
+        )}
+
         {fehler && <p className="wb-fehler wb-feld--breit" role="alert">{fehler}</p>}
         {hinweis && <p className="wb-hinweis wb-feld--breit" role="status">{hinweis}</p>}
 
@@ -292,5 +356,53 @@ function Betriebsdaten() {
         </div>
       </form>
     </>
+  );
+}
+
+/**
+ * Ein Betrag in einem Textfeld. Getippt wird, wie man es schreibt
+ * („85", „0,42", „1.250,00"); gespeichert werden Cent. Solange die Eingabe
+ * keine Zahl ergibt, bleibt der letzte gültige Betrag stehen und das Feld
+ * sagt es.
+ */
+function Geldfeld({
+  titel,
+  cent,
+  land,
+  beiAenderung,
+  hinweis,
+}: {
+  titel: string;
+  cent: number;
+  land?: string;
+  beiAenderung: (cent: number) => void;
+  hinweis?: string;
+}) {
+  const sw = schreibweiseVon(land);
+  const [text, setText] = useState(() => (cent ? alsEingabe(cent, sw) : ""));
+  const wert = ausGeld(text);
+  const ungueltig = !Number.isFinite(wert) || wert < 0;
+
+  return (
+    <label className="wb-feld">
+      <span>{titel}</span>
+      <input
+        type="text"
+        inputMode="decimal"
+        value={text}
+        placeholder="0"
+        aria-invalid={ungueltig || undefined}
+        onChange={(e) => {
+          setText(e.target.value);
+          const c = ausGeld(e.target.value);
+          if (Number.isFinite(c) && c >= 0) beiAenderung(c);
+        }}
+      />
+      {ungueltig ? (
+        <small className="wb-fehler">Das ist kein Betrag.</small>
+      ) : (
+        hinweis && <small className="wb-notiz">{hinweis}</small>
+      )}
+    </label>
   );
 }
