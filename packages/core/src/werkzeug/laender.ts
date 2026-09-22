@@ -94,6 +94,21 @@ export interface Rechtsraum {
   elektroNorm: string;
   pruefbericht: string;
 
+  /**
+   * Wie die wiederkehrende Fahrzeugprüfung im Land heißt.
+   *
+   * BEWUSST OHNE INTERVALL. Wie oft ein Fahrzeug vorzuführen ist, hängt von
+   * Klasse, Alter und Nutzung ab — in Österreich anders für einen Pkw als
+   * für einen Kastenwagen über 3,5 t, und in allen drei Ländern anders für
+   * das erste Mal als danach. Eine Frist, die das Programm falsch
+   * ausrechnet, ist schlimmer als gar keine: der Betrieb verlässt sich
+   * darauf und steht dann ohne gültige Plakette da. Werkboq erinnert an
+   * das Datum, das der Betrieb einträgt, und nennt die Fundstelle.
+   */
+  fahrzeugpruefung: string;
+  fahrzeugpruefungKurz: string;
+  fahrzeugpruefungParagraf: string;
+
   /** Registrierkassen-/Kassenpflicht, die Werkboq bewusst nicht abdeckt. */
   kasse: string;
 }
@@ -155,6 +170,10 @@ export const RECHTSRAEUME: Record<Land, Rechtsraum> = {
     elektroNorm: "OVE E 8101",
     pruefbericht: "Prüfbefund nach OVE E 8101",
 
+    fahrzeugpruefung: "Wiederkehrende Begutachtung („Pickerl“)",
+    fahrzeugpruefungKurz: "Pickerl",
+    fahrzeugpruefungParagraf: "§ 57a KFG",
+
     kasse:
       "Registrierkassenpflicht ab 15.000 € Jahresumsatz netto und zugleich 7.500 € Barumsatz netto (RKSV).",
   },
@@ -214,6 +233,10 @@ export const RECHTSRAEUME: Record<Land, Rechtsraum> = {
     elektroNorm: "DIN VDE 0100 / DIN VDE 0105-100",
     pruefbericht: "Prüfprotokoll nach DIN VDE 0100-600, Wiederholungsprüfung nach DGUV V3",
 
+    fahrzeugpruefung: "Hauptuntersuchung",
+    fahrzeugpruefungKurz: "HU",
+    fahrzeugpruefungParagraf: "§ 29 StVZO",
+
     kasse:
       "Kassen mit elektronischer Aufzeichnung brauchen eine zertifizierte technische Sicherheitseinrichtung (KassenSichV).",
   },
@@ -270,6 +293,10 @@ export const RECHTSRAEUME: Record<Land, Rechtsraum> = {
 
     elektroNorm: "NIN / SN 411000",
     pruefbericht: "Sicherheitsnachweis (SiNa) mit Mess- und Prüfprotokoll nach NIV",
+
+    fahrzeugpruefung: "Periodische Nachprüfung (Motorfahrzeugkontrolle)",
+    fahrzeugpruefungKurz: "MFK",
+    fahrzeugpruefungParagraf: "Art. 33 VTS",
 
     kasse: "Keine Registrierkassenpflicht; die ordnungsgemässe Buchführung nach OR genügt.",
   },

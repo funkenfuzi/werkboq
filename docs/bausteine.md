@@ -33,6 +33,11 @@ Grundfunktionen, die einzeln verkauft werden. `art: "baustein"`.
 | Material | `artikel`, `positionen` | Auftrag (Kern) | Verrechnung |
 | Verrechnung | `belege`, `belegpositionen`, `zahlungen`, `mahnungen` | Kunde, Auftrag (Kern) | — |
 | Personalwesen | `personaldaten`, `abwesenheiten`, `personaldokumente` | Mitarbeiter (Kern) | Planung |
+| Fuhrpark | `fahrzeuge`, `fahrzeugfristen` | Mitarbeiter (Kern) | — |
+
+Der Fuhrpark hängt nur am Mitarbeiter und an sonst nichts: ein Betrieb
+kann ihn kaufen, ohne Material oder Verrechnung zu haben. Er rechnet
+bewusst keine gesetzliche Prüffrist aus — siehe produkt.md, Punkt 5.
 
 Der Baustein Material enthält seit September 2026 auch die Erfassung auf
 der Baustelle: der Monteur trägt ein, was er verbaut hat, das Büro gibt es
@@ -81,6 +86,7 @@ sonst niemand. Bisher vergeben:
 | `auftragspositionen` | Material | Verrechnung |
 | `abwesend` | Personalwesen | Planung |
 | `rechtsraumSperre` | Verrechnung | Kern (Einstellungen) |
+| `tagestermine` | Planung | Kern (Startseite) |
 
 Der Kern kennt die *Namen und Formen* beider — so wie eine Steckdose die Form
 des Steckers kennt, aber kein Gerät. Anbieter kennt er keine.
@@ -134,6 +140,8 @@ packages/baustein-zeiterfassung   Baustein
 packages/baustein-planung         Baustein
 packages/baustein-material        Baustein
 packages/baustein-verrechnung     Baustein
+packages/baustein-personal        Baustein
+packages/baustein-fuhrpark        Baustein
 packages/modul-elektro            Fachmodul
 apps/web                          Hülle: Seitenleiste, Routen, Kernseiten
 server/einrichten.mjs             Schema: KERN, BAUSTEINE, MODULE

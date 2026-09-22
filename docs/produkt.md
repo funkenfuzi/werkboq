@@ -21,8 +21,8 @@ Zahlen, denen niemand traut, sind schlimmer als keine Zahlen.
 
 ## Was zuerst kommt und warum
 
-Die Punkte 1 bis 4 stehen seit September 2026, dazu die Unterschrift und
-der Dokumentenversand. 5, 6 und 7 sind offen.
+Die Punkte 1 bis 5 stehen seit September 2026, dazu die Unterschrift und
+der Dokumentenversand. 6 und 7 sind offen.
 
 ### 1. Baustellendokumentation — Fotos am Auftrag — **steht**
 
@@ -149,22 +149,46 @@ Datum nennen können. Deshalb fragt Werkboq hinterher nach, ob wirklich
 abgeschickt wurde. Es kann es nicht wissen — ein Versandnachweis, der bloß
 sagt „wir haben ein Fenster geöffnet", wäre eine Lüge mit Zeitstempel.
 
-### 5. Fahrzeuge mit Fristen
+### 5. Fahrzeuge mit Fristen — **steht**
 
-§ 57a-Pickerl, Service, Reifenwechsel, Versicherung, Leasing-Ende,
-Kilometerstand, Zuordnung zum Monteur.
+Begutachtung, Service, Reifenwechsel, Versicherung, Leasing-Ende,
+Kilometerstand, Zuordnung zum Monteur — als eigener Baustein `fuhrpark`.
 
-Das ist dasselbe Muster wie die Personaldokumente mit Ablaufdatum: etwas
-läuft ab, und es fällt niemandem auf, bis es zu spät ist. Die Maschinerie
-dafür steht seit dem Personalwesen, es ist im Wesentlichen eine zweite
-Collection.
+Dasselbe Muster wie die Personaldokumente mit Ablaufdatum: etwas läuft ab,
+und es fällt niemandem auf, bis es zu spät ist.
 
-**Daran hängt das Fahrzeuglager als Nachfüllliste** — „was fehlt im Bus",
-mit Mindestbestand je Sorte, vom Monteur in zehn Sekunden abgehakt. Es
-gehört zur Materialerfassung und ist auch schon gewünscht, lässt sich aber
-nicht sinnvoll bauen, bevor es Fahrzeuge gibt: eine Nachfüllliste ohne
-Fahrzeug wäre eine Liste ohne Besitzer. Deshalb hier und nicht bei Punkt 3.
-Keine Bestandsführung — warum nicht, steht weiter unten.
+**Was Werkboq hier bewusst NICHT tut: gesetzliche Fristen ausrechnen.** Wie
+oft ein Fahrzeug vorzuführen ist, hängt von Klasse, Alter und Nutzung ab —
+in Österreich anders für einen Pkw als für einen Kastenwagen über 3,5 t, und
+überall anders für das erste Mal als danach. Eine Frist, die das Programm
+falsch ausrechnet, ist schlimmer als gar keine: der Betrieb verlässt sich
+darauf und steht ohne gültige Plakette da. Eingetragen wird das Datum vom
+Papier. Der Rechtsraum liefert nur, wie die Prüfung heißt und wo sie steht —
+§ 57a KFG, § 29 StVZO, Art. 33 VTS.
+
+Drei Dinge, die den Unterschied machen:
+
+* **Datum ODER Kilometer.** Ein Service ist fällig „in zwölf Monaten oder
+  nach 30.000 km, je nachdem was zuerst eintritt". Beides wird geprüft, der
+  schlimmere Zustand gewinnt, und die Zeile sagt auch, woran es liegt: neben
+  „überfällig" steht dann „1.000 km über 120.000" und nicht „in 190 Tagen".
+  Eine Zeile, die sich selbst widerspricht, nimmt der Ampel den Glauben.
+* **Erledigen stellt die nächste Frist.** Eine abgehakte Frist ohne
+  Nachfolger ist eine, an die im nächsten Jahr niemand denkt. Gerechnet wird
+  vom Fälligkeitsdatum, nicht vom Tag der Erledigung — sonst wandert der
+  Termin mit jeder Erledigung nach vorne, und beim Pickerl verschenkt der
+  Betrieb Zeit, die ihm zusteht. Das Datum steht vor dem Speichern in der
+  Maske und lässt sich ändern.
+* **Die Erinnerung steht auf der Startseite.** Eine Frist, die nur im
+  Fuhrparkmenü steht, sieht man an dem Tag, an dem man ins Fuhrparkmenü
+  schaut — und das ist meist der Tag, an dem schon etwas passiert ist. Steht
+  nichts an, erscheint die Kachel gar nicht: eine, die dauernd „alles in
+  Ordnung" meldet, wird nach einer Woche überlesen.
+
+**Offen bleibt das Fahrzeuglager als Nachfüllliste** — „was fehlt im Bus",
+mit Mindestbestand je Sorte, vom Monteur in zehn Sekunden abgehakt. Jetzt,
+wo es Fahrzeuge gibt, lässt es sich bauen. Keine Bestandsführung — warum
+nicht, steht weiter unten.
 
 ### 6. Angebotsverfolgung
 

@@ -182,6 +182,32 @@ Wartungsverträge mit Intervall und wiederkehrender Verrechnung,
 Vertragsdokumente am Kunden mit Laufzeit, Kündigungsfrist und Erinnerung vor
 Ablauf, Auftragsbestätigung aus dem angenommenen Angebot.
 
+## Scheibe 10 – Fuhrpark (erledigt)
+
+Baustein `fuhrpark`: Fahrzeuge mit Kilometerstand und Zuordnung,
+wiederkehrende Fristen für Begutachtung, Service, Reifen, Versicherung und
+Leasing, Erinnerung als Kachel auf der Startseite.
+
+Eine Frist hängt an einem Datum, an einem Kilometerstand oder an beidem,
+und der schlimmere Zustand gewinnt. Die Zeile nennt dann auch, woran es
+liegt: neben „überfällig" steht „1.000 km über 120.000" und nicht „in 190
+Tagen" — eine Zeile, die sich selbst widerspricht, nimmt der Ampel den
+Glauben.
+
+Beim Erledigen entsteht der Nachfolger im selben Zug, gerechnet vom
+Fälligkeitsdatum und nicht vom Tag der Erledigung: sonst wandert der Termin
+mit jeder Erledigung nach vorne. Monatsenden werden gekappt (31. Jänner
+plus ein Monat ist der 28. Februar), Schaltjahre stehen unter Test.
+
+Was bewusst fehlt: die gesetzliche Frist auszurechnen. Der Rechtsraum
+liefert nur den Namen und die Fundstelle — § 57a KFG, § 29 StVZO,
+Art. 33 VTS.
+
+Offen: das Fahrzeuglager als Nachfüllliste („was fehlt im Bus"). Jetzt, wo
+es Fahrzeuge gibt, lässt es sich bauen; es gehört in den Baustein Material
+und fragt die Fahrzeuge über einen Dienst ab, damit kein Modul das andere
+kennt.
+
 ## Vor der ersten echten Inbetriebnahme
 
 - `npm run entwicklung-weg` ausführen: löscht den Zugang adm/adm und setzt die

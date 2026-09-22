@@ -1199,3 +1199,86 @@
   white-space: nowrap;
   border: 0;
 }
+
+/* ------------------------------------------------------------------
+   Fristen am Fahrzeug
+
+   Dieselbe Liste dient drei Stellen: der Fuhrparkübersicht, der
+   Fahrzeugakte und der Kachel auf der Startseite. Deshalb kein
+   Tabellenlayout — auf einem Handy kippt eine fünfspaltige Tabelle,
+   eine Liste nicht.
+   ------------------------------------------------------------------ */
+
+.wb-fristenliste {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--wb-space-1);
+}
+
+.wb-fristenliste li {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--wb-space-2) var(--wb-space-3);
+  padding: var(--wb-space-2) var(--wb-space-3);
+  border: 1px solid var(--wb-border);
+  border-radius: var(--wb-radius-md);
+  background: var(--wb-surface);
+}
+
+.wb-fristenliste .wb-plakette {
+  flex: none;
+}
+
+/* Trägt den Namen und nimmt den Platz — als Knopf wie als Link, damit
+   beide Verwendungen gleich aussehen. */
+.wb-fristenliste__was {
+  flex: 1;
+  min-width: 10rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  text-align: left;
+  font: inherit;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+
+.wb-fristenliste__was:hover strong {
+  text-decoration: underline;
+}
+
+.wb-fristenliste__was span {
+  font-size: var(--wb-text-sm);
+  color: var(--wb-text-muted);
+}
+
+.wb-fristenliste__wann {
+  flex: none;
+  font-size: var(--wb-text-sm);
+  font-family: var(--wb-font-mono);
+  color: var(--wb-text-muted);
+}
+
+.wb-fristenliste--erledigt li {
+  opacity: 0.7;
+  background: var(--wb-surface-2);
+}
+
+.wb-fristenliste--erledigt {
+  margin-top: var(--wb-space-2);
+}
+
+.wb-nebentext {
+  color: var(--wb-text-muted);
+  font-size: var(--wb-text-xs);
+}

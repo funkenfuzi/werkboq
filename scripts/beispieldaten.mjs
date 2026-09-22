@@ -177,6 +177,12 @@ const DOKUMENTE = [
   { mitarbeiter: "Andrea Hofer", art: "dienstvertrag", titel: "Dienstvertrag vom 7.1.2008", ausgestelltAm: "2008-01-07", erinnerungTage: 0 },
 ];
 
+const FAHRZEUGE = [
+  { kennzeichen: "WN-900AB", bezeichnung: "Montagebus groß", art: "kastenwagen", marke: "Ford", modell: "Transit", kmStand: 118400, fahrer: "Novak" },
+  { kennzeichen: "WN-901CD", bezeichnung: "Montagebus klein", art: "kastenwagen", marke: "VW", modell: "Caddy", kmStand: 64200, fahrer: "Gruber" },
+  { kennzeichen: "WN-902EF", bezeichnung: "Anhänger Kabeltrommel", art: "anhaenger", marke: "Pongratz", modell: "EPA 250", kmStand: 0, fahrer: null },
+];
+
 /** Katalog. Preise netto in Cent, wie überall im Programm. */
 const ARTIKEL = [
   { nummer: "M-9001", bezeichnung: "NYM-J 3x1,5 mm²", art: "material", einheit: "m", preis: 145, einkauf: 92, ustsatz: 20, ean: "4001234000015", favorit: true },
@@ -310,6 +316,7 @@ async function anlegen() {
   console.log(`Mitarbeiter: ${mitarbeiter.size}`);
 
   await personalwesenFuellen(mitarbeiter);
+  await fuhrparkFuellen(mitarbeiter);
 
   const artikel = new Map();
   let nachgetragen = 0;
@@ -392,6 +399,73 @@ async function anlegen() {
  * — dann gibt es die Collections nicht, und das ist kein Fehler, sondern der
  * Normalfall bei einem Betrieb, der ihn nicht gekauft hat.
  */
+/**
+ * Fuhrpark: drei Fahrzeuge, deren Fristen absichtlich in allen drei
+ * Zuständen stehen — eines überfällig, eines in der Vorwarnzeit, eines in
+ * Ordnung. Eine Beispieldatenlage, in der alles grün ist, zeigt nicht, ob
+ * die Ampel funktioniert.
+ */
+
+async function fuhrparkFuellen(mitarbeiter) {
+  const tag = (versatz) => {
+    const d = new Date();
+    d.setDate(d.getDate() + versatz);
+    return d.toISOString().slice(0, 10);
+  };
+
+  let angelegt = 0;
+  let fristen = 0;
+
+  for (const f of FAHRZEUGE) {
+    const fahrer = f.fahrer ? [...mitarbeiter.values()].find((m) => m.name.includes(f.fahrer)) : null;
+    const fz = await einmalig("fahrzeuge", `kennzeichen = "${f.kennzeichen}"`, {
+      kennzeichen: f.kennzeichen,
+      bezeichnung: f.bezeichnung,
+      art: f.art,
+      marke: f.marke,
+      modell: f.modell,
+      mitarbeiter: fahrer?.id ?? null,
+      kmStand: f.kmStand,
+      kmStandAm: tag(-3),
+      aktiv: true,
+    });
+    angelegt++;
+
+    // Je Fahrzeug ein anderer Zustand, damit die Ampel etwas zu zeigen hat.
+    const plan = {
+      "WN-900AB": [
+        { art: "begutachtung", faellig: tag(-12), intervallMonate: 12, erinnerungTage: 30 },
+        { art: "service", faellig: tag(190), kmFaellig: 120000, intervallMonate: 12, intervallKm: 30000, erinnerungTage: 14 },
+      ],
+      "WN-901CD": [
+        { art: "begutachtung", faellig: tag(18), intervallMonate: 12, erinnerungTage: 30 },
+        { art: "reifen", faellig: tag(64), intervallMonate: 6, erinnerungTage: 21 },
+      ],
+      "WN-902EF": [
+        { art: "begutachtung", faellig: tag(240), intervallMonate: 12, erinnerungTage: 30 },
+      ],
+    }[f.kennzeichen] ?? [];
+
+    for (const fr of plan) {
+      const schon = await pb
+        .collection("fahrzeugfristen")
+        .getFullList({ filter: `fahrzeug = "${fz.id}" && art = "${fr.art}"` })
+        .catch(() => []);
+      if (schon.length) continue;
+      await pb.collection("fahrzeugfristen").create({
+        fahrzeug: fz.id,
+        titel: "",
+        erledigtAm: "",
+        kmFaellig: 0,
+        intervallKm: 0,
+        ...fr,
+      });
+      fristen++;
+    }
+  }
+  console.log(`Fuhrpark: ${angelegt} Fahrzeuge, ${fristen} Fristen`);
+}
+
 async function personalwesenFuellen(mitarbeiter) {
   const jahr = new Date().getFullYear();
   let akten = 0;

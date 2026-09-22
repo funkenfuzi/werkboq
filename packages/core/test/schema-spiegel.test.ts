@@ -8,6 +8,24 @@ import { UNTERSCHRIFT_ZWECKE } from "../src/daten/unterschrift";
 import { VERSANDWEGE } from "../src/daten/versand";
 
 /**
+ * Die Konstanten der Bausteine liegen absichtlich hier als Kopie und
+ * nicht als Import: der Kern darf kein Modul kennen (siehe
+ * docs/bausteine.md, Regel 2). Weicht ein Baustein davon ab, schlägt der
+ * Test fehl — und genau das soll er, denn dann stimmt auch die
+ * Spiegelung in einrichten.mjs nicht mehr.
+ */
+const FAHRZEUGARTEN_ERWARTET = ["pkw", "kastenwagen", "lkw", "anhaenger", "maschine"];
+const FRISTARTEN_ERWARTET = [
+  "begutachtung",
+  "service",
+  "reifen",
+  "versicherung",
+  "leasing",
+  "pruefung",
+  "sonstiges",
+];
+
+/**
  * Die Auswahlfelder in `einrichten.mjs` müssen zu den Konstanten im Code
  * passen.
  *
@@ -59,6 +77,8 @@ const faelle: [string, string, readonly string[]][] = [
   ["fotos", "art", FOTOARTEN],
   ["unterschriften", "zweck", UNTERSCHRIFT_ZWECKE],
   ["versand", "weg", VERSANDWEGE],
+  ["fahrzeuge", "art", FAHRZEUGARTEN_ERWARTET],
+  ["fahrzeugfristen", "art", FRISTARTEN_ERWARTET],
 ];
 
 describe("einrichten.mjs spiegelt die Konstanten", () => {
