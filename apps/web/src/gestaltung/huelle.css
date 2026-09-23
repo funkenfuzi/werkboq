@@ -749,6 +749,14 @@
   z-index: 1;
 }
 
+.wb-phase button:disabled {
+  cursor: default;
+}
+
+.wb-phase button:disabled:hover .wb-phase__text {
+  color: inherit;
+}
+
 .wb-phase button:focus-visible {
   outline: none;
   box-shadow: var(--wb-focus-ring);

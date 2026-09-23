@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Symbol, kundenSuchen, type Kunde } from "@werkboq/core";
+import { darfAuftraegeAendern, Symbol, kundenSuchen, type Kunde } from "@werkboq/core";
 
 /**
  * Kundenliste als Arbeitstabelle.
@@ -85,10 +85,10 @@ export function Kunden() {
             {suche && ` für „${suche}"`}
           </p>
         </div>
-        <Link className="wb-button" to="/kunden/neu">
+        {darfAuftraegeAendern() && <Link className="wb-button" to="/kunden/neu">
           <Symbol name="plus" groesse={18} />
           Neuer Kunde
-        </Link>
+        </Link>}
       </div>
 
       <div className="wb-werkzeugleiste">

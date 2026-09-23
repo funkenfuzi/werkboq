@@ -109,6 +109,27 @@ try {
   await pruefe("Belegzeilen lesen", () => alsMonteur.collection("belegpositionen").getFullList(), false);
   await pruefe("Zahlungen lesen", () => alsMonteur.collection("zahlungen").getFullList(), false);
   await pruefe("Nachfassnotizen lesen", () => alsMonteur.collection("angebotskontakte").getFullList(), false);
+  await pruefe("einen Auftrag ändern", async () => {
+    const a = (await alsMonteur.collection("auftraege").getFullList())[0];
+    return await alsMonteur.collection("auftraege").update(a.id, { titel: a.titel });
+  }, false);
+  await pruefe("einen Kunden ändern", async () => {
+    const k = (await alsMonteur.collection("kunden").getFullList())[0];
+    return await alsMonteur.collection("kunden").update(k.id, { name: k.name });
+  }, false);
+  await pruefe("einen Artikelpreis ändern", async () => {
+    const a = (await alsMonteur.collection("artikel").getFullList())[0];
+    return await alsMonteur.collection("artikel").update(a.id, { preis: a.preis });
+  }, false);
+  await pruefe("Artikel lesen (für die Materialsuche)", () => alsMonteur.collection("artikel").getFullList(), true);
+  await pruefe("Einkaufspreise sehen", async () => {
+    const liste = await alsMonteur.collection("artikel").getFullList();
+    return liste.filter((a) => a.einkauf > 0);
+  }, false);
+  await pruefe("eine freigegebene Position ändern", async () => {
+    const p = (await alsMonteur.collection("positionen").getFullList({ filter: 'zustand = "freigegeben"' }))[0];
+    return await alsMonteur.collection("positionen").update(p.id, { menge: p.menge });
+  }, false);
   await pruefe("einen Beleg anlegen", () => alsMonteur.collection("belege").create({ belegart: "rechnung", nummer: "PRUEF-MONTEUR", kunde: kundeId, status: "entwurf", datum: "2026-09-23", empfaengerName: "x", steuerfrei: "keiner" }), false, aufraeumenAls("belege"));
 
   abschnitt("Der Betroffene selbst — ohne Personalrecht");
@@ -132,6 +153,14 @@ try {
   // --------------------------------------------------------------------
   abschnitt("Büro — Buchhaltung");
   await pruefe("Belege lesen", () => alsBuero.collection("belege").getFullList(), true);
+  await pruefe("Einkaufspreise sehen", async () => {
+    const liste = await alsBuero.collection("artikel").getFullList();
+    return liste.filter((a) => a.einkauf > 0);
+  }, true);
+  await pruefe("einen Auftrag ändern (Phase, Verrechnen)", async () => {
+    const a = (await alsBuero.collection("auftraege").getFullList())[0];
+    return await alsBuero.collection("auftraege").update(a.id, { titel: a.titel });
+  }, true);
   const entwurf = await alsBuero.collection("belege").create({ belegart: "rechnung", nummer: "PRUEF-BUERO-1", kunde: kundeId, status: "entwurf", datum: "2026-09-23", empfaengerName: "Prüfung", steuerfrei: "keiner", netto: 10000, ust: 2000, brutto: 12000 });
   aufraeumen.push(() => admin.collection("belege").delete(entwurf.id));
   await pruefe("Zeile an einen Entwurf", () => alsBuero.collection("belegpositionen").create({ beleg: entwurf.id, pos: 10, bezeichnung: "Prüfzeile", menge: 1, einzelpreis: 10000, ustsatz: 20, betrag: 10000 }), true);
@@ -160,25 +189,25 @@ try {
     );
   }
 
+  // Versandnachweis: nur die Bestätigung darf sich nachträglich ändern.
+  abschnitt("Versandnachweis");
+  const nachweis = await admin.collection("versand").create({ bereich: "belege", datensatz: "pruefung", bezeichnung: "Prüfnachweis", weg: "mail", empfaenger: "kunde@beispiel.invalid", bestaetigt: false });
+  aufraeumen.push(() => admin.collection("versand").delete(nachweis.id));
+  await pruefe("Empfänger nachträglich umschreiben", () => alsBuero.collection("versand").update(nachweis.id, { empfaenger: "jemand@anderer.invalid" }), false);
+  await pruefe("Versand bestätigen", () => alsMonteur.collection("versand").update(nachweis.id, { bestaetigt: true }), true);
+  await pruefe("Bestätigung zurücknehmen", () => alsBuero.collection("versand").update(nachweis.id, { bestaetigt: false }), false);
+  const zweiter = await admin.collection("versand").create({ bereich: "belege", datensatz: "pruefung", bezeichnung: "Prüfnachweis 2", weg: "mail", empfaenger: "kunde@beispiel.invalid", bestaetigt: false });
+  aufraeumen.push(() => admin.collection("versand").delete(zweiter.id));
+  await pruefe("„nicht erfolgt“ vermerken", () => alsBuero.collection("versand").update(zweiter.id, { nichtErfolgt: true }), true);
+  await pruefe("danach doch bestätigen", () => alsBuero.collection("versand").update(zweiter.id, { bestaetigt: true }), false);
+
   // --------------------------------------------------------------------
   // Was noch offen ist. Kein Fehler, sondern der ehrliche Stand.
   // --------------------------------------------------------------------
   abschnitt("Noch nicht serverseitig durchgesetzt");
   const offen = [];
-  await nurBerichten(offen, "Monteur kann einen Auftrag ändern", async () => {
-    const a = (await alsMonteur.collection("auftraege").getFullList())[0];
-    if (!a) return false;
-    await alsMonteur.collection("auftraege").update(a.id, { titel: a.titel });
-    return true;
-  });
-  await nurBerichten(offen, "Monteur kann einen Artikelpreis ändern", async () => {
-    const a = (await alsMonteur.collection("artikel").getFullList())[0];
-    if (!a) return false;
-    await alsMonteur.collection("artikel").update(a.id, { preis: a.preis });
-    return true;
-  });
-
-
+  // Derzeit nichts. Kommt eine neue Collection mit lockeren Regeln dazu,
+  // gehört sie hier hinein — bis sie nachgezogen ist.
   console.log(
     `\n${bestanden} von ${bestanden + durchgefallen} Prüfungen wie erwartet.` +
       (offen.length > 0

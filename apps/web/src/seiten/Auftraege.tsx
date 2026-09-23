@@ -6,6 +6,7 @@ import {
   AUFTRAGSART_TEXT,
   AUFTRAGSARTEN,
   artVon,
+  darfAuftraegeAendern,
   brettspalten,
   fehlersatz,
   phaseSetzen,
@@ -115,10 +116,12 @@ export function Auftraege() {
                 }`}
           </p>
         </div>
-        <Link className="wb-button" to="/auftraege/neu">
-          <Symbol name="plus" groesse={18} />
-          Neuer Auftrag
-        </Link>
+        {darfAuftraegeAendern() && (
+          <Link className="wb-button" to="/auftraege/neu">
+            <Symbol name="plus" groesse={18} />
+            Neuer Auftrag
+          </Link>
+        )}
       </div>
 
       <div className="wb-werkzeugleiste">
@@ -394,7 +397,7 @@ function Karte({
   return (
     <article
       className="wb-karte"
-      draggable
+      draggable={darfAuftraegeAendern()}
       onDragStart={beiZiehstart}
       onDragEnd={beiZiehende}
       tabIndex={0}

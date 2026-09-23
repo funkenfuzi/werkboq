@@ -9,6 +9,7 @@ import {
   AUFTRAGSREITER_TEXT,
   Auftragskachel,
   darf,
+  darfAuftraegeAendern,
   dienst,
   dokumenteZuAuftrag,
   dokumentationsluecken,
@@ -75,6 +76,7 @@ export function AuftragAkte() {
 
   useEffect(laden, [laden]);
 
+  const aendern = darfAuftraegeAendern();
   const standardReiter: Auftragsreiter = darf("verwaltung") ? "ueberblick" : "arbeit";
   const reiter = (AUFTRAGSREITER as readonly string[]).includes(reiterRoh ?? "")
     ? (reiterRoh as Auftragsreiter)
@@ -130,10 +132,12 @@ export function AuftragAkte() {
         </div>
 
         <div className="wb-akte__aktionen">
-          <Link className="wb-button wb-button--sekundaer" to={`/auftraege/${auftrag.id}/bearbeiten`}>
-            <Symbol name="stift" groesse={18} />
-            Bearbeiten
-          </Link>
+          {aendern && (
+            <Link className="wb-button wb-button--sekundaer" to={`/auftraege/${auftrag.id}/bearbeiten`}>
+              <Symbol name="stift" groesse={18} />
+              Bearbeiten
+            </Link>
+          )}
           {darf("verwaltung") && (
             <button type="button" className="wb-button wb-button--gefahr" onClick={loeschen}>
               Löschen
@@ -141,7 +145,7 @@ export function AuftragAkte() {
           )}
         </div>
 
-        <Phasenleiste auftrag={auftrag} beiWechsel={(p) => void wechsle(p)} />
+        <Phasenleiste auftrag={auftrag} beiWechsel={aendern ? (p) => void wechsle(p) : undefined} />
       </header>
 
       <nav className="wb-reiter" aria-label="Bereiche des Auftrags">
@@ -225,7 +229,8 @@ function Phasenleiste({
   beiWechsel,
 }: {
   auftrag: Auftrag;
-  beiWechsel: (p: AuftragPhase) => void;
+  /** Fehlt, wenn dieser Zugang die Phase nicht ändern darf — dann nur Anzeige. */
+  beiWechsel?: (p: AuftragPhase) => void;
 }) {
   const liste = phasenFuer(auftrag);
   const jetzt = liste.findIndex((p) => p.stufe === auftrag.phase);
@@ -251,9 +256,12 @@ function Phasenleiste({
           <li key={p.stufe} className={`wb-phase wb-phase--${zustand}`}>
             <button
               type="button"
-              onClick={() => beiWechsel(p.stufe)}
+              onClick={beiWechsel ? () => beiWechsel(p.stufe) : undefined}
+              disabled={!beiWechsel}
               aria-current={zustand === "jetzt" ? "step" : undefined}
-              title={zustand === "jetzt" ? "Aktuelle Phase" : `Auf „${p.text}" setzen`}
+              title={
+                zustand === "jetzt" ? "Aktuelle Phase" : beiWechsel ? `Auf „${p.text}" setzen` : undefined
+              }
             >
               <span
                 className={`wb-phase__punkt${zustand === "jetzt" ? ` wb-punkt--${punktfarbe(p.stufe)}` : ""}`}
@@ -380,11 +388,13 @@ function Ueberblick({
               ))}
             </ul>
           )}
-          <div className="wb-aktionen">
-            <button className="wb-button" type="button" onClick={() => beiWechsel(naechste.stufe)}>
-              Weiter: {naechste.text}
-            </button>
-          </div>
+          {darfAuftraegeAendern() && (
+            <div className="wb-aktionen">
+              <button className="wb-button" type="button" onClick={() => beiWechsel(naechste.stufe)}>
+                Weiter: {naechste.text}
+              </button>
+            </div>
+          )}
         </section>
       )}
 

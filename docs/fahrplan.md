@@ -267,8 +267,8 @@ sind seit dem 23. September nachgezogen, siehe „Zweiter Durchgang Rechte".
 Serverseitig durchgesetzt sind bisher das Personalwesen, die Verrechnung
 (seit 23. September 2026, samt Unveränderlichkeit festgeschriebener
 Belege über einen Hook), die Unveränderlichkeit der Unterschriften und die
-Freigabe von Positionen. Aufträge und Artikel stehen noch auf „jeder
-Angemeldete darf alles“ — die Stufe in der Oberfläche blendet dort nur aus.
+Freigabe von Positionen, und seit demselben Tag auch Aufträge, Kunden,
+Artikel (samt Einkaufspreis) und freigegebene Positionen.
 
 Beim Durchgang Verrechnung nebenbei gefunden: `belege` und
 `belegpositionen` hatten `deleteRule: null` — damit konnte in der App
@@ -276,8 +276,9 @@ niemand einen Entwurf verwerfen oder eine Zeile aus einem Entwurf löschen,
 nur der Serveradministrator. Nachgeprüft gegen die alte Regel. `npm run rechte-pruefen`
 listet den Rückstand am Ende namentlich auf; siehe docs/rechte.md.
 
-Reihenfolge: ~~Belege (Geld)~~ erledigt, dann Artikel (Preise und
-Einkaufspreise), dann Aufträge (der Monteur soll lesen, aber nicht ändern).
+Reihenfolge war: Belege, Artikel, Aufträge — alle drei erledigt am
+23. September 2026, dazu Kunden und der Versandnachweis. Der Abschnitt
+„noch nicht durchgesetzt" in `npm run rechte-pruefen` ist leer.
 
 Die Unterschrift ist die Ausnahme: `unterschriften` hat keine `updateRule`,
 gelöscht werden darf nur von einem Administrator. Das ist gegen die API
@@ -285,20 +286,18 @@ geprüft, nicht bloß in der Oberfläche ausgeblendet.
 
 Bei den Positionen ist seit September 2026 die Freigabe gesperrt — ohne
 Schreibrecht `lager` lässt sich `zustand` nicht auf „freigegeben" setzen,
-auch nicht über einen Umweg beim Anlegen. Menge und Preis einer schon
-freigegebenen Position kann dagegen weiterhin jeder Angemeldete ändern; das
-gehört in denselben Durchgang wie die Artikelpreise. Wie man ein einzelnes
+auch nicht über einen Umweg beim Anlegen. Seit dem 23. September ändert
+und löscht eine schon freigegebene Position ebenfalls nur, wer Lagerrecht
+hat. Wie man ein einzelnes
 Feld absichert, obwohl PocketBase nur Regeln je Datensatz kennt, steht in
 docs/rechte.md.
 
-Beim Versandnachweis ist es lockerer, und das ist bekannt: `versand` lässt
-Ändern durch jeden Angemeldeten zu, weil die Rückfrage („wirklich
-hinausgegangen?") das Feld `bestaetigt` umlegen muss. Damit ließe sich auch
-Bezeichnung oder Empfänger nachträglich umschreiben. Sauber wäre eine Regel,
-die nur `bestaetigt` freigibt — PocketBase kennt Regeln aber je Datensatz,
-nicht je Feld, also braucht es dafür einen eigenen Endpunkt. Solange der
-Nachweis nur intern gilt, ist der Aufwand nicht gerechtfertigt; sobald er
-gegenüber Dritten gelten soll, schon.
+Beim Versandnachweis war es lockerer: `versand` ließ Ändern durch jeden
+Angemeldeten zu, damit die Rückfrage („wirklich hinausgegangen?") das Feld
+`bestaetigt` umlegen kann — und damit auch Empfänger oder Weg. Seit dem
+23. September 2026 lässt der Hook `server/pb_hooks/versand.pb.js` nur noch
+`bestaetigt` und das neue `nichtErfolgt` zu, beides ohne Zurücknehmen.
+Nebenbei behoben: auf „Nein" blieb die Rückfrage für immer stehen.
 
 ## Handybreite — was noch offen ist
 

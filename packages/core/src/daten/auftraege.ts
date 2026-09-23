@@ -7,6 +7,7 @@ import {
 } from "./typen";
 import { AUFTRAG_PHASEN, phasenText, PHASENSTUFE_FARBE, PHASENSTUFE_TEXT } from "./phasen";
 import { pb } from "./client";
+import { darfSchreiben } from "../benutzer/rechte";
 import { schreiben } from "./offline";
 import { protokollieren, unterschiede } from "./protokoll";
 
@@ -66,6 +67,17 @@ export const LEERER_AUFTRAG: AuftragEingabe = {
   beginn: "",
   ende: "",
 };
+
+/**
+ * Darf dieser Zugang Aufträge anlegen und ändern, auch die Phase?
+ *
+ * Dieselbe Bedingung wie die Regel in packages/core/schema/kern.mjs:
+ * Schreibrecht Technik oder Buchhaltung. Die Oberfläche fragt hier, damit
+ * sie keine Knöpfe zeigt, deren Klick der Server ablehnt.
+ */
+export function darfAuftraegeAendern(): boolean {
+  return darfSchreiben("technik") || darfSchreiben("buchhaltung");
+}
 
 export async function auftraegeSuchen(suche = "", grenze = 300): Promise<Auftrag[]> {
   const sauber = suche.trim().replace(/["\\]/g, "");

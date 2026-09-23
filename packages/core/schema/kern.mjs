@@ -1,6 +1,24 @@
-import { angemeldet, nurAdmin } from "./regeln.mjs";
+import { angemeldet, nurAdmin, schreibt } from "./regeln.mjs";
 
 /** Kern-Collections. Reihenfolge beachten: Relationen zeigen nur nach oben. */
+/**
+ * Kunden, Standorte, Ansprechpartner und Aufträge: lesen darf jeder
+ * Angemeldete (Planung, Startseite, Zeiterfassung und Belege hängen daran),
+ * anlegen und ändern nur mit Schreibrecht Technik oder Buchhaltung. Das
+ * Büro legt aus einem angenommenen Angebot Aufträge an und schiebt sie auf
+ * „Verrechnen"; ein Monteur mit Leserecht sieht alles, ändert aber nichts.
+ * Seine Zeiten, Fotos und Fahrten hängen an eigenen Collections.
+ * Gegenstück in der Oberfläche: darfAuftraegeAendern() in
+ * packages/core/src/daten/auftraege.ts.
+ */
+const stammdatenRegeln = {
+  listRule: angemeldet,
+  viewRule: angemeldet,
+  createRule: `${schreibt("technik")} || @request.auth.bereiche ~ '"buchhaltung"'`,
+  updateRule: `${schreibt("technik")} || @request.auth.bereiche ~ '"buchhaltung"'`,
+  deleteRule: nurAdmin,
+};
+
 export default [
   {
     // Stammdaten des eigenen Betriebs. Genau ein Datensatz; die Angaben
@@ -81,6 +99,9 @@ export default [
       { name: "uid", type: "text" },
       { name: "notizen", type: "editor" },
     ],
+    // Stammdaten: lesen jeder Angemeldete, anlegen und ändern mit
+    // Schreibrecht Technik oder Buchhaltung — wie bei den Aufträgen.
+    ...stammdatenRegeln,
   },
   {
     name: "standorte",
@@ -91,6 +112,9 @@ export default [
       { name: "plz", type: "text" },
       { name: "ort", type: "text" },
     ],
+    // Stammdaten: lesen jeder Angemeldete, anlegen und ändern mit
+    // Schreibrecht Technik oder Buchhaltung — wie bei den Aufträgen.
+    ...stammdatenRegeln,
   },
   {
     name: "auftraege",
@@ -131,6 +155,8 @@ export default [
       { name: "ende", type: "date" },
     ],
     indexes: ["CREATE UNIQUE INDEX idx_auftraege_nummer ON auftraege (nummer)"],
+    // Wer lesen und ändern darf: siehe stammdatenRegeln oben.
+    ...stammdatenRegeln,
   },
   {
     name: "dokumente",
@@ -210,6 +236,9 @@ export default [
       { name: "email", type: "email" },
       { name: "notizen", type: "text" },
     ],
+    // Stammdaten: lesen jeder Angemeldete, anlegen und ändern mit
+    // Schreibrecht Technik oder Buchhaltung — wie bei den Aufträgen.
+    ...stammdatenRegeln,
   },
   {
     // Änderungsverlauf. Wird beim Schreiben mitgeschrieben und nie geändert:
@@ -254,6 +283,10 @@ export default [
       // Werkboq öffnet nur das Mailprogramm — ob dort auf Senden gedrückt
       // wurde, kann es nicht wissen und behauptet es deshalb nicht.
       { name: "bestaetigt", type: "bool" },
+      // „Nein, ist nicht hinausgegangen." Ohne dieses Feld blieb die
+      // Rückfrage nach einem Nein für immer stehen — bestätigt war der
+      // Versand ja weiterhin nicht.
+      { name: "nichtErfolgt", type: "bool" },
       { name: "benutzer", type: "relation", options: { collectionId: "users", maxSelect: 1 } },
       { name: "benutzername", type: "text" },
     ],

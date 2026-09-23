@@ -66,7 +66,7 @@ export function Versandblock({
   useEffect(laden, [laden]);
 
   const bestaetigt = zeilen.filter((z) => z.bestaetigt);
-  const offeneFragen = zeilen.filter((z) => !z.bestaetigt && z.weg !== "druck");
+  const offeneFragen = zeilen.filter((z) => !z.bestaetigt && !z.nichtErfolgt && z.weg !== "druck");
 
   return (
     <section className="wb-block">

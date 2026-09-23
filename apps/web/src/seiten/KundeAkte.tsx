@@ -11,6 +11,7 @@ import {
   ansprechpartnerLoeschen,
   ansprechpartnerZuKunde,
   darf,
+  darfAuftraegeAendern,
   KERN_COLLECTIONS,
   kundeLaden,
   LEERER_ANSPRECHPARTNER,
@@ -113,12 +114,16 @@ export function KundeAkte() {
         </div>
 
         <div className="wb-akte__aktionen">
-          <Link className="wb-button" to={`/auftraege/neu?kunde=${kunde.id}`}>
-            Neuer Auftrag
-          </Link>
+          {darfAuftraegeAendern() && (
+            <Link className="wb-button" to={`/auftraege/neu?kunde=${kunde.id}`}>
+              Neuer Auftrag
+            </Link>
+          )}
+          {darfAuftraegeAendern() && (
           <Link className="wb-button wb-button--sekundaer" to={`/kunden/${kunde.id}/bearbeiten`}>
             Bearbeiten
           </Link>
+          )}
         </div>
 
         <dl className="wb-schnellfakten">
@@ -238,9 +243,11 @@ function Auftragstabelle({ auftraege, kundeId }: { auftraege: Auftrag[]; kundeId
     return (
       <div className="wb-nichts">
         <p>Für diesen Kunden ist noch kein Auftrag angelegt.</p>
-        <Link className="wb-button" to={`/auftraege/neu?kunde=${kundeId}`}>
-          Ersten Auftrag anlegen
-        </Link>
+        {darfAuftraegeAendern() && (
+          <Link className="wb-button" to={`/auftraege/neu?kunde=${kundeId}`}>
+            Ersten Auftrag anlegen
+          </Link>
+        )}
       </div>
     );
   }
@@ -451,10 +458,12 @@ function Ansprechpartnerliste({
           </div>
         </form>
       ) : (
-        <button className="wb-button" type="button" onClick={() => setMaske(true)}>
-          <Symbol name="plus" groesse={18} />
-          Ansprechpartner hinzufügen
-        </button>
+        darfAuftraegeAendern() && (
+          <button className="wb-button" type="button" onClick={() => setMaske(true)}>
+            <Symbol name="plus" groesse={18} />
+            Ansprechpartner hinzufügen
+          </button>
+        )
       )}
     </div>
   );

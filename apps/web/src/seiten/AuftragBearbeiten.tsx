@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
+  darfAuftraegeAendern,
   auftragAendern,
   auftragAnlegen,
   auftragLaden,
@@ -103,6 +104,17 @@ export function AuftragBearbeiten() {
     }
   }
 
+  if (!darfAuftraegeAendern()) {
+    return (
+      <div className="wb-nichts">
+        <p>Aufträge anlegen und ändern ist für diesen Zugang nicht freigegeben.</p>
+        <p className="wb-leer">
+          Dafür braucht es Schreibrecht in „Technik" oder „Buchhaltung". Zeiten, Fahrten, Fotos
+          und Material lassen sich trotzdem am Auftrag erfassen.
+        </p>
+      </div>
+    );
+  }
   if (laedt) return <p className="wb-leer">Wird geladen …</p>;
 
   return (

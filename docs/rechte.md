@@ -26,8 +26,9 @@ die Collection-Regeln hergeben — gleichgültig, welcher Menüpunkt ausgeblende
 ist. `darf()` und `darfSchreiben()` entscheiden, was angezeigt wird, sonst
 nichts.
 
-**Serverseitig durchgesetzt sind derzeit das Personalwesen, die
-Verrechnung, die Unterschriften und die Freigabe von Positionen:**
+**Serverseitig durchgesetzt ist seit dem 23. September 2026 alles, was
+`npm run rechte-pruefen` prüft — der Abschnitt „noch nicht durchgesetzt"
+dort ist leer:**
 
 | Collection | lesen | ändern |
 |---|---|---|
@@ -41,19 +42,26 @@ Verrechnung, die Unterschriften und die Freigabe von Positionen:**
 | `belege`, `belegpositionen` | Bereich `buchhaltung` | Bereich `buchhaltung`; löschen nur Entwürfe. **Nach dem Festschreiben ändert niemand mehr Inhalt oder Zeilen** — nur Status, Verknüpfungen und Angebotsverfolgung (Hook `server/pb_hooks/belege.pb.js`) |
 | `zahlungen`, `mahnungen` | Bereich `buchhaltung` | Bereich `buchhaltung`; löschen nur Administrator |
 | `angebotskontakte` | Bereich `buchhaltung` | anlegen `buchhaltung`; **ändern und löschen niemand** |
+| `kunden`, `standorte`, `ansprechpartner`, `auftraege` | jeder Angemeldete | Schreibrecht `technik` **oder** `buchhaltung`; löschen nur Administrator |
+| `artikel` | jeder Angemeldete — **den Einkaufspreis nur mit `lager` oder `buchhaltung`** (Hook `artikel.pb.js`) | Schreibrecht `lager` |
+| `positionen` (Nachtrag) | — | eine **freigegebene** Position ändern und löschen nur mit Schreibrecht `lager`; Vorschläge darf jeder zurücknehmen |
+| `versand` | jeder Angemeldete | nur `bestaetigt` bzw. `nichtErfolgt` nachtragen, beides nicht zurücknehmbar (Hook `versand.pb.js`) |
 
 Dass der Betroffene die eigene Akte lesen darf, ist kein Entgegenkommen,
 sondern sein Auskunftsrecht. Ändern darf er sie nicht, und den eigenen
 Urlaubsantrag kann er nicht selbst genehmigen — die Regel lässt beim Anlegen
 nur `status = "beantragt"` zu.
 
-**Alles andere steht noch auf `angemeldet`.** Wer sich anmelden kann, kann
-über die API Aufträge ändern und Artikelpreise ändern. Die
+Auf `angemeldet` stehen nur noch Collections, bei denen das gewollt ist:
+Zeiten, Fahrten, Fotos, Dokumente, Termine — jeder erfasst dort für
+sich und für den Auftrag, auf dem er arbeitet. Die
 Stufe in der Oberfläche blendet das aus, mehr nicht. Solange das so ist,
 gehört ein Zugang nur an Leute, denen der Betrieb ohnehin vertraut.
 
-Das ist bekannter Rückstand, kein Versehen: die Regeln für Aufträge und
-Material sind der Rest des zweiten Durchgangs.
+Was ein Monteur mit nur **Leserecht** Technik darf: Aufträge, Kunden und
+den Katalog lesen, Zeiten, Fahrten, Fotos und Material-Vorschläge
+erfassen. Was er nicht darf: Aufträge oder Kunden ändern, Preise ändern,
+Einkaufspreise sehen, Belege lesen.
 
 ### Regel oder Hook
 

@@ -1,4 +1,4 @@
-import { angemeldet, schreibt } from "@werkboq/core/schema/regeln.mjs";
+import { angemeldet, nurAdmin, schreibt } from "@werkboq/core/schema/regeln.mjs";
 
 /**
  * Collections des Bausteins Material.
@@ -42,6 +42,16 @@ export default [
       "CREATE INDEX idx_artikel_ean ON artikel (ean)",
       "CREATE INDEX idx_artikel_favorit ON artikel (favorit)",
     ],
+    // Den Katalog liest jeder — der Monteur sucht darin, was er verbaut.
+    // Anlegen und Preise ändern nur mit Lagerrecht. Den Einkaufspreis
+    // bekommt ohne Lager- oder Buchhaltungsrecht niemand zu sehen; das
+    // kann keine Regel (sie gilt je Datensatz), das macht der Hook
+    // server/pb_hooks/artikel.pb.js.
+    listRule: angemeldet,
+    viewRule: angemeldet,
+    createRule: schreibt("lager"),
+    updateRule: schreibt("lager"),
+    deleteRule: nurAdmin,
   },
   {
     // Positionen am Auftrag. Preis und Steuersatz werden beim Einfügen aus
@@ -92,14 +102,16 @@ export default [
     //   sperrt beides: das Setzen auf "freigegeben" und das Leerräumen
     //   des Feldes, was auf dasselbe hinausliefe.
     //
-    // Der Rest der Positionsrechte steht noch aus, siehe docs/rechte.md:
-    // Menge und Preis einer bereits freigegebenen Position kann derzeit
-    // jeder Angemeldete ändern.
+    //   Und seit September 2026 auch: eine FREIGEGEBENE Position ändert
+    //   und löscht nur, wer Lagerrecht hat. Vorher durfte das jeder
+    //   Angemeldete — Menge und Preis einer Zeile, die gleich auf eine
+    //   Rechnung geht. Ein Vorschlag dagegen darf ohne Lagerrecht
+    //   gelöscht werden (der Monteur nimmt einen Irrtum zurück).
     listRule: angemeldet,
     viewRule: angemeldet,
     createRule: `${angemeldet} && (@request.data.zustand = "vorschlag" || ${schreibt("lager")})`,
     updateRule:
-      `${angemeldet} && (zustand != "vorschlag" || @request.data.zustand = "vorschlag" || ${schreibt("lager")})`,
-    deleteRule: angemeldet,
+      `${angemeldet} && ((zustand = "vorschlag" && @request.data.zustand = "vorschlag") || ${schreibt("lager")})`,
+    deleteRule: `${angemeldet} && (zustand = "vorschlag" || ${schreibt("lager")})`,
   },
 ];

@@ -8,6 +8,7 @@ import {
   kundeLoeschen,
   LEERER_KUNDE,
   type KundeEingabe,
+  darfAuftraegeAendern,
 } from "@werkboq/core";
 
 export function KundeBearbeiten() {
@@ -77,6 +78,14 @@ export function KundeBearbeiten() {
     }
   }
 
+  if (!darfAuftraegeAendern()) {
+    return (
+      <div className="wb-nichts">
+        <p>Kunden anlegen und ändern ist für diesen Zugang nicht freigegeben.</p>
+        <p className="wb-leer">Dafür braucht es Schreibrecht in „Technik" oder „Buchhaltung".</p>
+      </div>
+    );
+  }
   if (laedt) return <p className="wb-leer">Wird geladen …</p>;
 
   return (

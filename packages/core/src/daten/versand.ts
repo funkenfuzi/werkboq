@@ -67,6 +67,8 @@ export interface Versandzeile extends Basisdatensatz {
   nachricht?: string;
   /** Hat der Anwender bestätigt, dass er wirklich abgeschickt hat? */
   bestaetigt?: boolean;
+  /** Der Anwender hat verneint, dass es hinausging. Beantwortet die Rückfrage. */
+  nichtErfolgt?: boolean;
   benutzername?: string;
 }
 
@@ -113,7 +115,7 @@ export async function versandFesthalten(
 
 /** Der Anwender bestätigt, dass er wirklich abgeschickt hat. */
 export async function versandBestaetigen(z: Versandzeile, ja: boolean): Promise<void> {
-  await pb().collection("versand").update(z.id, { bestaetigt: ja });
+  await pb().collection("versand").update(z.id, ja ? { bestaetigt: true } : { nichtErfolgt: true });
   await protokollieren(
     z.bereich,
     z.datensatz,
