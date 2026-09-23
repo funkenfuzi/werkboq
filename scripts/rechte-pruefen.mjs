@@ -50,6 +50,11 @@ if (mitarbeiter.length < 2) {
   process.exit(1);
 }
 const [einer, anderer] = mitarbeiter;
+const kundeId = (await admin.collection("kunden").getList(1, 1)).items[0]?.id;
+if (!kundeId) {
+  console.error("Kein Kunde da. Erst 'npm run beispieldaten' laufen lassen.");
+  process.exit(1);
+}
 
 let bestanden = 0;
 let durchgefallen = 0;
@@ -68,7 +73,7 @@ try {
   });
   const abwesenheit = await vorhandenOderNeu(
     "abwesenheiten",
-    `mitarbeiter = "${einer.id}" && von = "2026-09-07"`,
+    `mitarbeiter = "${einer.id}" && von >= "2026-09-07 00:00:00" && von <= "2026-09-07 23:59:59"`,
     {
       mitarbeiter: einer.id,
       art: "krankenstand",
@@ -85,10 +90,12 @@ try {
   const monteur = await pruefzugang("pruef-monteur", [], ["technik"], anderer.id);
   const betroffener = await pruefzugang("pruef-betroffener", [], ["technik"], einer.id);
   const personal = await pruefzugang("pruef-personal", ["personal"], [], null);
+  const buero = await pruefzugang("pruef-buero", ["buchhaltung"], ["technik"], null);
 
   const alsMonteur = await anmelden(monteur.email);
   const alsBetroffener = await anmelden(betroffener.email);
   const alsPersonal = await anmelden(personal.email);
+  const alsBuero = await anmelden(buero.email);
 
   abschnitt("Monteur — nur Technik, und das nur lesend");
   await pruefe("Personaldaten aller lesen", () => alsMonteur.collection("personaldaten").getFullList(), false);
@@ -98,6 +105,11 @@ try {
   await pruefe("sich selbst eine Akte anlegen", () => alsMonteur.collection("personaldaten").create({ mitarbeiter: anderer.id, lohn: 999999 }), false);
   await pruefe("fremde Akte ändern", () => alsMonteur.collection("personaldaten").update(akte.id, { lohn: 1 }), false);
   await pruefe("Aufträge lesen", () => alsMonteur.collection("auftraege").getFullList(), true);
+  await pruefe("Rechnungen und Angebote lesen", () => alsMonteur.collection("belege").getFullList(), false);
+  await pruefe("Belegzeilen lesen", () => alsMonteur.collection("belegpositionen").getFullList(), false);
+  await pruefe("Zahlungen lesen", () => alsMonteur.collection("zahlungen").getFullList(), false);
+  await pruefe("Nachfassnotizen lesen", () => alsMonteur.collection("angebotskontakte").getFullList(), false);
+  await pruefe("einen Beleg anlegen", () => alsMonteur.collection("belege").create({ belegart: "rechnung", nummer: "PRUEF-MONTEUR", kunde: kundeId, status: "entwurf", datum: "2026-09-23", empfaengerName: "x", steuerfrei: "keiner" }), false, aufraeumenAls("belege"));
 
   abschnitt("Der Betroffene selbst — ohne Personalrecht");
   await pruefe("eigene Akte lesen (Auskunftsrecht)", () => alsBetroffener.collection("personaldaten").getFullList(), true);
@@ -113,19 +125,37 @@ try {
   await pruefe("Akte ändern", () => alsPersonal.collection("personaldaten").update(akte.id, { notizen: "geprüft" }), true);
   await pruefe("Urlaub genehmigen", () => alsPersonal.collection("abwesenheiten").update(abwesenheit.id, { status: "genehmigt" }), true);
 
+  // --------------------------------------------------------------------
+  // Büro mit Buchhaltung: darf alles rund um Belege — außer an einem
+  // festgeschriebenen Beleg etwas ändern. Das schützt ein Hook
+  // (server/pb_hooks/belege.pb.js), nicht die Regel.
+  // --------------------------------------------------------------------
+  abschnitt("Büro — Buchhaltung");
+  await pruefe("Belege lesen", () => alsBuero.collection("belege").getFullList(), true);
+  const entwurf = await alsBuero.collection("belege").create({ belegart: "rechnung", nummer: "PRUEF-BUERO-1", kunde: kundeId, status: "entwurf", datum: "2026-09-23", empfaengerName: "Prüfung", steuerfrei: "keiner", netto: 10000, ust: 2000, brutto: 12000 });
+  aufraeumen.push(() => admin.collection("belege").delete(entwurf.id));
+  await pruefe("Zeile an einen Entwurf", () => alsBuero.collection("belegpositionen").create({ beleg: entwurf.id, pos: 10, bezeichnung: "Prüfzeile", menge: 1, einzelpreis: 10000, ustsatz: 20, betrag: 10000 }), true);
+  await pruefe("Entwurf ändern", () => alsBuero.collection("belege").update(entwurf.id, { kopftext: "geändert" }), true);
+  await admin.collection("belege").update(entwurf.id, { festgeschrieben: new Date().toISOString(), status: "offen" });
+  await pruefe("festgeschriebenen Betrag ändern", () => alsBuero.collection("belege").update(entwurf.id, { netto: 1 }), false);
+  await pruefe("festgeschriebenen Empfänger ändern", () => alsBuero.collection("belege").update(entwurf.id, { empfaengerName: "jemand anderer" }), false);
+  await pruefe("Zeile anhängen an festgeschriebenen Beleg", () => alsBuero.collection("belegpositionen").create({ beleg: entwurf.id, pos: 20, bezeichnung: "nachträglich", menge: 1, einzelpreis: 1, ustsatz: 20, betrag: 1 }), false);
+  await pruefe("festgeschriebenen Beleg löschen", () => alsBuero.collection("belege").delete(entwurf.id), false);
+  await pruefe("Status auf bezahlt setzen", () => alsBuero.collection("belege").update(entwurf.id, { status: "bezahlt" }), true);
+
   // Nachfasseinträge sind der Nachweis, dass nachgefasst wurde — keine
-  // updateRule, kein Löschen. Geprüft, sofern es schon einen gibt.
-  const kontakt = await admin.collection("angebotskontakte").getList(1, 1).catch(() => null);
+  // updateRule, kein Löschen. Geprüft mit dem Büro, das sie lesen darf —
+  // sonst hieße „gesperrt" nur „nicht gefunden".
+  const kontakt = await alsBuero.collection("angebotskontakte").getList(1, 1).catch(() => null);
   if (kontakt?.items[0]) {
-    abschnitt("Angebotsverfolgung");
     await pruefe(
       "Nachfasseintrag nachträglich ändern",
-      () => alsPersonal.collection("angebotskontakte").update(kontakt.items[0].id, { notiz: "geändert" }),
+      () => alsBuero.collection("angebotskontakte").update(kontakt.items[0].id, { notiz: "geändert" }),
       false,
     );
     await pruefe(
       "Nachfasseintrag löschen",
-      () => alsPersonal.collection("angebotskontakte").delete(kontakt.items[0].id),
+      () => alsBuero.collection("angebotskontakte").delete(kontakt.items[0].id),
       false,
     );
   }
@@ -147,12 +177,7 @@ try {
     await alsMonteur.collection("artikel").update(a.id, { preis: a.preis });
     return true;
   });
-  await nurBerichten(offen, "Monteur kann Rechnungen lesen", async () => {
-    return (await alsMonteur.collection("belege").getFullList()).length > 0;
-  });
-  await nurBerichten(offen, "Monteur kann Nachfassnotizen zu Angeboten lesen", async () => {
-    return (await alsMonteur.collection("angebotskontakte").getFullList()).length > 0;
-  });
+
 
   console.log(
     `\n${bestanden} von ${bestanden + durchgefallen} Prüfungen wie erwartet.` +

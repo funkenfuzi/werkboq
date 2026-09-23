@@ -246,11 +246,8 @@ Dazu kam, dass `einrichten.mjs` ein einmal gesetztes `required` nie wieder
 zurücknahm; jetzt gilt die Definition, und der Lauf meldet „nicht mehr
 Pflicht". Ein Test in `schema-spiegel.test.ts` wacht darüber.
 
-Offen dabei: die Collections `belege` und `angebotskontakte` stehen noch auf
-den Standardregeln (jeder Angemeldete darf lesen) — das gehört zum zweiten
-Durchgang Rechte weiter unten. Ein Monteur, der `/angebote` direkt
-aufruft, sieht eine leere Seite statt eines Hinweises; das gilt für alle
-Seiten mit Bereich und gehört in den Rahmen, nicht in einen Baustein.
+Die Rechte dazu (nur Buchhaltung) und der Hinweis statt einer leeren Seite
+sind seit dem 23. September nachgezogen, siehe „Zweiter Durchgang Rechte".
 
 ## Vor der ersten echten Inbetriebnahme
 
@@ -267,13 +264,19 @@ Seiten mit Bereich und gehört in den Rahmen, nicht in einen Baustein.
 
 ## Zweiter Durchgang Rechte
 
-Serverseitig durchgesetzt sind bisher das Personalwesen, die Unveränderlich-
-keit der Unterschriften und die Freigabe von Positionen. Aufträge, Artikel
-und Verrechnung stehen noch auf „jeder Angemeldete darf alles“ —
-die Stufe in der Oberfläche blendet dort nur aus. `npm run rechte-pruefen`
+Serverseitig durchgesetzt sind bisher das Personalwesen, die Verrechnung
+(seit 23. September 2026, samt Unveränderlichkeit festgeschriebener
+Belege über einen Hook), die Unveränderlichkeit der Unterschriften und die
+Freigabe von Positionen. Aufträge und Artikel stehen noch auf „jeder
+Angemeldete darf alles“ — die Stufe in der Oberfläche blendet dort nur aus.
+
+Beim Durchgang Verrechnung nebenbei gefunden: `belege` und
+`belegpositionen` hatten `deleteRule: null` — damit konnte in der App
+niemand einen Entwurf verwerfen oder eine Zeile aus einem Entwurf löschen,
+nur der Serveradministrator. Nachgeprüft gegen die alte Regel. `npm run rechte-pruefen`
 listet den Rückstand am Ende namentlich auf; siehe docs/rechte.md.
 
-Reihenfolge, wenn es soweit ist: Belege (Geld), dann Artikel (Preise und
+Reihenfolge: ~~Belege (Geld)~~ erledigt, dann Artikel (Preise und
 Einkaufspreise), dann Aufträge (der Monteur soll lesen, aber nicht ändern).
 
 Die Unterschrift ist die Ausnahme: `unterschriften` hat keine `updateRule`,

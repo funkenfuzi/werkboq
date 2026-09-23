@@ -27,7 +27,7 @@ ist. `darf()` und `darfSchreiben()` entscheiden, was angezeigt wird, sonst
 nichts.
 
 **Serverseitig durchgesetzt sind derzeit das Personalwesen, die
-Unterschriften und die Freigabe von Positionen:**
+Verrechnung, die Unterschriften und die Freigabe von Positionen:**
 
 | Collection | lesen | ändern |
 |---|---|---|
@@ -38,18 +38,34 @@ Unterschriften und die Freigabe von Positionen:**
 | `unterschriften` | jeder Angemeldete | **niemand** — keine `updateRule`; löschen nur Administrator |
 | `positionen` | jeder Angemeldete | anlegen und ändern jeder Angemeldete, **aber freigeben nur mit Schreibrecht `lager`** |
 
+| `belege`, `belegpositionen` | Bereich `buchhaltung` | Bereich `buchhaltung`; löschen nur Entwürfe. **Nach dem Festschreiben ändert niemand mehr Inhalt oder Zeilen** — nur Status, Verknüpfungen und Angebotsverfolgung (Hook `server/pb_hooks/belege.pb.js`) |
+| `zahlungen`, `mahnungen` | Bereich `buchhaltung` | Bereich `buchhaltung`; löschen nur Administrator |
+| `angebotskontakte` | Bereich `buchhaltung` | anlegen `buchhaltung`; **ändern und löschen niemand** |
+
 Dass der Betroffene die eigene Akte lesen darf, ist kein Entgegenkommen,
 sondern sein Auskunftsrecht. Ändern darf er sie nicht, und den eigenen
 Urlaubsantrag kann er nicht selbst genehmigen — die Regel lässt beim Anlegen
 nur `status = "beantragt"` zu.
 
 **Alles andere steht noch auf `angemeldet`.** Wer sich anmelden kann, kann
-über die API Aufträge ändern, Artikelpreise ändern und Rechnungen lesen. Die
+über die API Aufträge ändern und Artikelpreise ändern. Die
 Stufe in der Oberfläche blendet das aus, mehr nicht. Solange das so ist,
 gehört ein Zugang nur an Leute, denen der Betrieb ohnehin vertraut.
 
-Das ist bekannter Rückstand, kein Versehen: die Regeln für Aufträge, Material
-und Verrechnung sind der zweite Durchgang.
+Das ist bekannter Rückstand, kein Versehen: die Regeln für Aufträge und
+Material sind der Rest des zweiten Durchgangs.
+
+### Regel oder Hook
+
+PocketBase kennt Regeln je Datensatz: *wer* darf lesen, anlegen, ändern,
+löschen. Welche *Felder* jemand ändern darf, kann eine Regel nicht sagen.
+Wo das gebraucht wird — ein festgeschriebener Beleg, an dem nur noch der
+Status wechseln darf —, steht ein Hook in `server/pb_hooks/`. Er läuft bei
+jeder Anfrage über die API, auch bei einem Betriebsadministrator; nur der
+Serveradministrator darf zum Aufräumen löschen.
+
+Seiten, für die ein Zugang kein Recht hat, zeigen seit September 2026
+einen Hinweis statt einer leeren Fläche.
 
 ## Nachprüfen statt glauben
 

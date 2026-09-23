@@ -1,4 +1,4 @@
-import { dienstAnbieten, pb, type WerkboqModul } from "@werkboq/core";
+import { darf, dienstAnbieten, pb, type WerkboqModul } from "@werkboq/core";
 import { Belege } from "./seiten/Belege";
 import { BelegAkte } from "./seiten/BelegAkte";
 import { BelegDruck } from "./seiten/BelegDruck";
@@ -87,6 +87,16 @@ export const bausteinVerrechnung: WerkboqModul = {
     // umgestellt werden — sonst stünden alte Rechnungen mit falscher
     // Grundlage da, und niemand würde es merken.
     dienstAnbieten("rechtsraumSperre", async () => {
+      // Seit die Belege nur noch die Buchhaltung lesen darf, sähe ein
+      // Zugang ohne dieses Recht eine leere Liste — und hielte das Land für
+      // frei. Wer nicht nachsehen darf, weiß es nicht: dann gesperrt.
+      if (!darf("buchhaltung")) {
+        return {
+          gesperrt: true,
+          grund:
+            "Ob schon Belege festgeschrieben sind, darf dieser Zugang nicht sehen — das Land bleibt vorsichtshalber gesperrt. Ändern kann es, wer Leserecht auf die Buchhaltung hat.",
+        };
+      }
       try {
         const treffer = await pb()
           .collection("belege")

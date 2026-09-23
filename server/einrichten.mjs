@@ -569,6 +569,8 @@ async function collectionAbgleichen(def, still = false) {
       ? { ...alteFelder.get(f.name), ...f, required: f.required === true, id: alteFelder.get(f.name).id }
       : f,
   );
+  const REGELN = ["listRule", "viewRule", "createRule", "updateRule", "deleteRule"];
+  const regelnGeaendert = REGELN.filter((r) => (vorhanden[r] ?? null) !== (def[r] ?? null));
   const pflichtGeaendert = def.schema
     .filter((f) => alteFelder.has(f.name) && Boolean(alteFelder.get(f.name).required) !== (f.required === true))
     .map((f) => `${f.name} ${f.required ? "jetzt Pflicht" : "nicht mehr Pflicht"}`);
@@ -593,10 +595,16 @@ async function collectionAbgleichen(def, still = false) {
   const neueFelder = def.schema.filter((f) => !alteFelder.has(f.name)).map((f) => f.name);
   if (neueFelder.length) geaendert.set(def.name, neueFelder);
   if (pflichtGeaendert.length) geaendert.set(def.name, [...(geaendert.get(def.name) ?? []), ...pflichtGeaendert]);
+  // Auch Regeln melden: eine Regel, die still enger oder weiter wird,
+  // ist genau die Änderung, die man beim Update wissen will.
+  if (regelnGeaendert.length) {
+    geaendert.set(def.name, [...(geaendert.get(def.name) ?? []), `Regeln: ${regelnGeaendert.join(", ")}`]);
+  }
   if (!still) {
     const teile = [
       neueFelder.length ? `neu: ${neueFelder.join(", ")}` : "",
       pflichtGeaendert.length ? pflichtGeaendert.join(", ") : "",
+      regelnGeaendert.length ? `Regeln neu: ${regelnGeaendert.join(", ")}` : "",
     ].filter(Boolean);
     console.log(teile.length ? `${def.name}: abgeglichen, ${teile.join("; ")}` : `${def.name}: abgeglichen`);
   }

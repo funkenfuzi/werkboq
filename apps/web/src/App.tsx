@@ -15,6 +15,7 @@ import { KundeBearbeiten } from "./seiten/KundeBearbeiten";
 import { Auftraege } from "./seiten/Auftraege";
 import { AuftragAkte } from "./seiten/AuftragAkte";
 import { AuftragBearbeiten } from "./seiten/AuftragBearbeiten";
+import { KeinZugriff, Unbekannt } from "./seiten/KeinZugriff";
 import { Einstellungen } from "./seiten/Einstellungen";
 import { OfflineHinweis } from "./komponenten/OfflineHinweis";
 import { Kopfleiste } from "./komponenten/Kopfleiste";
@@ -46,10 +47,12 @@ export function App() {
   const erlaubt = (n: NavEintrag) => !n.bereich || darf(n.bereich);
   // Routen und Seitenleiste sind nicht dasselbe: Unterseiten wie /belege/:id
   // brauchen eine Route, haben aber in der Leiste nichts verloren.
-  const alleRouten = [
-    ...alleNavEintraege("baustein"),
-    ...alleNavEintraege("fachmodul"),
-  ].filter(erlaubt);
+  const alleEintraege = [...alleNavEintraege("baustein"), ...alleNavEintraege("fachmodul")];
+  const alleRouten = alleEintraege.filter(erlaubt);
+  // Ohne Recht nicht einfach keine Route (das gab eine leere Seite), sondern
+  // eine, die sagt, warum. Titel von der Hauptseite des Bereichs, damit
+  // bei /belege/abc123 nicht „Beleg" steht, sondern etwas Verständliches.
+  const gesperrt = alleEintraege.filter((n) => !erlaubt(n));
   const bausteinNav = alleNavEintraege("baustein").filter((n) => erlaubt(n) && !n.versteckt);
   const modulNav = alleNavEintraege("fachmodul").filter((n) => erlaubt(n) && !n.versteckt);
 
@@ -130,6 +133,14 @@ export function App() {
             {alleRouten.map((n) => (
               <Route key={n.pfad} path={n.pfad} element={<n.komponente />} />
             ))}
+            {gesperrt.map((n) => (
+              <Route
+                key={n.pfad}
+                path={n.pfad}
+                element={<KeinZugriff bereich={n.bereich ?? ""} titel={n.titel} />}
+              />
+            ))}
+            <Route path="*" element={<Unbekannt />} />
           </Routes>
         </main>
       </div>

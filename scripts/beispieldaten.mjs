@@ -527,7 +527,10 @@ async function personalwesenFuellen(mitarbeiter) {
     const bis = `${jahr}${a.bis}`;
     const angelegt = await einmalig(
       "abwesenheiten",
-      `mitarbeiter = "${m.id}" && von = "${von}"`,
+      // Datumsfelder stehen als „2026-03-02 00:00:00.000Z" in der
+      // Datenbank; ein Vergleich mit „2026-03-02" trifft nie. Bis September
+      // 2026 legte deshalb jeder Lauf alle Abwesenheiten noch einmal an.
+      `mitarbeiter = "${m.id}" && von >= "${von} 00:00:00" && von <= "${von} 23:59:59"`,
       {
         mitarbeiter: m.id,
         art: a.art,
@@ -857,7 +860,6 @@ async function angebotAnlegen(kunde, auftrag, datum, titel, zeilen) {
     auftrag: auftrag?.id ?? null,
     status: "offen",
     datum,
-    festgeschrieben: `${datum} 09:00:00.000Z`,
     empfaengerName: kunde.name,
     empfaengerAnschrift: [kunde.strasse, `${kunde.plz} ${kunde.ort}`].filter(Boolean).join("\n"),
     steuerfrei: "keiner",
@@ -877,7 +879,9 @@ async function angebotAnlegen(kunde, auftrag, datum, titel, zeilen) {
     });
     pos += 10;
   }
-  return { ...beleg, nummer };
+  // Festschreiben erst nach den Zeilen — siehe rechnungAus().
+  await pb.collection("belege").update(beleg.id, { festgeschrieben: `${datum} 09:00:00.000Z` });
+  return { ...beleg, nummer, festgeschrieben: `${datum} 09:00:00.000Z` };
 }
 
 async function kontakt(beleg, datum, art, notiz) {
@@ -909,7 +913,6 @@ async function rechnungAus(auftrag, kunde, kopf) {
     kunde: kunde.id,
     auftrag: auftrag.id,
     status: "offen",
-    festgeschrieben: new Date().toISOString(),
     empfaengerName: kunde.name,
     empfaengerAnschrift: [kunde.strasse, `${kunde.plz} ${kunde.ort}`].filter(Boolean).join("\n"),
     empfaengerUid: kunde.uid ?? "",
@@ -938,6 +941,9 @@ async function rechnungAus(auftrag, kunde, kopf) {
     });
     await pb.collection("positionen").update(p.id, { verrechnet: true });
   }
+  // Erst nach den Zeilen festschreiben: an einem festgeschriebenen Beleg
+  // nimmt der Server keine Zeile mehr an (server/pb_hooks/belege.pb.js).
+  await pb.collection("belege").update(beleg.id, { festgeschrieben: new Date().toISOString() });
 
   return { ...beleg, brutto: netto + ust, nummer };
 }

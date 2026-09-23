@@ -1,3 +1,5 @@
+import { bereichsregeln, liest, schreibt } from "@werkboq/core/schema/regeln.mjs";
+
 /**
  * Collections der Verrechnung.
  *
@@ -11,6 +13,14 @@
  * die Datei über server/schema.mjs und legt an bzw. gleicht ab.
  * Verknüpfungen dürfen nur auf Collections zeigen, die dort vorher stehen.
  */
+/** Lesen mit Leserecht Buchhaltung, anlegen und ändern mit Schreibrecht. */
+const verrechnungsregeln = {
+  listRule: liest("buchhaltung"),
+  viewRule: liest("buchhaltung"),
+  createRule: schreibt("buchhaltung"),
+  updateRule: schreibt("buchhaltung"),
+};
+
 export default [
   {
     // Belege: Angebot, Auftragsbestätigung, Rechnung, Gutschrift.
@@ -59,7 +69,12 @@ export default [
       "CREATE INDEX idx_belege_kunde ON belege (kunde)",
       "CREATE INDEX idx_belege_art_status ON belege (belegart, status)",
     ],
-    deleteRule: null,
+    // Rechnungen, Angebote und Geld gehen nur die Buchhaltung etwas an —
+    // bis September 2026 las sie jeder Angemeldete über die API. Löschen
+    // nur Entwürfe; was festgeschrieben ist, schützt zusätzlich der Hook
+    // server/pb_hooks/belege.pb.js gegen jede inhaltliche Änderung.
+    ...verrechnungsregeln,
+    deleteRule: `(${schreibt("buchhaltung")}) && festgeschrieben = ""`,
   },
   {
     // Eingefrorene Kopie der Positionen zum Zeitpunkt der Belegerstellung.
@@ -82,7 +97,11 @@ export default [
       { name: "quelle", type: "text" },
     ],
     indexes: ["CREATE INDEX idx_belegpositionen_beleg ON belegpositionen (beleg, pos)"],
-    deleteRule: null,
+    ...verrechnungsregeln,
+    // Zeilen eines Entwurfs darf die Buchhaltung löschen (Zeile entfernen,
+    // Entwurf verwerfen); die eines festgeschriebenen Belegs niemand — das
+    // prüft der Hook, weil die Regel den Beleg dahinter nicht sicher sieht.
+    deleteRule: schreibt("buchhaltung"),
   },
   {
     // Jeder Anruf, jede Mail zu einem offenen Angebot. Nie geändert, nie
@@ -97,6 +116,9 @@ export default [
       { name: "wer", type: "text", options: { max: 80 } },
     ],
     indexes: ["CREATE INDEX idx_angebotskontakte_beleg ON angebotskontakte (beleg, datum)"],
+    listRule: liest("buchhaltung"),
+    viewRule: liest("buchhaltung"),
+    createRule: schreibt("buchhaltung"),
     updateRule: null,
     deleteRule: null,
   },
@@ -110,6 +132,7 @@ export default [
       { name: "notiz", type: "text" },
     ],
     indexes: ["CREATE INDEX idx_zahlungen_beleg ON zahlungen (beleg)"],
+    ...bereichsregeln("buchhaltung"),
   },
   {
     name: "mahnungen",
@@ -123,5 +146,6 @@ export default [
       { name: "text", type: "text" },
     ],
     indexes: ["CREATE INDEX idx_mahnungen_beleg ON mahnungen (beleg, stufe)"],
+    ...bereichsregeln("buchhaltung"),
   },
 ];

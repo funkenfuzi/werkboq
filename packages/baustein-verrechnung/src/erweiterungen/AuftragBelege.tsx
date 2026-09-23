@@ -6,6 +6,8 @@ import {
   Auftragskachel,
   auftragLaden,
   betriebLaden,
+  darf,
+  darfSchreiben,
   dienst,
   fahrtkostenZeile,
   fehlersatz,
@@ -62,7 +64,9 @@ export function AuftragBelege({ datensatzId }: ErweiterungsProps) {
 
   useEffect(laden, [laden]);
 
-  if (!datensatzId) return null;
+  // Ohne Leserecht Buchhaltung liefert der Server keine Belege — die leere
+  // Liste sähe aus wie „noch keiner", und die Knöpfe führten ins Leere.
+  if (!datensatzId || !darf("buchhaltung")) return null;
 
   /**
    * Erzeugt einen Entwurf aus allem, was am Auftrag hängt.
@@ -128,7 +132,9 @@ export function AuftragBelege({ datensatzId }: ErweiterungsProps) {
           art: "leistung",
           bezeichnung: "Arbeitszeit laut Aufzeichnung",
           beschreibung:
-            satz > 0 ? "" : "Stundensatz unter Einstellungen → Betrieb hinterlegen",
+            satz > 0
+              ? ""
+              : "Stundensatz unter Einstellungen → Betrieb hinterlegen",
           menge: Math.round((stunden.verrechenbar / 60) * 100) / 100,
           einheit: "h",
           einzelpreis: satz,
@@ -182,7 +188,12 @@ export function AuftragBelege({ datensatzId }: ErweiterungsProps) {
       );
       navigate(`/belege/${beleg.id}`);
     } catch (e: unknown) {
-      setFehler(fehlersatz(e, { nummer: "Diese Belegnummer ist schon vergeben — bitte erneut versuchen." }));
+      setFehler(
+        fehlersatz(e, {
+          nummer:
+            "Diese Belegnummer ist schon vergeben — bitte erneut versuchen.",
+        }),
+      );
     } finally {
       setLaeuft(false);
     }
@@ -192,25 +203,27 @@ export function AuftragBelege({ datensatzId }: ErweiterungsProps) {
     <section className="wb-block">
       <div className="wb-block__kopf">
         <h2>Belege</h2>
-        <div className="wb-aktionen">
-          <button
-            className="wb-button wb-button--sekundaer"
-            type="button"
-            disabled={laeuft}
-            onClick={() => void erzeugen("angebot")}
-          >
-            Angebot
-          </button>
-          <button
-            className="wb-button"
-            type="button"
-            disabled={laeuft}
-            onClick={() => void erzeugen("rechnung")}
-          >
-            <Symbol name="beleg" groesse={18} />
-            Rechnung
-          </button>
-        </div>
+        {darfSchreiben("buchhaltung") && (
+          <div className="wb-aktionen">
+            <button
+              className="wb-button wb-button--sekundaer"
+              type="button"
+              disabled={laeuft}
+              onClick={() => void erzeugen("angebot")}
+            >
+              Angebot
+            </button>
+            <button
+              className="wb-button"
+              type="button"
+              disabled={laeuft}
+              onClick={() => void erzeugen("rechnung")}
+            >
+              <Symbol name="beleg" groesse={18} />
+              Rechnung
+            </button>
+          </div>
+        )}
       </div>
 
       {fehler && (
@@ -229,9 +242,9 @@ export function AuftragBelege({ datensatzId }: ErweiterungsProps) {
                 : `${offen} Positionen warten auf Freigabe`}
             </strong>
             <p>
-              Von der Baustelle erfasst und noch nicht geprüft. Was hier steht, kommt{" "}
-              <strong>nicht</strong> auf den Beleg — erst freigeben, dann verrechnen. Der Block
-              „Positionen" weiter oben zeigt sie.
+              Von der Baustelle erfasst und noch nicht geprüft. Was hier steht,
+              kommt <strong>nicht</strong> auf den Beleg — erst freigeben, dann
+              verrechnen. Der Block „Positionen" weiter oben zeigt sie.
             </p>
           </div>
         </div>
@@ -239,8 +252,9 @@ export function AuftragBelege({ datensatzId }: ErweiterungsProps) {
 
       {belege.length === 0 ? (
         <p className="wb-leer">
-          Noch kein Beleg. Ein Klick übernimmt die Positionen und die verrechenbaren Stunden in
-          einen Entwurf — geändert wird danach am Beleg, nicht am Auftrag.
+          Noch kein Beleg. Ein Klick übernimmt die Positionen und die
+          verrechenbaren Stunden in einen Entwurf — geändert wird danach am
+          Beleg, nicht am Auftrag.
         </p>
       ) : (
         <div className="wb-tabelle-rahmen">
@@ -251,24 +265,36 @@ export function AuftragBelege({ datensatzId }: ErweiterungsProps) {
                 <th scope="col">Art</th>
                 <th scope="col">Datum</th>
                 <th scope="col">Status</th>
-                <th scope="col" className="wb-zelle--rechts">Netto</th>
-                <th scope="col" className="wb-zelle--rechts">Brutto</th>
+                <th scope="col" className="wb-zelle--rechts">
+                  Netto
+                </th>
+                <th scope="col" className="wb-zelle--rechts">
+                  Brutto
+                </th>
               </tr>
             </thead>
             <tbody>
               {belege.map((b) => (
-                <tr key={b.id} onClick={() => navigate(`/belege/${b.id}`)} className="ist-klickbar">
+                <tr
+                  key={b.id}
+                  onClick={() => navigate(`/belege/${b.id}`)}
+                  className="ist-klickbar"
+                >
                   <td className="wb-tabelle__kennung">{b.nummer}</td>
                   <td>{BELEGART_TEXT[b.belegart]}</td>
                   <td className="wb-tabelle__kennung">
                     {new Date(b.datum).toLocaleDateString("de-AT")}
                   </td>
                   <td>
-                    <span className={`wb-plakette wb-plakette--${STATUS_FARBE[b.status]}`}>
+                    <span
+                      className={`wb-plakette wb-plakette--${STATUS_FARBE[b.status]}`}
+                    >
                       {STATUS_TEXT[b.status]}
                     </span>
                   </td>
-                  <td className="wb-zelle--rechts wb-tabelle__kennung">{alsEuro(b.netto, sw)}</td>
+                  <td className="wb-zelle--rechts wb-tabelle__kennung">
+                    {alsEuro(b.netto, sw)}
+                  </td>
                   <td className="wb-zelle--rechts wb-tabelle__kennung wb-zelle--betont">
                     {alsEuro(b.brutto, sw)}
                   </td>
@@ -298,8 +324,10 @@ export function BelegKachel({ datensatzId }: ErweiterungsProps) {
       .catch(() => setBelege([]));
   }, [datensatzId]);
 
-  if (!datensatzId || belege === null) return null;
-  const offen = belege.filter((b) => b.belegart === "rechnung" && b.status === "offen").length;
+  if (!datensatzId || belege === null || !darf("buchhaltung")) return null;
+  const offen = belege.filter(
+    (b) => b.belegart === "rechnung" && b.status === "offen",
+  ).length;
   const entwuerfe = belege.filter((b) => b.status === "entwurf").length;
 
   return (
