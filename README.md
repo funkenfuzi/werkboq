@@ -76,6 +76,7 @@ Wenn etwas klemmt, lassen sich die Schritte weiterhin von Hand ausführen:
 npm run server                # nur PocketBase
 npm run einrichten            # nur das Schema abgleichen (Server muss laufen)
 npm run dev                   # nur die Oberfläche
+npm run sicherung             # Datensicherung erstellen und wegkopieren (docs/sicherung.md)
 npm test                      # Rechentests, laufen in einer Sekunde
 ```
 

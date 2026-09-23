@@ -36,3 +36,6 @@ server/pb_migrations/
 
 # Ablage der Cowork-Bruecke, gehoert nicht ins Repo
 Claude outputs/
+
+# Datensicherungen enthalten die ganze Datenbank — nie ins Repository.
+sicherungen/

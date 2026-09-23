@@ -18,7 +18,8 @@
     "einrichten": "node server/einrichten.mjs",
     "beispieldaten": "node scripts/beispieldaten.mjs",
     "entwicklung-weg": "node server/entwicklung-weg.mjs",
-    "rechte-pruefen": "node scripts/rechte-pruefen.mjs"
+    "rechte-pruefen": "node scripts/rechte-pruefen.mjs",
+    "sicherung": "node scripts/sicherung.mjs"
   },
   "engines": {
     "node": ">=20"

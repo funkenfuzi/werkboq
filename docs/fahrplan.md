@@ -271,6 +271,10 @@ sind seit dem 23. September nachgezogen, siehe „Zweiter Durchgang Rechte".
 
 ## Vor der ersten echten Inbetriebnahme
 
+- `SICHERUNG_ZIEL` in der `.env` auf einen zweiten Datenträger setzen und
+  `npm run sicherung` einmal laufen lassen. Die nächtliche Sicherung läuft
+  von selbst, liegt aber auf demselben Rechner — siehe docs/sicherung.md.
+
 - `npm run entwicklung-weg` ausführen: löscht den Zugang adm/adm und setzt die
   Passwort-Mindestlänge zurück auf acht Zeichen.
 - Mindestens einen echten Administrator anlegen, bevor der Entwicklungszugang

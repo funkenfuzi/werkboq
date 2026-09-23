@@ -211,6 +211,9 @@ try {
   // Ersten Anwendungsbenutzer anlegen, falls gewünscht und noch keiner da ist
   await erstenBenutzerAnlegen();
 
+  // Nächtliche Datensicherung, falls noch keine eingestellt ist
+  await sicherungEinrichten();
+
   // Bequemer Entwicklungszugang adm/adm, nur mit WB_ENTWICKLUNG=ja
   await entwicklungszugangAnlegen();
 
@@ -422,6 +425,36 @@ async function entwicklungszugangAnlegen() {
  * NICHT derselbe wie ein Anwendungsbenutzer – in Werkboq meldet man sich mit
  * einem Datensatz aus der users-Collection an.
  */
+/**
+ * Nächtliche Datensicherung durch PocketBase selbst.
+ *
+ * Bis September 2026 gab es keine: wer die Datenbank verlor, verlor
+ * Rechnungen, die sieben Jahre aufzubewahren sind. PocketBase kann das
+ * selbst — eine ZIP mit der ganzen Datenbank samt Dateien, erstellt im
+ * laufenden Betrieb und dabei in sich stimmig (anders als eine Kopie von
+ * data.db ohne die WAL-Datei daneben). Hier wird es nur eingeschaltet:
+ * jede Nacht um 2:30, die letzten 14 behalten.
+ *
+ * Hat jemand schon etwas eingestellt (etwa einen S3-Speicher), bleibt es
+ * dabei. Die Sicherungen liegen in pb_data/backups — auf DEMSELBEN
+ * Rechner. Gegen einen kaputten Rechner hilft das nicht; dafür
+ * `npm run sicherung`, das eine Kopie an einen anderen Ort legt. Siehe
+ * docs/sicherung.md.
+ */
+async function sicherungEinrichten() {
+  try {
+    const s = await pb.settings.getAll();
+    if (s.backups?.cron) {
+      console.log(`sicherung: eingestellt (${s.backups.cron}, behält ${s.backups.cronMaxKeep})`);
+      return;
+    }
+    await pb.settings.update({ backups: { ...s.backups, cron: "30 2 * * *", cronMaxKeep: 14 } });
+    console.log("sicherung: nächtlich um 2:30 eingeschaltet, die letzten 14 bleiben (pb_data/backups)");
+  } catch (e) {
+    console.log(`sicherung: konnte nicht eingestellt werden (${e?.message ?? e}) — bitte im Admin-UI unter Settings → Backups nachholen`);
+  }
+}
+
 async function erstenBenutzerAnlegen() {
   const email = process.env.WB_BENUTZER_EMAIL;
   const passwort = process.env.WB_BENUTZER_PASSWORT;
