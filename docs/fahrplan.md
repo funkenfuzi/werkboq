@@ -378,7 +378,17 @@ Balken Empfang lädt niemand ein halbes Megabyte, nur um eine Seite zu
   `packages/core/test/schema-spiegel.test.ts` prüft weiterhin, dass die
   Auswahlwerte im Schema zu den Konstanten im Code passen — das sind auch
   nach dem Umzug zwei Stellen.
-- Datei-Uploads in der Offline-Warteschlange puffern.
+- ~~Datei-Uploads in der Offline-Warteschlange puffern~~ — für Fotos
+  erledigt am 23. September 2026 (`packages/core/src/daten/dateipuffer.ts`):
+  ohne Netz landen sie in IndexedDB, stehen im Fotoblock sichtbar als
+  „Wartet auf Netz" und gehen beim Wiederverbinden hinaus. Zwei offene
+  Fenster laden nicht doppelt (Web-Locks-Sperre, im ersten Test war es
+  doppelt), und ein eindeutiger Index auf `fotos.lokaleId` fängt auch einen
+  Absturz zwischen Hochladen und Aufräumen ab. Lehnt der Server ein Bild
+  ab, bleibt es mit Begründung stehen statt still zu verschwinden.
+  Dokumente puffern noch nicht — die legt meist das Büro ab, mit Netz.
+  Bekannt: Safari auf dem iPhone darf den Speicher einer Seite räumen, die
+  sieben Tage nicht geöffnet wurde.
 - Konfliktbehandlung beim Nachspielen (derzeit: letzter gewinnt).
 - Desktop-Verpackung (Tauri) und die Frage, ob das Tablet nativ oder als
   installierbare Web-App läuft.

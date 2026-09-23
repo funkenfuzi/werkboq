@@ -189,8 +189,16 @@ export default [
       // Wer das Bild aufgenommen hat. Für die Beweiskraft so wichtig wie
       // das Bild selbst.
       { name: "mitarbeiter", type: "relation", options: { collectionId: "mitarbeiter", maxSelect: 1 } },
+      // Kennung aus dem Zwischenspeicher des Geräts, wenn das Foto ohne Netz
+      // aufgenommen wurde. Eindeutig, damit ein Foto, das zweimal
+      // nachgereicht wird (zwei offene Fenster, Absturz nach dem Hochladen),
+      // nicht doppelt ankommt.
+      { name: "lokaleId", type: "text", options: { max: 60 } },
     ],
-    indexes: ["CREATE INDEX idx_fotos_auftrag_art ON fotos (auftrag, art)"],
+    indexes: [
+      "CREATE INDEX idx_fotos_auftrag_art ON fotos (auftrag, art)",
+      "CREATE UNIQUE INDEX idx_fotos_lokaleid ON fotos (lokaleId) WHERE lokaleId != ''",
+    ],
   },
   {
     // Unterschrift des Kunden, am Tablet auf der Baustelle.

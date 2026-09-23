@@ -17,6 +17,12 @@ export * from "./daten/typen";
 export * from "./daten/phasen";
 export * from "./daten/client";
 export * from "./daten/offline";
+export {
+  beiDateiAenderung,
+  gepufferteDateien,
+  gepufferteEntfernen,
+  type GepufferteDatei,
+} from "./daten/dateipuffer";
 export * from "./daten/kunden";
 export * from "./daten/auftraege";
 export * from "./daten/ansprechpartner";

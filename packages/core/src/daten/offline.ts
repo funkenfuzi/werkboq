@@ -8,8 +8,9 @@ import { pb } from "./client";
  * Warteschlange (IndexedDB über localStorage-Fallback in dieser ersten
  * Scheibe) und wird beim nächsten Netzkontakt in Reihenfolge nachgespielt.
  *
- * Diese erste Fassung ist bewusst einfach: keine Konfliktauflösung,
- * Datei-Uploads werden noch nicht gepuffert. Das kommt in einer späteren Scheibe.
+ * Bewusst einfach: keine Konfliktauflösung (der letzte Stand gewinnt).
+ * Dateien — Fotos im Keller — puffert ./dateipuffer.ts in IndexedDB;
+ * localStorage fasst dafür nicht genug.
  */
 
 export type Vorgang =
@@ -122,6 +123,16 @@ export async function nachspielen(): Promise<void> {
 
 /** Beim Start aufrufen: nachspielen, sobald der Browser wieder online ist. */
 export function offlineStarten(): void {
-  globalThis.addEventListener?.("online", () => void nachspielen());
-  void nachspielen();
+  const alles = () => void nachspielen().then(() => nachreicher?.());
+  globalThis.addEventListener?.("online", alles);
+  alles();
+}
+
+/**
+ * Wer gepufferte Dateien nachreicht — gesetzt von baustelle.ts, damit
+ * diese Datei nicht an IndexedDB hängt (sie läuft auch in Tests).
+ */
+let nachreicher: (() => Promise<unknown>) | null = null;
+export function dateiNachreicherSetzen(fn: () => Promise<unknown>): void {
+  nachreicher = fn;
 }

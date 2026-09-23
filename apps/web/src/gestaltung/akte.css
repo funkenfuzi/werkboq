@@ -745,6 +745,7 @@
 .wb-galerie__titel {
   align-items: center;
   display: flex;
+  flex-wrap: wrap;
   font-size: var(--wb-text-sm);
   gap: var(--wb-space-2);
   margin: 0 0 var(--wb-space-2);
@@ -1286,4 +1287,23 @@
 .wb-nebentext {
   color: var(--wb-text-muted);
   font-size: var(--wb-text-xs);
+}
+
+/* Fotos, die ohne Netz aufgenommen wurden und noch auf dem Gerät liegen.
+   Gestrichelter Rahmen: sichtbar anders als ein gesichertes Bild — wer
+   den Unterschied übersieht, macht die Wand zu, bevor das Bild da ist. */
+.wb-galerie__gruppe--wartend {
+  padding: var(--wb-space-3);
+  border: 2px dashed var(--wb-status-warn);
+  border-radius: var(--wb-radius-md);
+  background: var(--wb-status-warn-soft);
+}
+
+.wb-galerie__bild--wartend img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: var(--wb-radius-md);
+  opacity: 0.85;
 }

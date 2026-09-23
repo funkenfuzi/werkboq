@@ -12,6 +12,10 @@ import {
   fotoHochladen,
   fotoLoeschen,
   fotosZuAuftrag,
+  gepufferteFotos,
+  beiDateiAenderung,
+  gepufferteEntfernen,
+  type GepufferteDatei,
   dateiAdresse,
   nachArt,
   Symbol,
@@ -44,11 +48,26 @@ export function Fotoblock({ auftragId }: { auftragId: string }) {
   const [laeuft, setLaeuft] = useState(0);
   const [fehler, setFehler] = useState<string | null>(null);
   const [gross, setGross] = useState<Foto | null>(null);
+  const [wartend, setWartend] = useState<GepufferteDatei[]>([]);
   const kamera = useRef<HTMLInputElement>(null);
   const dateiwahl = useRef<HTMLInputElement>(null);
 
+  const wartendeLaden = useCallback(() => {
+    void gepufferteFotos(auftragId).then(setWartend);
+  }, [auftragId]);
+
+  // Kommt das Netz zurück und werden Fotos nachgereicht, ändert sich die
+  // Zahl im Puffer — dann beides neu laden, damit das Bild vom „wartet"-
+  // Stapel in die richtige Gruppe wandert.
+  useEffect(() => beiDateiAenderung(() => {
+    wartendeLaden();
+    if (navigator.onLine) laden();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [wartendeLaden]);
+
   const laden = useCallback(() => {
     setLaedt(true);
+    wartendeLaden();
     fotosZuAuftrag(auftragId)
       .then((liste) => {
         setFotos(liste);
@@ -57,9 +76,13 @@ export function Fotoblock({ auftragId }: { auftragId: string }) {
         const hat = (a: Fotoart) => liste.some((f) => fotoartVon(f) === a);
         if (hat("vorher") && !hat("nachher")) setArt("nachher");
       })
-      .catch((e: unknown) => setFehler(fehlersatz(e)))
+      // Ohne Netz keine Fehlermeldung über die ganze Breite: die schon
+      // geladenen Bilder bleiben stehen, die neuen kommen in den Puffer.
+      .catch((e: unknown) => {
+        if (navigator.onLine) setFehler(fehlersatz(e));
+      })
       .finally(() => setLaedt(false));
-  }, [auftragId]);
+  }, [auftragId, wartendeLaden]);
 
   useEffect(laden, [laden]);
 
@@ -70,7 +93,8 @@ export function Fotoblock({ auftragId }: { auftragId: string }) {
     let misslungen = 0;
     for (const datei of Array.from(dateien)) {
       try {
-        await fotoHochladen(auftragId, datei, art);
+        const ergebnis = await fotoHochladen(auftragId, datei, art);
+        if ("gepuffert" in ergebnis) wartendeLaden();
       } catch (e: unknown) {
         misslungen += 1;
         setFehler(fehlersatz(e));
@@ -165,9 +189,29 @@ export function Fotoblock({ auftragId }: { auftragId: string }) {
         </p>
       )}
 
+      {wartend.length > 0 && (
+        <div className="wb-galerie__gruppe wb-galerie__gruppe--wartend">
+          <h3 className="wb-galerie__titel">
+            <span className="wb-plakette wb-plakette--warn">Wartet auf Netz</span>
+            <span className="wb-galerie__anzahl">{wartend.length}</span>
+          </h3>
+          <p className="wb-notiz">
+            Noch nicht auf dem Server: ohne Netz aufgenommen und nur auf diesem Gerät
+            gespeichert. Sie gehen von selbst hinaus, sobald wieder Verbindung besteht — erst
+            dann sind sie gesichert. Bis dahin kein privates Fenster schließen und den
+            Browserverlauf nicht löschen.
+          </p>
+          <ul className="wb-galerie">
+            {wartend.map((d) => (
+              <WartendesBild key={d.id} datei={d} beiEntfernen={wartendeLaden} />
+            ))}
+          </ul>
+        </div>
+      )}
+
       {laedt && fotos.length === 0 && <p className="wb-leer">Wird geladen …</p>}
 
-      {!laedt && fotos.length === 0 && (
+      {!laedt && fotos.length === 0 && wartend.length === 0 && (
         <p className="wb-leer">
           Noch keine Fotos. Der beste Zeitpunkt für das Vorher-Bild ist, bevor der erste
           Handgriff getan ist — und für das Nachher-Bild, bevor die Wand zugeht.
@@ -217,6 +261,44 @@ export function Fotoblock({ auftragId }: { auftragId: string }) {
         />
       )}
     </section>
+  );
+}
+
+/**
+ * Ein Bild aus dem Zwischenspeicher. Vorschau aus dem gespeicherten Blob,
+ * Art und Zeitpunkt darunter. Hat der Server es abgelehnt, steht der Grund
+ * da, und nur dann gibt es einen Knopf zum Entfernen — ein Bild, das noch
+ * unterwegs ist, wirft man nicht aus Versehen weg.
+ */
+function WartendesBild({ datei, beiEntfernen }: { datei: GepufferteDatei; beiEntfernen: () => void }) {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    const u = URL.createObjectURL(datei.datei);
+    setUrl(u);
+    return () => URL.revokeObjectURL(u);
+  }, [datei.datei]);
+  const art = (datei.felder.art as Fotoart) || "sonstiges";
+  return (
+    <li className="wb-galerie__bild wb-galerie__bild--wartend">
+      {url && <img src={url} alt="" />}
+      <p className="wb-galerie__zeile">
+        {FOTOART_TEXT[art] ?? ""} · {new Date(datei.angelegt).toLocaleTimeString("de-AT", { hour: "2-digit", minute: "2-digit" })}
+      </p>
+      {datei.fehler && (
+        <p className="wb-fehler">
+          Vom Server abgelehnt: {datei.fehler}{" "}
+          <button
+            type="button"
+            className="wb-button wb-button--sekundaer wb-button--klein"
+            onClick={() => {
+              if (confirm("Dieses Foto endgültig verwerfen?")) void gepufferteEntfernen(datei.id).then(beiEntfernen);
+            }}
+          >
+            Verwerfen
+          </button>
+        </p>
+      )}
+    </li>
   );
 }
 

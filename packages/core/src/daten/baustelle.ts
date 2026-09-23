@@ -2,6 +2,8 @@ import { pb } from "./client";
 import { protokollieren } from "./protokoll";
 import { sicher } from "../werkzeug/zeitrechnung";
 import { eigenerMitarbeiter } from "./mitarbeiter";
+import { dateiNachreicherSetzen } from "./offline";
+import { dateienNachspielen, dateiPuffern, gepufferteDateien, istNetzfehler, type GepufferteDatei } from "./dateipuffer";
 import { FOTOARTEN, type Dokument, type Foto, type Fotoart } from "./typen";
 
 /**
@@ -121,12 +123,12 @@ export async function fotosZuAuftrag(auftragId: string): Promise<Foto[]> {
 }
 
 /**
- * Lädt ein Foto hoch.
+ * Lädt ein Foto hoch — oder puffert es, wenn kein Netz da ist.
  *
- * Ohne Offline-Warteschlange: die puffert Felder, keine Dateien. Ein Foto,
- * das im Funkloch scheinbar gespeichert wurde und dann doch nie ankommt,
- * wäre schlimmer als eine ehrliche Fehlermeldung — der Monteur würde die
- * Wand zumachen im Glauben, das Bild sei da.
+ * Gibt den gespeicherten Datensatz zurück, oder `{ gepuffert }`, wenn das
+ * Foto erst im Zwischenspeicher liegt. Der Fotoblock zeigt es dann mit dem
+ * Vermerk „noch nicht auf dem Server" — siehe ./dateipuffer.ts, warum das
+ * sichtbar sein muss.
  */
 export async function fotoHochladen(
   auftragId: string,
@@ -134,28 +136,54 @@ export async function fotoHochladen(
   art: Fotoart = "sonstiges",
   beschreibung = "",
   aufgenommen = heute(),
-): Promise<Foto> {
-  const formular = new FormData();
-  formular.append("auftrag", auftragId);
-  formular.append("datei", datei);
-  formular.append("art", art);
-  formular.append("beschreibung", beschreibung);
-  formular.append("aufgenommen", aufgenommen);
+): Promise<Foto | { gepuffert: GepufferteDatei }> {
+  const felder: Record<string, string> = { auftrag: auftragId, art, beschreibung, aufgenommen };
+  const text = `${FOTOART_TEXT[art]}: Foto abgelegt${beschreibung ? ` — ${beschreibung}` : ""}`;
 
   // Wer das Bild gemacht hat, gehört dazu — für die Beweiskraft so wichtig
   // wie das Bild. Fehlt die Verknüpfung, bleibt das Feld leer statt zu
   // scheitern: ein Bürozugang ohne Mitarbeiterdatensatz darf Fotos ablegen.
+  // Ohne Netz wird der Mitarbeiter beim Nachreichen ergänzt.
   const ich = await eigenerMitarbeiter().catch(() => null);
-  if (ich) formular.append("mitarbeiter", ich.id);
+  if (ich) felder.mitarbeiter = ich.id;
 
-  const neu = await pb().collection("fotos").create<Foto>(formular);
-  await protokollieren(
-    "auftraege",
-    auftragId,
-    "anlegen",
-    `${FOTOART_TEXT[art]}: Foto abgelegt${beschreibung ? ` — ${beschreibung}` : ""}`,
-  );
-  return neu;
+  const formular = new FormData();
+  for (const [k, v] of Object.entries(felder)) formular.append(k, v);
+  formular.append("datei", datei);
+
+  try {
+    const neu = await pb().collection("fotos").create<Foto>(formular);
+    await protokollieren("auftraege", auftragId, "anlegen", text);
+    return neu;
+  } catch (e) {
+    if (!istNetzfehler(e)) throw e;
+    const gepuffert = await dateiPuffern({
+      collection: "fotos",
+      felder,
+      dateifeld: "datei",
+      datei,
+      dateiname: datei.name || `foto-${Date.now()}.jpg`,
+      protokoll: { bereich: "auftraege", datensatz: auftragId, text },
+    });
+    return { gepuffert };
+  }
+}
+
+/** Fotos, die für diesen Auftrag noch im Zwischenspeicher liegen. */
+export async function gepufferteFotos(auftragId: string): Promise<GepufferteDatei[]> {
+  return await gepufferteDateien((d) => d.collection === "fotos" && d.felder.auftrag === auftragId).catch(() => []);
+}
+
+// Beim Wiederverbinden mit nachreichen — offline.ts ruft das auf.
+dateiNachreicherSetzen(() => fotosNachreichen());
+
+/** Gepufferte Dateien hochladen; fehlende Mitarbeiterangabe wird ergänzt. */
+export async function fotosNachreichen(): Promise<number> {
+  return await dateienNachspielen(async (d): Promise<Record<string, string>> => {
+    if (d.collection !== "fotos" || d.felder.mitarbeiter) return {};
+    const ich = await eigenerMitarbeiter().catch(() => null);
+    return ich ? { mitarbeiter: ich.id } : {};
+  });
 }
 
 /** Die Einordnung nachträglich ändern. */
