@@ -273,6 +273,34 @@ export function brettspalten(belegt: Iterable<string>, art: Auftragsart | null):
   }));
 }
 
+/**
+ * Rückt einen Auftrag bis zu einer Stufe vor — oder gar nicht.
+ *
+ * Für Ereignisse aus anderen Bausteinen: ein Angebot geht hinaus (→
+ * „angebot"), der Kunde nimmt an (→ „beauftragt"). Dabei gilt:
+ *
+ *   - Nie zurück. Steht der Auftrag schon weiter, bleibt er, wo er ist —
+ *     ein nachgereichtes Angebot holt eine laufende Baustelle nicht in die
+ *     Angebotsphase zurück.
+ *   - Nie zu weit. Kennt die Art die Stufe nicht (eine Störung hat kein
+ *     „Beauftragt"), bleibt es bei der letzten Phase davor, die sie kennt.
+ *     Ein Angebot, das hinausgeht, darf einen Auftrag nicht auf „In
+ *     Arbeit" setzen, nur weil der Betrieb „Angebot" ausgeblendet hat.
+ *
+ * Gibt die Zielstufe zurück, oder null, wenn nichts zu tun ist.
+ */
+export function vorruecken(
+  a: { art?: Auftragsart | string; phase: string },
+  bis: Phasenstufe,
+): Phasenstufe | null {
+  const jetzt = PHASENSTUFEN.indexOf(umschluesseln(a.phase));
+  const ziel = PHASENSTUFEN.indexOf(bis);
+  const moeglich = phasenDerArt(artAus(a.art)).filter((p) => PHASENSTUFEN.indexOf(p.stufe) <= ziel);
+  const letzte = moeglich[moeglich.length - 1];
+  if (!letzte || PHASENSTUFEN.indexOf(letzte.stufe) <= jetzt) return null;
+  return letzte.stufe;
+}
+
 function artAus(art: unknown): Auftragsart {
   return (AUFTRAGSARTEN as readonly unknown[]).includes(art) ? (art as Auftragsart) : "projekt";
 }

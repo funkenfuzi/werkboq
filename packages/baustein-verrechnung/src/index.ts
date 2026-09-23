@@ -3,18 +3,22 @@ import { Belege } from "./seiten/Belege";
 import { BelegAkte } from "./seiten/BelegAkte";
 import { BelegDruck } from "./seiten/BelegDruck";
 import { AuftragBelege, BelegKachel } from "./erweiterungen/AuftragBelege";
+import { AngebotKachel } from "./erweiterungen/AngebotKachel";
+import { Angebote } from "./seiten/Angebote";
 import { VERRECHNUNG_COLLECTIONS } from "./daten/collections";
 import "./gestaltung/beleg.css";
 
 export * from "./daten/belege";
 export * from "./daten/zahlungen";
 export * from "./daten/mahnwesen";
+export * from "./daten/nachfassen";
 
 /**
  * Baustein Verrechnung.
  *
  * Angebot, Auftragsbestätigung, Rechnung, Gutschrift — dazu Zahlungen,
- * offene Posten und ein dreistufiges Mahnwesen.
+ * offene Posten, ein dreistufiges Mahnwesen und die Angebotsverfolgung
+ * (Nachfassen nach Rhythmus, Zusage, Absage mit Grund).
  *
  * Was dieser Baustein von anderen nimmt, wenn sie da sind:
  *   auftragspositionen — die Zeilen aus dem Baustein Material
@@ -34,7 +38,7 @@ export const bausteinVerrechnung: WerkboqModul = {
   id: "verrechnung",
   name: "Verrechnung",
   beschreibung:
-    "Angebot, Auftragsbestätigung, Rechnung und Gutschrift mit den Pflichtangaben des jeweiligen Landes, Zahlungen, offene Posten und dreistufiges Mahnwesen.",
+    "Angebot, Auftragsbestätigung, Rechnung und Gutschrift mit den Pflichtangaben des jeweiligen Landes, Zahlungen, offene Posten, dreistufiges Mahnwesen und Angebotsverfolgung mit Nachfassen.",
   art: "baustein",
   version: "0.1.0",
   benoetigtKern: "^0.1.0",
@@ -48,6 +52,13 @@ export const bausteinVerrechnung: WerkboqModul = {
       titel: "Belege",
       symbol: "beleg",
       komponente: Belege,
+      bereich: "buchhaltung",
+    },
+    {
+      pfad: "/angebote",
+      titel: "Angebote",
+      symbol: "vertrag",
+      komponente: Angebote,
       bereich: "buchhaltung",
     },
     {
@@ -69,6 +80,7 @@ export const bausteinVerrechnung: WerkboqModul = {
   erweiterungen: {
     "auftrag.abrechnung": AuftragBelege,
     "auftrag.kachel": BelegKachel,
+    "dashboard.kachel": AngebotKachel,
   },
 
   async initialisieren() {

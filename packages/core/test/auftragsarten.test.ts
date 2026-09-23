@@ -4,6 +4,7 @@ import { AUFTRAGSARTEN, artVon } from "../src/daten/typen";
 import {
   ALTE_PHASEN,
   brettspalten,
+  vorruecken,
   fortschritt,
   naechstePhase,
   PFLICHTSTUFEN,
@@ -270,6 +271,34 @@ describe("Spalten des Phasenbretts", () => {
     phasenEinstellen({ wartung: [{ stufe: "beauftragt", text: "Geplant" }] });
     // "errichtung" hieß früher In Arbeit — die Wartung kennt das nicht, zeigt es aber.
     strictEqual(stufen(brettspalten(["errichtung"], "wartung")).includes("in_arbeit"), true);
+  });
+});
+
+describe("vorruecken", () => {
+  it("rückt ein Projekt von der Anfrage ins Angebot", () => {
+    strictEqual(vorruecken({ art: "projekt", phase: "eingang" }, "angebot"), "angebot");
+  });
+
+  it("rückt nie zurück", () => {
+    strictEqual(vorruecken({ art: "projekt", phase: "in_arbeit" }, "beauftragt"), null);
+    strictEqual(vorruecken({ art: "projekt", phase: "beauftragt" }, "beauftragt"), null);
+  });
+
+  it("geht nie über das Ziel hinaus, wenn die Art die Stufe nicht kennt", () => {
+    // Eine Störung hat weder Angebot noch Beauftragt — sie bleibt „Gemeldet".
+    strictEqual(vorruecken({ art: "stoerung", phase: "eingang" }, "beauftragt"), null);
+    // Eine Wartung hat kein Angebot, aber „Geplant" (beauftragt) — für eine Annahme passt das.
+    strictEqual(vorruecken({ art: "wartung", phase: "eingang" }, "beauftragt"), "beauftragt");
+  });
+
+  it("setzt nicht auf In Arbeit, nur weil der Betrieb Angebot ausgeblendet hat", () => {
+    phasenEinstellen({ projekt: [{ stufe: "eingang", text: "Anfrage" }, { stufe: "in_arbeit", text: "Montage" }] });
+    strictEqual(vorruecken({ art: "projekt", phase: "eingang" }, "angebot"), null);
+    strictEqual(vorruecken({ art: "projekt", phase: "eingang" }, "beauftragt"), null);
+  });
+
+  it("versteht alte Phasennamen", () => {
+    strictEqual(vorruecken({ art: "projekt", phase: "anfrage" }, "angebot"), "angebot");
   });
 });
 

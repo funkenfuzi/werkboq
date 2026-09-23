@@ -113,6 +113,23 @@ try {
   await pruefe("Akte ändern", () => alsPersonal.collection("personaldaten").update(akte.id, { notizen: "geprüft" }), true);
   await pruefe("Urlaub genehmigen", () => alsPersonal.collection("abwesenheiten").update(abwesenheit.id, { status: "genehmigt" }), true);
 
+  // Nachfasseinträge sind der Nachweis, dass nachgefasst wurde — keine
+  // updateRule, kein Löschen. Geprüft, sofern es schon einen gibt.
+  const kontakt = await admin.collection("angebotskontakte").getList(1, 1).catch(() => null);
+  if (kontakt?.items[0]) {
+    abschnitt("Angebotsverfolgung");
+    await pruefe(
+      "Nachfasseintrag nachträglich ändern",
+      () => alsPersonal.collection("angebotskontakte").update(kontakt.items[0].id, { notiz: "geändert" }),
+      false,
+    );
+    await pruefe(
+      "Nachfasseintrag löschen",
+      () => alsPersonal.collection("angebotskontakte").delete(kontakt.items[0].id),
+      false,
+    );
+  }
+
   // --------------------------------------------------------------------
   // Was noch offen ist. Kein Fehler, sondern der ehrliche Stand.
   // --------------------------------------------------------------------
@@ -132,6 +149,9 @@ try {
   });
   await nurBerichten(offen, "Monteur kann Rechnungen lesen", async () => {
     return (await alsMonteur.collection("belege").getFullList()).length > 0;
+  });
+  await nurBerichten(offen, "Monteur kann Nachfassnotizen zu Angeboten lesen", async () => {
+    return (await alsMonteur.collection("angebotskontakte").getFullList()).length > 0;
   });
 
   console.log(

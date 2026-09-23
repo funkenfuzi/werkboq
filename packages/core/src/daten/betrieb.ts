@@ -62,6 +62,27 @@ export interface Betrieb extends Basisdatensatz {
   kmSatz?: number;
   /** Netto je Fahrt, in Cent. */
   anfahrtPauschale?: number;
+  /**
+   * Nach wie vielen Tagen bei einem offenen Angebot nachgefasst wird, als
+   * Folge: [7, 14, 30] heißt sieben Tage nach dem Versand, vierzehn nach
+   * dem ersten Anruf, dreißig nach dem zweiten. Leer: Voreinstellung.
+   */
+  nachfassTage?: number[] | null;
+}
+
+export const NACHFASS_RHYTHMUS_VORGABE: readonly number[] = [7, 14, 30];
+
+/**
+ * Den Rhythmus aus dem, was gespeichert oder getippt wurde: [7, 14, 30]
+ * oder „7, 14, 30". Unsinn fällt weg; bleibt nichts übrig, gilt die
+ * Vorgabe — ein leerer Rhythmus hieße, es erinnert nie jemand.
+ */
+export function nachfassRhythmus(roh: unknown): number[] {
+  const teile = Array.isArray(roh) ? roh : String(roh ?? "").split(/[\s,;]+/);
+  const zahlen = teile
+    .map((t) => Number(t))
+    .filter((n) => Number.isInteger(n) && n > 0 && n <= 365);
+  return zahlen.length ? zahlen : [...NACHFASS_RHYTHMUS_VORGABE];
 }
 
 export const FAHRTKOSTENARTEN = ["km", "pauschale", "keine"] as const;

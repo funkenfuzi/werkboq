@@ -16,6 +16,8 @@ import {
   FAHRTKOSTENARTEN,
   FAHRTKOSTENART_TEXT,
   fehlendeRechnungsangaben,
+  nachfassRhythmus,
+  NACHFASS_RHYTHMUS_VORGABE,
   schreibweiseVon,
   type Fahrtkostenart,
   LEERER_BETRIEB,
@@ -346,6 +348,11 @@ function Betriebsdaten() {
           />
         )}
 
+        <Rhythmusfeld
+          wert={werte.nachfassTage ?? null}
+          beiAenderung={(r) => feld("nachfassTage", r)}
+        />
+
         {fehler && <p className="wb-fehler wb-feld--breit" role="alert">{fehler}</p>}
         {hinweis && <p className="wb-hinweis wb-feld--breit" role="status">{hinweis}</p>}
 
@@ -403,6 +410,46 @@ function Geldfeld({
       ) : (
         hinweis && <small className="wb-notiz">{hinweis}</small>
       )}
+    </label>
+  );
+}
+
+/**
+ * Nachfassrhythmus für Angebote: „7, 14, 30". Gespeichert wird die Liste;
+ * darunter steht in Worten, was sie bedeutet, damit niemand raten muss,
+ * ob 14 „ab Versand" oder „ab dem letzten Anruf" heißt.
+ */
+function Rhythmusfeld({
+  wert,
+  beiAenderung,
+}: {
+  wert: number[] | null;
+  beiAenderung: (r: number[] | null) => void;
+}) {
+  const [text, setText] = useState(() => (wert?.length ? wert.join(", ") : ""));
+  const r = nachfassRhythmus(text);
+  const vorgabe = !text.trim();
+  const erklaert =
+    `Erstes Nachfassen ${r[0]} Tage nach dem Versand` +
+    r.slice(1).map((t, i) => `, ${i === 0 ? "dann" : "danach"} ${t} Tage nach dem letzten Kontakt`).join("") +
+    ". Danach gilt ein Angebot als kalt.";
+  return (
+    <label className="wb-feld wb-feld--breit">
+      <span>Angebote nachfassen nach (Tage)</span>
+      <input
+        type="text"
+        inputMode="numeric"
+        value={text}
+        placeholder={NACHFASS_RHYTHMUS_VORGABE.join(", ")}
+        onChange={(e) => {
+          setText(e.target.value);
+          beiAenderung(e.target.value.trim() ? nachfassRhythmus(e.target.value) : null);
+        }}
+      />
+      <small className="wb-notiz">
+        {vorgabe ? "Voreinstellung. " : ""}
+        {erklaert}
+      </small>
     </label>
   );
 }

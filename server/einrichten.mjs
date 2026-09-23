@@ -171,6 +171,9 @@ const KERN = [
       { name: "fahrtkostenArt", type: "select", options: { maxSelect: 1, values: ["km", "pauschale", "keine"] } },
       { name: "kmSatz", type: "number", options: { min: 0, noDecimal: true } },
       { name: "anfahrtPauschale", type: "number", options: { min: 0, noDecimal: true } },
+      // Nachfassrhythmus für Angebote in Tagen, etwa [7, 14, 30]. Leer heißt
+      // Voreinstellung.
+      { name: "nachfassTage", type: "json", options: { maxSize: 2000 } },
       { name: "inhaber", type: "text" },
       { name: "strasse", type: "text" },
       { name: "plz", type: "text" },
@@ -503,10 +506,10 @@ const BAUSTEINE = [
       { name: "bezeichnung", type: "text", required: true },
       { name: "art", type: "select", required: true, options: { maxSelect: 1, values: ["leistung", "material", "fremdleistung", "sonstiges"] } },
       { name: "einheit", type: "text", required: true, options: { max: 12 } },
-      { name: "preis", type: "number", required: true, options: { min: 0, noDecimal: true } },
+      { name: "preis", type: "number", options: { min: 0, noDecimal: true } },
       { name: "einkauf", type: "number", options: { min: 0, noDecimal: true } },
       // Nachkommastellen erlaubt: die Schweiz kennt 8,1 %.
-      { name: "ustsatz", type: "number", required: true, options: { min: 0, max: 100 } },
+      { name: "ustsatz", type: "number", options: { min: 0, max: 100 } },
       { name: "beschreibung", type: "text" },
       { name: "aktiv", type: "bool" },
       // EAN/GTIN für den Scanner. Keine Pflicht und bewusst nicht
@@ -538,10 +541,10 @@ const BAUSTEINE = [
       { name: "beschreibung", type: "text" },
       { name: "menge", type: "number", required: true },
       { name: "einheit", type: "text", required: true, options: { max: 12 } },
-      { name: "einzelpreis", type: "number", required: true, options: { noDecimal: true } },
+      { name: "einzelpreis", type: "number", options: { noDecimal: true } },
       { name: "rabatt", type: "number", options: { min: 0, max: 100 } },
       // Nachkommastellen erlaubt: die Schweiz kennt 8,1 %.
-      { name: "ustsatz", type: "number", required: true, options: { min: 0, max: 100 } },
+      { name: "ustsatz", type: "number", options: { min: 0, max: 100 } },
       { name: "verrechnet", type: "bool" },
       // Vom Monteur erfasst und noch ungeprüft, oder vom Büro freigegeben.
       // LEER BEDEUTET FREIGEGEBEN: Positionen, die es vor dieser
@@ -609,12 +612,21 @@ const BAUSTEINE = [
       { name: "skontoTage", type: "number", options: { min: 0, noDecimal: true } },
       { name: "kopftext", type: "text" },
       { name: "fusstext", type: "text" },
-      { name: "netto", type: "number", required: true, options: { noDecimal: true } },
-      { name: "ust", type: "number", required: true, options: { noDecimal: true } },
-      { name: "brutto", type: "number", required: true, options: { noDecimal: true } },
+      // Beträge ohne „required": PocketBase hält bei einem Zahlenfeld mit
+      // required die Null für einen fehlenden Wert. Bis September 2026 ließ
+      // sich deshalb keine Rechnung mit Übergang der Steuerschuld speichern
+      // (ust = 0) und kein leerer Angebotsentwurf anlegen (netto = 0).
+      { name: "netto", type: "number", options: { noDecimal: true } },
+      { name: "ust", type: "number", options: { noDecimal: true } },
+      { name: "brutto", type: "number", options: { noDecimal: true } },
       { name: "nettoJeSatz", type: "json", options: { maxSize: 4000 } },
       { name: "storniert", type: "relation", options: { collectionId: "belege", maxSelect: 1 } },
       { name: "folgebeleg", type: "relation", options: { collectionId: "belege", maxSelect: 1 } },
+      // Angebotsverfolgung: nächster vereinbarter Termin, und warum ein
+      // Angebot verloren ging. Die Liste der Gründe steht in nachfassen.ts.
+      { name: "wiedervorlage", type: "date" },
+      { name: "absagegrund", type: "select", options: { maxSelect: 1, values: ["preis", "konkurrenz", "zeitpunkt", "kein_bedarf", "keine_rueckmeldung", "sonstiges"] } },
+      { name: "absagenotiz", type: "text" },
     ],
     indexes: [
       "CREATE UNIQUE INDEX idx_belege_nummer ON belege (nummer)",
@@ -636,14 +648,30 @@ const BAUSTEINE = [
       { name: "beschreibung", type: "text" },
       { name: "menge", type: "number", required: true },
       { name: "einheit", type: "text", options: { max: 12 } },
-      { name: "einzelpreis", type: "number", required: true, options: { noDecimal: true } },
+      { name: "einzelpreis", type: "number", options: { noDecimal: true } },
       { name: "rabatt", type: "number", options: { min: 0, max: 100 } },
       // Nachkommastellen erlaubt: die Schweiz kennt 8,1 %.
-      { name: "ustsatz", type: "number", required: true, options: { min: 0, max: 100 } },
-      { name: "betrag", type: "number", required: true, options: { noDecimal: true } },
+      { name: "ustsatz", type: "number", options: { min: 0, max: 100 } },
+      { name: "betrag", type: "number", options: { noDecimal: true } },
       { name: "quelle", type: "text" },
     ],
     indexes: ["CREATE INDEX idx_belegpositionen_beleg ON belegpositionen (beleg, pos)"],
+    deleteRule: null,
+  },
+  {
+    // Jeder Anruf, jede Mail zu einem offenen Angebot. Nie geändert, nie
+    // gelöscht: das ist der Nachweis, dass nachgefasst wurde, und die
+    // Grundlage dafür, wann das nächste Mal fällig ist.
+    name: "angebotskontakte",
+    schema: [
+      { name: "beleg", type: "relation", required: true, options: { collectionId: "belege", maxSelect: 1 } },
+      { name: "datum", type: "date", required: true },
+      { name: "art", type: "select", required: true, options: { maxSelect: 1, values: ["telefon", "mail", "persoenlich", "sonstiges"] } },
+      { name: "notiz", type: "text" },
+      { name: "wer", type: "text", options: { max: 80 } },
+    ],
+    indexes: ["CREATE INDEX idx_angebotskontakte_beleg ON angebotskontakte (beleg, datum)"],
+    updateRule: null,
     deleteRule: null,
   },
   {
@@ -928,7 +956,7 @@ try {
   // unterscheiden — und genau das verunsichert zu Recht.
   console.log(
     `${alle.length} Collections geprüft, ${angelegt} neu angelegt, ` +
-      `${geaendert.size} um Felder erweitert, ` +
+      `${geaendert.size} geändert, ` +
       `${alle.length - angelegt - geaendert.size} unverändert.`,
   );
 
@@ -1282,11 +1310,20 @@ async function collectionAbgleichen(def, still = false) {
   // PocketBase lehnt einen Typwechsel ab ("Field type cannot be changed").
   const getauscht = await typwechselBehandeln(def, vorhanden, alteFelder);
 
+  // `required` ausdrücklich aus der Definition, nicht aus dem alten Feld:
+  // sonst bliebe ein einmal gesetztes „required" für immer stehen, auch
+  // wenn die Definition es längst nicht mehr verlangt. Genau so blieb
+  // `belege.ust` Pflicht, und PocketBase hält bei Zahlen die Null für
+  // „fehlt" — keine Rechnung mit Übergang der Steuerschuld ließ sich
+  // speichern.
   const schema = def.schema.map((f) =>
     alteFelder.has(f.name) && !getauscht.has(f.name)
-      ? { ...alteFelder.get(f.name), ...f, id: alteFelder.get(f.name).id }
+      ? { ...alteFelder.get(f.name), ...f, required: f.required === true, id: alteFelder.get(f.name).id }
       : f,
   );
+  const pflichtGeaendert = def.schema
+    .filter((f) => alteFelder.has(f.name) && Boolean(alteFelder.get(f.name).required) !== (f.required === true))
+    .map((f) => `${f.name} ${f.required ? "jetzt Pflicht" : "nicht mehr Pflicht"}`);
   for (const [name, f] of alteFelder) {
     if (!def.schema.some((d) => d.name === name)) schema.push(f);
   }
@@ -1307,12 +1344,13 @@ async function collectionAbgleichen(def, still = false) {
   // geschehen ist, und eine Meldung, die immer gleich lautet, liest niemand.
   const neueFelder = def.schema.filter((f) => !alteFelder.has(f.name)).map((f) => f.name);
   if (neueFelder.length) geaendert.set(def.name, neueFelder);
+  if (pflichtGeaendert.length) geaendert.set(def.name, [...(geaendert.get(def.name) ?? []), ...pflichtGeaendert]);
   if (!still) {
-    console.log(
-      neueFelder.length
-        ? `${def.name}: abgeglichen, neu: ${neueFelder.join(", ")}`
-        : `${def.name}: abgeglichen`,
-    );
+    const teile = [
+      neueFelder.length ? `neu: ${neueFelder.join(", ")}` : "",
+      pflichtGeaendert.length ? pflichtGeaendert.join(", ") : "",
+    ].filter(Boolean);
+    console.log(teile.length ? `${def.name}: abgeglichen, ${teile.join("; ")}` : `${def.name}: abgeglichen`);
   }
   return vorhanden.id;
 }

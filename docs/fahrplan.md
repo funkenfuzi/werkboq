@@ -229,6 +229,28 @@ Beim Umbau gelernt:
   Behoben; `farben.test.ts` prüft jetzt jede Farbe aus den Daten gegen das
   Stylesheet.
 
+## Scheibe 10c – Angebotsverfolgung (erledigt)
+
+Nachfassen nach Rhythmus oder Wiedervorlage, Zusage mit Auftrag und
+Auftragsbestätigung, Absage mit Grund, Auswertung. Einzelheiten in
+`produkt.md`, Punkt 6.
+
+Nebenbei gefunden und behoben: **Null galt als „fehlt".** PocketBase hält
+bei einem Zahlenfeld mit `required` die Null für einen fehlenden Wert.
+`belege.ust` war Pflicht — keine Rechnung mit Übergang der Steuerschuld
+ließ sich speichern, ebenso kein leerer Angebotsentwurf und keine Zeile mit
+Preis null (etwa „Kilometersatz hinterlegen"). Betroffen waren Beträge und
+Steuersätze in `belege`, `belegpositionen`, `positionen` und `artikel`.
+Dazu kam, dass `einrichten.mjs` ein einmal gesetztes `required` nie wieder
+zurücknahm; jetzt gilt die Definition, und der Lauf meldet „nicht mehr
+Pflicht". Ein Test in `schema-spiegel.test.ts` wacht darüber.
+
+Offen dabei: die Collections `belege` und `angebotskontakte` stehen noch auf
+den Standardregeln (jeder Angemeldete darf lesen) — das gehört zum zweiten
+Durchgang Rechte weiter unten. Ein Monteur, der `/angebote` direkt
+aufruft, sieht eine leere Seite statt eines Hinweises; das gilt für alle
+Seiten mit Bereich und gehört in den Rahmen, nicht in einen Baustein.
+
 ## Vor der ersten echten Inbetriebnahme
 
 - `npm run entwicklung-weg` ausführen: löscht den Zugang adm/adm und setzt die

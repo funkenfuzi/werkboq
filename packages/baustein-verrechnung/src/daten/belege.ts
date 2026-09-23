@@ -1,5 +1,8 @@
 import {
   aktuellerRechtsraum,
+  auftragLaden,
+  phaseSetzen,
+  vorruecken,
   pb,
   protokollieren,
   runden,
@@ -187,6 +190,12 @@ export interface Beleg extends Basisdatensatz {
   storniert?: string;
   /** Angebot: der daraus entstandene Folgebeleg. */
   folgebeleg?: string;
+
+  /** Angebot: vereinbarter nächster Termin — siehe nachfassen.ts. */
+  wiedervorlage?: string;
+  /** Angebot: warum es verloren ging. */
+  absagegrund?: string;
+  absagenotiz?: string;
 }
 
 export interface Belegposition extends Basisdatensatz {
@@ -510,6 +519,74 @@ export async function festschreiben(b: Beleg): Promise<void> {
     "aendern",
     `${BELEGART_TEXT[b.belegart]} ${b.nummer} festgeschrieben`,
   );
+  // Ein Angebot geht hinaus: der Auftrag dahinter steht jetzt im Angebot.
+  // vorruecken() setzt nie zurück und nie über das Ziel hinaus — ein
+  // Nachtragsangebot zu einer laufenden Baustelle ändert an ihr nichts.
+  if (b.belegart === "angebot" && b.auftrag) {
+    try {
+      const auftrag = await auftragLaden(b.auftrag);
+      const ziel = vorruecken(auftrag, "angebot");
+      if (ziel) await phaseSetzen(auftrag, ziel);
+    } catch {
+      // Der Beleg ist festgeschrieben; eine Phase, die nicht nachzieht,
+      // ist ärgerlich, aber kein Grund, das zu verschweigen oder
+      // rückgängig zu machen. Der Anwender sieht die Phase in der Akte.
+    }
+  }
+}
+
+/**
+ * Folgebeleg aus einem Angebot — üblicherweise die Auftragsbestätigung.
+ *
+ * Kopf und Zeilen werden übernommen, wie sie im Angebot stehen; der neue
+ * Beleg ist ein Entwurf und lässt sich vor dem Festschreiben noch ändern
+ * (Termin, geänderte Menge). Das Angebot merkt sich den Folgebeleg, damit
+ * aus einem Angebot nicht versehentlich zwei Bestätigungen werden.
+ */
+export async function folgebelegErstellen(
+  angebot: Beleg,
+  art: Belegart = "auftragsbestaetigung",
+): Promise<Beleg> {
+  if (angebot.folgebeleg) return await belegLaden(angebot.folgebeleg);
+  const zeilen = await belegpositionen(angebot.id);
+  const nummer = await naechsteBelegnummer(art);
+  const neu = await belegAnlegen(
+    {
+      belegart: art,
+      nummer,
+      kunde: angebot.kunde,
+      auftrag: angebot.auftrag,
+      status: "entwurf",
+      datum: heute(),
+      leistungVon: angebot.leistungVon,
+      leistungBis: angebot.leistungBis,
+      empfaengerName: angebot.empfaengerName,
+      empfaengerAnschrift: angebot.empfaengerAnschrift,
+      empfaengerUid: angebot.empfaengerUid,
+      steuerfrei: angebot.steuerfrei,
+      zahlungszielTage: angebot.zahlungszielTage,
+      skontoProzent: angebot.skontoProzent,
+      skontoTage: angebot.skontoTage,
+      kopftext: `Wir bestätigen Ihren Auftrag laut unserem Angebot ${angebot.nummer} vom ${new Date(angebot.datum).toLocaleDateString("de-AT")}.`,
+      fusstext: angebot.fusstext,
+      nettoJeSatz: {},
+    },
+    zeilen.map((z) => ({
+      pos: z.pos,
+      art: z.art,
+      bezeichnung: z.bezeichnung,
+      beschreibung: z.beschreibung,
+      menge: z.menge,
+      einheit: z.einheit,
+      einzelpreis: z.einzelpreis,
+      rabatt: z.rabatt,
+      ustsatz: z.ustsatz,
+      quelle: z.quelle,
+    })),
+  );
+  await pb().collection("belege").update(angebot.id, { folgebeleg: neu.id });
+  await protokollieren("belege", angebot.id, "aendern", `${BELEGART_TEXT[art]} ${nummer} aus Angebot erstellt`);
+  return neu;
 }
 
 export async function statusSetzen(b: Beleg, status: Belegstatus): Promise<void> {

@@ -228,11 +228,38 @@ mit Mindestbestand je Sorte, vom Monteur in zehn Sekunden abgehakt. Jetzt,
 wo es Fahrzeuge gibt, lässt es sich bauen. Keine Bestandsführung — warum
 nicht, steht weiter unten.
 
-### 6. Angebotsverfolgung
+### 6. Angebotsverfolgung — **steht**
 
 Welche Angebote sind offen, welche sind kalt geworden, wann wurde nachgefasst.
 Wenig Arbeit, unmittelbar Geld — ein Angebot, an das sich niemand erinnert,
 ist ein verlorener Auftrag.
+
+Gebaut (Baustein Verrechnung, `daten/nachfassen.ts`):
+
+* **Jedes offene Angebot hat immer einen nächsten Termin.** Entweder eine
+  vereinbarte Wiedervorlage („Kunde ist bis 15. auf Urlaub"), oder der
+  Rhythmus des Betriebs: voreingestellt 7 Tage nach dem Versand, dann 14
+  nach dem ersten Kontakt, dann 30 nach dem zweiten. Einstellbar unter
+  Einstellungen → Betrieb → Verrechnung.
+* Ist der Rhythmus aufgebraucht, wird das Angebot **kalt**: keine
+  Erinnerung mehr, aber eine eigene Spalte, in der das Büro entscheidet —
+  noch einmal anrufen oder mit „Keine Rückmeldung" schließen.
+* Seite **Angebote**: Heute nachfassen · Wartet · Kalt, jeweils mit Betrag,
+  Termin und der letzten Notiz. Darunter die Auswertung der letzten zwölf
+  Monate: Zusagequote und woran Angebote verloren gingen, nach Betrag.
+* **Startseite**: Kachel „Angebote nachfassen" fürs Büro, nur wenn etwas
+  fällig ist.
+* **Nachgefasst** hält fest, wann, wie, was herauskam und optional einen
+  neuen Termin. Die Einträge sind unveränderlich — sie sind der Nachweis.
+* **Zusage**: der Auftrag dahinter rückt auf „Beauftragt" (nie zurück, nie
+  über das Ziel hinaus; eine Störung ohne „Beauftragt" bleibt, wo sie ist).
+  Hängt das Angebot an keinem Auftrag, wird einer angelegt. Die
+  Auftragsbestätigung wird angeboten, nicht automatisch erzeugt — eine
+  Belegnummer, die keiner wollte, lässt sich nicht spurlos entfernen.
+* **Absage** nur mit Grund aus einer festen Liste (zu teuer, Konkurrenz,
+  Zeitpunkt, kein Bedarf, keine Rückmeldung, Sonstiges) plus Notiz.
+* Nebenbei: ein festgeschriebenes Angebot setzt seinen Auftrag von
+  „Anfrage" auf „Angebot".
 
 ### 7. Bestellwesen mit Auftragsbezug
 

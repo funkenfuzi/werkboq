@@ -16,10 +16,10 @@ export const MATERIAL_COLLECTIONS: ModulCollection[] = [
       { name: "bezeichnung", type: "text", required: true },
       { name: "art", type: "select", required: true, options: { maxSelect: 1, values: ["leistung", "material", "fremdleistung", "sonstiges"] } },
       { name: "einheit", type: "text", required: true, options: { max: 12 } },
-      { name: "preis", type: "number", required: true, options: { min: 0, noDecimal: true } },
+      { name: "preis", type: "number", options: { min: 0, noDecimal: true } },
       { name: "einkauf", type: "number", options: { min: 0, noDecimal: true } },
       // Nachkommastellen erlaubt: die Schweiz kennt 8,1 %.
-      { name: "ustsatz", type: "number", required: true, options: { min: 0, max: 100 } },
+      { name: "ustsatz", type: "number", options: { min: 0, max: 100 } },
       { name: "beschreibung", type: "text" },
       { name: "aktiv", type: "bool" },
       // EAN/GTIN für den Scanner. Keine Pflicht und nicht eindeutig:
@@ -49,10 +49,10 @@ export const MATERIAL_COLLECTIONS: ModulCollection[] = [
       { name: "beschreibung", type: "text" },
       { name: "menge", type: "number", required: true },
       { name: "einheit", type: "text", required: true, options: { max: 12 } },
-      { name: "einzelpreis", type: "number", required: true, options: { noDecimal: true } },
+      { name: "einzelpreis", type: "number", options: { noDecimal: true } },
       { name: "rabatt", type: "number", options: { min: 0, max: 100 } },
       // Nachkommastellen erlaubt: die Schweiz kennt 8,1 %.
-      { name: "ustsatz", type: "number", required: true, options: { min: 0, max: 100 } },
+      { name: "ustsatz", type: "number", options: { min: 0, max: 100 } },
       { name: "verrechnet", type: "bool" },
       // Vom Monteur erfasst und noch nicht geprüft, oder vom Büro
       // freigegeben. Leer bedeutet freigegeben: Positionen, die es vor

@@ -32,7 +32,7 @@ import {
   STATUS_FARBE,
   STATUS_TEXT,
   steuerfreiHinweis,
-  statusSetzen,
+  folgebelegErstellen,
   stornieren,
   ueberfaelligSeit,
   type Beleg,
@@ -53,6 +53,8 @@ import {
   type Zahlungsart,
 } from "../daten/zahlungen";
 import { Mahnblock } from "../erweiterungen/Mahnblock";
+import { Nachfassblock } from "../komponenten/Nachfassblock";
+import { ABSAGEGRUND_TEXT, type Absagegrund } from "../daten/nachfassen";
 
 /** Ein Beleg mit allem, was daran hängt: Zeilen, Zahlungen, Mahnungen. */
 export function BelegAkte() {
@@ -406,28 +408,52 @@ export function BelegAkte() {
       )}
 
       {beleg.belegart === "angebot" && beleg.festgeschrieben && beleg.status === "offen" && (
+        <Nachfassblock angebot={beleg} beiAenderung={laden} />
+      )}
+
+      {beleg.belegart === "angebot" && beleg.status === "angenommen" && (
         <section className="wb-block">
-          <h2>Ausgang</h2>
-          <p className="wb-leer">
-            Hat der Kunde zugesagt? Aus einem angenommenen Angebot entsteht die
-            Auftragsbestätigung.
+          <h2>Zugesagt</h2>
+          {beleg.folgebeleg ? (
+            <p>
+              Die Auftragsbestätigung ist erstellt:{" "}
+              <Link to={`/belege/${beleg.folgebeleg}`}>zur Auftragsbestätigung</Link>
+            </p>
+          ) : (
+            <>
+              <p className="wb-leer">Noch keine Auftragsbestätigung. Kopf und Zeilen kommen aus diesem Angebot.</p>
+              <div className="wb-aktionen">
+                <button
+                  className="wb-button"
+                  type="button"
+                  onClick={() =>
+                    void folgebelegErstellen(beleg, "auftragsbestaetigung")
+                      .then((ab) => navigate(`/belege/${ab.id}`))
+                      .catch((e: unknown) => setFehler(fehlersatz(e)))
+                  }
+                >
+                  Auftragsbestätigung erstellen
+                </button>
+              </div>
+            </>
+          )}
+          {beleg.auftrag && (
+            <p>
+              <Link to={`/auftraege/${beleg.auftrag}`}>Zum Auftrag</Link>
+            </p>
+          )}
+        </section>
+      )}
+
+      {beleg.belegart === "angebot" && beleg.status === "abgelehnt" && (
+        <section className="wb-block">
+          <h2>Abgelehnt</h2>
+          <p>
+            {beleg.absagegrund
+              ? ABSAGEGRUND_TEXT[beleg.absagegrund as Absagegrund] ?? beleg.absagegrund
+              : "Ohne Grund festgehalten."}
+            {beleg.absagenotiz && <> — {beleg.absagenotiz}</>}
           </p>
-          <div className="wb-aktionen">
-            <button
-              className="wb-button"
-              type="button"
-              onClick={() => void tu(() => statusSetzen(beleg, "angenommen"))}
-            >
-              Angenommen
-            </button>
-            <button
-              className="wb-button wb-button--sekundaer"
-              type="button"
-              onClick={() => void tu(() => statusSetzen(beleg, "abgelehnt"))}
-            >
-              Abgelehnt
-            </button>
-          </div>
         </section>
       )}
     </article>

@@ -412,6 +412,7 @@ async function anlegen() {
   await zeitenAnlegen(auftraege, mitarbeiter);
   await termineAnlegen(auftraege, mitarbeiter);
   await belegeAnlegen(auftraege, kunden);
+  await angeboteAnlegen(auftraege, kunden);
 
   console.log("\nFertig. Zum Aufräumen: npm run beispieldaten -- weg");
 }
@@ -784,6 +785,105 @@ async function belegeAnlegen(auftraege, kunden) {
   );
 }
 
+/**
+ * Angebote in jedem Zustand der Angebotsverfolgung: eines heute fällig,
+ * eines wartend, eines kalt, dazu ein angenommenes und ein abgelehntes
+ * für die Auswertung. Eigene Prüfung auf Vorhandenes — wer die Beispiele
+ * vor der Angebotsverfolgung eingespielt hat, bekommt sie nachgereicht.
+ */
+async function angeboteAnlegen(auftraege, kunden) {
+  const da = await pb
+    .collection("belege")
+    .getList(1, 1, { filter: 'belegart = "angebot" && fusstext ~ "Beispielangebot"' })
+    .catch(() => null);
+  if (!da) {
+    console.log("Angebote: Verrechnung nicht eingerichtet, übersprungen");
+    return;
+  }
+  if (da.totalItems > 0) {
+    console.log("Angebote: Beispiele schon vorhanden, übersprungen");
+    return;
+  }
+
+  const hv = kunden.get("Hausverwaltung Föhrenwald");
+  const gruber = kunden.get("Familie Gruber");
+  const musterbau = kunden.get("Musterbau GmbH");
+
+  const faellig = await angebotAnlegen(hv, auftraege.get("2026-903"), tagVor(9), "Überprüfung Allgemeinteile Lindenhof", [
+    ["Wiederkehrende Prüfung nach ÖVE/ÖNORM E 8001", 1, "Pausch.", 68000],
+    ["Prüfbefund und Mängelliste", 1, "Stk", 12000],
+  ]);
+  const wartet = await angebotAnlegen(gruber, null, tagVor(20), "Wallbox 11 kW in der Garage", [
+    ["Wallbox 11 kW, montiert", 1, "Stk", 98000],
+    ["Zuleitung NYY-J 5x6 mm², bis 15 m", 15, "m", 1450],
+    ["FI Typ B und LS-Schalter", 1, "Stk", 42000],
+  ]);
+  await kontakt(wartet, tagVor(12), "telefon", "will erst mit dem Nachbarn wegen Sammelbestellung reden");
+  const kalt = await angebotAnlegen(musterbau, null, tagVor(80), "Baustromverteiler Bauteil C", [
+    ["Baustromverteiler 63 A, Miete je Monat", 6, "Monat", 18000],
+    ["Anschluss und Abbau", 1, "Pausch.", 35000],
+  ]);
+  await kontakt(kalt, tagVor(72), "mail", "Eingang bestätigt");
+  await kontakt(kalt, tagVor(58), "telefon", "Bauleiter nicht erreicht");
+  await kontakt(kalt, tagVor(28), "telefon", "Novak: Bauteil C verschoben, meldet sich");
+
+  const an = await angebotAnlegen(gruber, null, tagVor(120), "Zusätzliche Außensteckdosen", [
+    ["Außensteckdose IP44, montiert", 3, "Stk", 8900],
+  ]);
+  await pb.collection("belege").update(an.id, { status: "angenommen" });
+  const ab = await angebotAnlegen(musterbau, null, tagVor(100), "Photovoltaik Bürogebäude", [
+    ["PV-Anlage 30 kWp, schlüsselfertig", 1, "Pausch.", 3450000],
+  ]);
+  await pb.collection("belege").update(ab.id, {
+    status: "abgelehnt",
+    absagegrund: "preis",
+    absagenotiz: "Mitbewerber rund 8 % günstiger",
+  });
+
+  console.log(
+    `Angebote: ${faellig.nummer} (heute fällig), ${wartet.nummer} (wartet), ${kalt.nummer} (kalt), ` +
+      `${an.nummer} (angenommen), ${ab.nummer} (abgelehnt)`,
+  );
+}
+
+async function angebotAnlegen(kunde, auftrag, datum, titel, zeilen) {
+  const nummer = await naechsteBelegnummer("AN");
+  const netto = zeilen.reduce((s, [, menge, , preis]) => s + Math.round(menge * preis), 0);
+  const ust = Math.round(netto * 0.2);
+  const beleg = await pb.collection("belege").create({
+    belegart: "angebot",
+    nummer,
+    kunde: kunde.id,
+    auftrag: auftrag?.id ?? null,
+    status: "offen",
+    datum,
+    festgeschrieben: `${datum} 09:00:00.000Z`,
+    empfaengerName: kunde.name,
+    empfaengerAnschrift: [kunde.strasse, `${kunde.plz} ${kunde.ort}`].filter(Boolean).join("\n"),
+    steuerfrei: "keiner",
+    zahlungszielTage: 14,
+    netto,
+    ust,
+    brutto: netto + ust,
+    nettoJeSatz: { 20: netto },
+    kopftext: titel,
+    fusstext: "Beispielangebot — entfernbar mit: npm run beispieldaten -- weg",
+  });
+  let pos = 10;
+  for (const [bezeichnung, menge, einheit, preis] of zeilen) {
+    await pb.collection("belegpositionen").create({
+      beleg: beleg.id, pos, art: "leistung", bezeichnung, menge, einheit,
+      einzelpreis: preis, rabatt: 0, ustsatz: 20, betrag: Math.round(menge * preis),
+    });
+    pos += 10;
+  }
+  return { ...beleg, nummer };
+}
+
+async function kontakt(beleg, datum, art, notiz) {
+  await pb.collection("angebotskontakte").create({ beleg: beleg.id, datum, art, notiz, wer: "Andrea Hofer" });
+}
+
 /** Erzeugt eine festgeschriebene Rechnung aus den Positionen eines Auftrags. */
 async function rechnungAus(auftrag, kunde, kopf) {
   const positionen = await pb
@@ -871,7 +971,13 @@ async function entfernen() {
   }
 
   for (const k of kunden) {
+    // Verweise zwischen Belegen zuerst lösen — ein Angebot, das auf seine
+    // Auftragsbestätigung zeigt, ließe diese sonst nicht löschen.
     for (const b of await gefunden("belege", `kunde = "${k.id}"`)) {
+      if (b.folgebeleg || b.storniert) await pb.collection("belege").update(b.id, { folgebeleg: null, storniert: null });
+    }
+    for (const b of await gefunden("belege", `kunde = "${k.id}"`)) {
+      weg += await loescheAlle("angebotskontakte", `beleg = "${b.id}"`);
       weg += await loescheAlle("mahnungen", `beleg = "${b.id}"`);
       weg += await loescheAlle("zahlungen", `beleg = "${b.id}"`);
       weg += await loescheAlle("belegpositionen", `beleg = "${b.id}"`);

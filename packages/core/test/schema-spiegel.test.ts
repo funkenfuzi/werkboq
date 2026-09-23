@@ -132,3 +132,47 @@ describe("Unterschriften bleiben unveränderlich", () => {
     );
   });
 });
+
+/**
+ * Zahlenfelder, in denen Null ein gültiger Wert ist, dürfen nicht
+ * `required` sein: PocketBase hält bei Zahlen die Null für „fehlt".
+ *
+ * Gefunden am 23. September 2026: keine Rechnung mit Übergang der
+ * Steuerschuld (ust = 0) ließ sich speichern, kein leerer Angebotsentwurf,
+ * keine Hinweiszeile ohne Preis. Die Unit-Tests rechneten richtig — der
+ * Fehler lag im Schema, und dort sah niemand nach.
+ */
+function istPflicht(collection: string, feld: string): boolean | null {
+  const ab = quelle.indexOf(`name: "${collection}"`);
+  if (ab < 0) return null;
+  const bis = quelle.indexOf('\n    name: "', ab + 1);
+  const abschnitt = quelle.slice(ab, bis < 0 ? undefined : bis);
+  const zeile = abschnitt.split("\n").find((z) => z.includes(`{ name: "${feld}",`));
+  if (!zeile) return null;
+  return zeile.includes("required: true");
+}
+
+describe("Null ist ein gültiger Betrag", () => {
+  const nullErlaubt: [string, string][] = [
+    ["belege", "netto"],
+    ["belege", "ust"],
+    ["belege", "brutto"],
+    ["belegpositionen", "einzelpreis"],
+    ["belegpositionen", "betrag"],
+    ["belegpositionen", "ustsatz"],
+    ["positionen", "einzelpreis"],
+    ["positionen", "ustsatz"],
+    ["artikel", "preis"],
+    ["artikel", "ustsatz"],
+  ];
+  for (const [c, f] of nullErlaubt) {
+    it(`${c}.${f} ist kein Pflichtfeld`, () => {
+      deepStrictEqual(istPflicht(c, f), false);
+    });
+  }
+
+  it("erkennt ein Pflichtfeld überhaupt (Gegenprobe)", () => {
+    deepStrictEqual(istPflicht("belege", "nummer"), true);
+    deepStrictEqual(istPflicht("belege", "gibtsnicht"), null);
+  });
+});
