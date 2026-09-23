@@ -2,7 +2,6 @@ import { dienstAnbieten, type WerkboqModul } from "@werkboq/core";
 import { Fuhrpark } from "./seiten/Fuhrpark";
 import { Fahrzeugakte } from "./seiten/Fahrzeugakte";
 import { Fristenkachel } from "./erweiterungen/Fristenkachel";
-import { FUHRPARK_COLLECTIONS } from "./daten/collections";
 import { alleFahrzeuge } from "./daten/fahrzeuge";
 
 export * from "./daten/fahrzeuge";
@@ -36,7 +35,6 @@ export const bausteinFuhrpark: WerkboqModul = {
   version: "0.1.0",
   benoetigtKern: "^0.1.0",
 
-  collections: FUHRPARK_COLLECTIONS,
 
   navigation: [
     {

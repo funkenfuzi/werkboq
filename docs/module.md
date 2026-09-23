@@ -48,10 +48,9 @@ braucht.
 ## Collections
 
 Ein Modul benennt seine Collections mit seinem Präfix (`elektro_pruefberichte`). Die
-Definitionen stehen im Modul unter `src/daten/collections.ts` und – solange
-`einrichten.mjs` reines Node ohne TS-Transpilierung ist – gespiegelt in
-`server/einrichten.mjs`. Beim Ändern beide Stellen anpassen; das Zusammenführen ist
-eine eigene kleine Aufgabe im Fahrplan.
+Definitionen stehen im Modul in `schema.mjs` (reines JavaScript, damit
+`server/einrichten.mjs` sie mit Node laden kann) und nur dort; `server/schema.mjs`
+sammelt sie in Anlagereihenfolge ein.
 
 ## Rechte
 

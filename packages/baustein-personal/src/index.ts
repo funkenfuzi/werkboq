@@ -2,7 +2,6 @@ import { dienstAnbieten, type WerkboqModul } from "@werkboq/core";
 import { Personal } from "./seiten/Personal";
 import { Personalakte } from "./seiten/Personalakte";
 import { Lohnvorbereitung } from "./seiten/Lohnvorbereitung";
-import { PERSONAL_COLLECTIONS } from "./daten/collections";
 import { abwesenheitenImZeitraum } from "./daten/abwesenheiten";
 import "./gestaltung/personal.css";
 
@@ -56,7 +55,6 @@ export const bausteinPersonal: WerkboqModul = {
   benoetigtKern: "^0.1.0",
   ergaenzt: ["zeiterfassung", "planung"],
 
-  collections: PERSONAL_COLLECTIONS,
 
   navigation: [
     {

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { pb } from "@werkboq/core";
-import type { Pruefbericht } from "../daten/collections";
+import type { Pruefbericht } from "../daten/pruefbericht";
 
 export function PruefberichteSeite() {
   const [liste, setListe] = useState<Pruefbericht[]>([]);

@@ -151,13 +151,17 @@ packages/baustein-personal        Baustein
 packages/baustein-fuhrpark        Baustein
 packages/modul-elektro            Fachmodul
 apps/web                          Hülle: Seitenleiste, Routen, Kernseiten
-server/einrichten.mjs             Schema: KERN, BAUSTEINE, MODULE
+packages/*/schema.mjs             Collections des Pakets — die einzige Stelle
+packages/core/schema/             kern.mjs (Kern-Collections), regeln.mjs
+server/schema.mjs                 sammelt alle ein, in Anlagereihenfolge
+server/einrichten.mjs             legt an bzw. gleicht ab
 ```
 
-`einrichten.mjs` spiegelt die Collection-Definitionen der Module, weil Node
-die TypeScript-Dateien nicht direkt laden kann. Das bleibt ein offener Punkt
-(siehe `fahrplan.md`): eine Definition an zwei Stellen ist eine Stelle zu
-viel.
+Jede Collection steht in genau einer Datei: bei dem Paket, dem sie gehört,
+als reines JavaScript (`schema.mjs`), damit `einrichten.mjs` sie mit Node
+lesen kann. Bis September 2026 standen sie doppelt — im Modul als
+TypeScript und gespiegelt in `einrichten.mjs` —, und die beiden Stände
+liefen zweimal still auseinander.
 
 ## Was die Verrechnung bewusst nicht tut
 
@@ -202,8 +206,9 @@ siehe [rechte.md](rechte.md).
 
 1. `packages/baustein-<name>` anlegen, `package.json` mit `@werkboq/core` als
    einziger Werkboq-Abhängigkeit.
-2. Collections in `src/daten/collections.ts` und gespiegelt in `BAUSTEINE` in
-   `einrichten.mjs`.
+2. Collections in `schema.mjs` im Paket (Regeln aus
+   `@werkboq/core/schema/regeln.mjs`), den Export `"./schema.mjs"` in die
+   `package.json`, und das Paket in `server/schema.mjs` eintragen.
 3. `src/index.ts` mit `art: "baustein"`, `beschreibung` (steht in den
    Einstellungen) und der Navigation.
 4. Braucht er etwas von einem Nachbarn: Dienst in `dienste.ts` benennen und

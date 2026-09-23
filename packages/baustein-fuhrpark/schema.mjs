@@ -1,4 +1,4 @@
-import type { ModulCollection } from "@werkboq/core";
+import { bereichsregeln } from "@werkboq/core/schema/regeln.mjs";
 
 /**
  * Collections des Bausteins Fuhrpark.
@@ -6,10 +6,19 @@ import type { ModulCollection } from "@werkboq/core";
  * Zwei Tabellen, nicht eine: an einem Fahrzeug hängen mehrere Termine
  * gleichzeitig, und erledigte bleiben stehen. Als Felder am Fahrzeug wäre
  * jede neue Fristart eine Schemaänderung.
+ *
+ * DIE EINZIGE STELLE für diese Collections. `server/einrichten.mjs` lädt
+ * die Datei über server/schema.mjs und legt an bzw. gleicht ab.
+ * Verknüpfungen dürfen nur auf Collections zeigen, die dort vorher stehen.
  */
-export const FUHRPARK_COLLECTIONS: ModulCollection[] = [
+export default [
+  // ---------------------------------------------------------------- Fuhrpark
   {
+    // Fahrzeuge des Betriebs. Kein Fuhrparkmanagement — es geht um die
+    // eine Frage, an der ein Handwerksbetrieb regelmäßig verliert: was
+    // läuft ab, ohne dass es jemandem auffällt.
     name: "fahrzeuge",
+    ...bereichsregeln("fuhrpark"),
     schema: [
       { name: "kennzeichen", type: "text", required: true, options: { max: 20 } },
       { name: "bezeichnung", type: "text", required: true },
@@ -32,7 +41,10 @@ export const FUHRPARK_COLLECTIONS: ModulCollection[] = [
     ],
   },
   {
+    // Zwei Tabellen und nicht eine: an einem Kastenwagen hängen fünf bis
+    // acht Termine gleichzeitig, und erledigte bleiben stehen.
     name: "fahrzeugfristen",
+    ...bereichsregeln("fuhrpark"),
     schema: [
       { name: "fahrzeug", type: "relation", required: true, options: { collectionId: "fahrzeuge", maxSelect: 1, cascadeDelete: true } },
       { name: "art", type: "select", required: true, options: { maxSelect: 1, values: ["begutachtung", "service", "reifen", "versicherung", "leasing", "pruefung", "sonstiges"] } },

@@ -40,8 +40,10 @@ export interface WerkboqModul {
   /** Mindestversion des Kerns, die dieses Modul voraussetzt. */
   benoetigtKern: string;
 
-  /** Zusätzliche PocketBase-Collections, die das Modul braucht (Name → Felder). */
-  collections?: ModulCollection[];
+  // Die Collections eines Moduls stehen NICHT hier, sondern in
+  // <paket>/schema.mjs — reines JavaScript, damit server/einrichten.mjs sie
+  // ohne Übersetzer lesen kann. Früher gab es hier ein Feld `collections`
+  // und daneben eine Kopie im Server; die beiden liefen auseinander.
 
   /** Einträge in der Hauptnavigation. */
   navigation?: NavEintrag[];
@@ -59,6 +61,7 @@ export interface WerkboqModul {
   initialisieren?: (kontext: ModulKontext) => void | Promise<void>;
 }
 
+/** Form eines Eintrags in <paket>/schema.mjs. */
 export interface ModulCollection {
   name: string;
   schema: Record<string, unknown>[];

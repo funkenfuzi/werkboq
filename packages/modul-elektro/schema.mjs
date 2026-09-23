@@ -1,10 +1,11 @@
-import type { ModulCollection } from "@werkboq/core";
-
 /**
  * Zusätzliche Collections des Moduls Elektro.
- * Werden von server/einrichten.mjs zusammen mit den Kern-Collections angelegt.
+ *
+ * DIE EINZIGE STELLE für diese Collections. `server/einrichten.mjs` lädt
+ * die Datei über server/schema.mjs und legt an bzw. gleicht ab.
+ * Verknüpfungen dürfen nur auf Collections zeigen, die dort vorher stehen.
  */
-export const ELEKTRO_COLLECTIONS: ModulCollection[] = [
+export default [
   {
     name: "elektro_pruefberichte",
     schema: [
@@ -17,22 +18,5 @@ export const ELEKTRO_COLLECTIONS: ModulCollection[] = [
       { name: "daten", type: "json", options: { maxSize: 2000000 } },
       { name: "pdf", type: "file", options: { maxSelect: 1, maxSize: 20971520, mimeTypes: ["application/pdf"] } },
     ],
-    listRule: "@request.auth.id != ''",
-    viewRule: "@request.auth.id != ''",
-    createRule: "@request.auth.id != ''",
-    updateRule: "@request.auth.id != ''",
-    deleteRule: "@request.auth.admin = true",
   },
 ];
-
-export interface Pruefbericht {
-  id: string;
-  auftrag: string;
-  art: "erstpruefung" | "wiederkehrend" | "aenderung";
-  norm?: string;
-  pruefdatum?: string;
-  pruefer?: string;
-  ergebnis?: "offen" | "ohne_maengel" | "mit_maengeln" | "gefahr";
-  daten?: Record<string, unknown>;
-  pdf?: string;
-}

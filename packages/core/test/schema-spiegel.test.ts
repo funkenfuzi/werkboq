@@ -1,13 +1,12 @@
 import { deepStrictEqual, ok } from "node:assert";
-import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { describe, it } from "node:test";
 import { AUFTRAGSARTEN, FOTOARTEN } from "../src/daten/typen";
 import { UNTERSCHRIFT_ZWECKE } from "../src/daten/unterschrift";
 import { VERSANDWEGE } from "../src/daten/versand";
 import { PHASENSTUFEN } from "../src/daten/phasen";
 import { FAHRTKOSTENARTEN } from "../src/daten/betrieb";
+// @ts-expect-error — reines JavaScript ohne Typen, siehe server/schema.mjs
+import { ALLE } from "../../../server/schema.mjs";
 
 /**
  * Die Konstanten der Bausteine liegen absichtlich hier als Kopie und
@@ -43,35 +42,44 @@ const FRISTARTEN_ERWARTET = [
  * zurückfällt und genau ein Projekt geprüft wurde — der Rückfall sah aus
  * wie ein Ergebnis.
  *
- * Der eigentliche Mangel dahinter steht in docs/fahrplan.md: die
- * Collection-Definitionen liegen doppelt, im Modul und gespiegelt in
- * `einrichten.mjs`. Solange das so ist, wacht dieser Test darüber, dass
- * die beiden Stände nicht auseinanderlaufen.
+ * Der eigentliche Mangel dahinter — die Definitionen standen doppelt, im
+ * Modul und gespiegelt in `einrichten.mjs` — ist seit dem 23. September
+ * 2026 behoben: jede Collection steht in genau einer schema.mjs. Der Test
+ * bleibt, weil die Konstanten im Code und die Auswahlwerte im Schema
+ * trotzdem zwei Stellen sind.
  */
 
-const wurzel = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
-const quelle = readFileSync(join(wurzel, "server", "einrichten.mjs"), "utf8");
+interface Feld {
+  name: string;
+  type: string;
+  required?: boolean;
+  options?: { values?: string[] };
+}
+interface Collection {
+  name: string;
+  schema: Feld[];
+  createRule?: string | null;
+  updateRule?: string | null;
+  deleteRule?: string | null;
+}
 
 /**
- * Holt die `values` eines Auswahlfelds aus dem Quelltext.
- *
- * Gelesen wird als Text und nicht durch Import: `einrichten.mjs` verbindet
- * sich beim Laden mit PocketBase. Ein Test, der dafür einen Server
- * braucht, läuft in der Fließbandprüfung nicht.
+ * Seit September 2026 steht das Schema an einer Stelle (server/schema.mjs
+ * und die schema.mjs der Pakete) und wird hier als Objekt geladen — kein
+ * Suchen im Quelltext mehr, das an Kommentaren oder Einrückung hängen
+ * bleiben konnte.
  */
-function auswahlwerte(collection: string, feld: string): string[] | null {
-  const ab = quelle.indexOf(`name: "${collection}"`);
-  if (ab < 0) return null;
-  // Bis zur nächsten Collection-Definition suchen, damit ein gleichnamiges
-  // Feld einer anderen Collection nicht fälschlich trifft.
-  const bis = quelle.indexOf('\n    name: "', ab + 1);
-  const abschnitt = quelle.slice(ab, bis < 0 ? undefined : bis);
+function collection(name: string): Collection | undefined {
+  return (ALLE as Collection[]).find((c) => c.name === name);
+}
 
-  const feldAb = abschnitt.indexOf(`name: "${feld}"`);
-  if (feldAb < 0) return null;
-  const werte = /values:\s*\[([^\]]*)\]/.exec(abschnitt.slice(feldAb));
-  if (!werte) return null;
-  return [...werte[1]!.matchAll(/"([^"]+)"/g)].map((m) => m[1]!);
+function feld(c: string, f: string): Feld | undefined {
+  return collection(c)?.schema.find((x) => x.name === f);
+}
+
+/** Die `values` eines Auswahlfelds, oder null, wenn es das Feld nicht gibt. */
+function auswahlwerte(c: string, f: string): string[] | null {
+  return feld(c, f)?.options?.values ?? null;
 }
 
 const faelle: [string, string, readonly string[]][] = [
@@ -85,12 +93,12 @@ const faelle: [string, string, readonly string[]][] = [
   ["fahrzeugfristen", "art", FRISTARTEN_ERWARTET],
 ];
 
-describe("einrichten.mjs spiegelt die Konstanten", () => {
+describe("Das Schema kennt die Konstanten des Codes", () => {
   for (const [collection, feld, erwartet] of faelle) {
     it(`${collection}.${feld} gibt es überhaupt`, () => {
       ok(
         auswahlwerte(collection, feld) !== null,
-        `${collection}.${feld} fehlt in server/einrichten.mjs. ` +
+        `${collection}.${feld} fehlt in server/schema.mjs bzw. der schema.mjs des Pakets. ` +
           `PocketBase nimmt das Feld beim Speichern trotzdem an und wirft es weg — ` +
           `die Oberfläche sieht dann richtig aus und speichert nichts.`,
       );
@@ -110,12 +118,13 @@ describe("Positionen: Zustand", () => {
   });
 
   it("hat eine Regel, die die Freigabe an das Lagerrecht bindet", () => {
+    const p = collection("positionen")!;
     ok(
-      /createRule:.*@request\.data\.zustand = "vorschlag"/.test(quelle),
+      /@request\.data\.zustand = "vorschlag"/.test(p.createRule ?? ""),
       "Ohne diese Bedingung legt man die Position gleich als freigegeben an.",
     );
     ok(
-      /updateRule:[\s\S]{0,200}@request\.data\.zustand = "vorschlag"/.test(quelle),
+      /@request\.data\.zustand = "vorschlag"/.test(p.updateRule ?? ""),
       "Ohne diese Bedingung setzt der Monteur den Zustand selbst auf freigegeben.",
     );
   });
@@ -123,11 +132,10 @@ describe("Positionen: Zustand", () => {
 
 describe("Unterschriften bleiben unveränderlich", () => {
   it("haben keine updateRule", () => {
-    const ab = quelle.indexOf('name: "unterschriften"');
-    ok(ab > 0, "Collection unterschriften fehlt.");
-    const abschnitt = quelle.slice(ab, ab + 900);
+    const u = collection("unterschriften");
+    ok(u, "Collection unterschriften fehlt.");
     ok(
-      /updateRule:\s*null/.test(abschnitt),
+      u.updateRule === null,
       "Eine nachträglich änderbare Unterschrift beweist nichts.",
     );
   });
@@ -142,14 +150,9 @@ describe("Unterschriften bleiben unveränderlich", () => {
  * keine Hinweiszeile ohne Preis. Die Unit-Tests rechneten richtig — der
  * Fehler lag im Schema, und dort sah niemand nach.
  */
-function istPflicht(collection: string, feld: string): boolean | null {
-  const ab = quelle.indexOf(`name: "${collection}"`);
-  if (ab < 0) return null;
-  const bis = quelle.indexOf('\n    name: "', ab + 1);
-  const abschnitt = quelle.slice(ab, bis < 0 ? undefined : bis);
-  const zeile = abschnitt.split("\n").find((z) => z.includes(`{ name: "${feld}",`));
-  if (!zeile) return null;
-  return zeile.includes("required: true");
+function istPflicht(c: string, f: string): boolean | null {
+  const x = feld(c, f);
+  return x ? x.required === true : null;
 }
 
 describe("Null ist ein gültiger Betrag", () => {

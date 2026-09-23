@@ -1,7 +1,4 @@
 import { deepStrictEqual, ok, strictEqual } from "node:assert";
-import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
 import { describe, it } from "node:test";
 import { nachfassRhythmus } from "@werkboq/core";
 import {
@@ -14,7 +11,10 @@ import {
   tageZwischen,
   termintext,
 } from "../src/daten/nachfassen";
-import { VERRECHNUNG_COLLECTIONS } from "../src/daten/collections";
+// @ts-expect-error — reines JavaScript, siehe ../schema.mjs
+import SCHEMA from "../schema.mjs";
+// @ts-expect-error — dito
+import { KERN } from "../../../server/schema.mjs";
 
 /**
  * Angebotsverfolgung.
@@ -166,39 +166,29 @@ describe("absagenNachGrund", () => {
 });
 
 describe("Schema", () => {
-  const wurzel = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
-  const server = readFileSync(join(wurzel, "server", "einrichten.mjs"), "utf8");
-
-  const abschnitt = (name: string) => {
-    const ab = server.indexOf(`name: "${name}"`);
-    ok(ab >= 0, `${name} fehlt in einrichten.mjs`);
-    const bis = server.indexOf('\n    name: "', ab + 1);
-    return server.slice(ab, bis < 0 ? undefined : bis);
+  type F = { name: string; options?: { values?: string[] } };
+  type C = { name: string; schema: F[]; updateRule?: string | null; deleteRule?: string | null };
+  const c = (liste: C[], name: string) => {
+    const x = liste.find((y) => y.name === name);
+    ok(x, `${name} fehlt`);
+    return x;
   };
-  const werte = (text: string, feld: string) => {
-    const i = text.indexOf(`name: "${feld}"`);
-    ok(i >= 0, `Feld ${feld} fehlt`);
-    const m = /values:\s*\[([^\]]*)\]/.exec(text.slice(i));
-    return [...m![1]!.matchAll(/"([^"]+)"/g)].map((x) => x[1]);
-  };
+  const werte = (col: C, feld: string) => col.schema.find((f) => f.name === feld)?.options?.values;
 
-  it("einrichten.mjs kennt dieselben Absagegründe und Kontaktarten", () => {
-    deepStrictEqual(werte(abschnitt("belege"), "absagegrund"), [...ABSAGEGRUENDE]);
-    deepStrictEqual(werte(abschnitt("angebotskontakte"), "art"), [...KONTAKTARTEN]);
+  it("kennt dieselben Absagegründe und Kontaktarten wie der Code", () => {
+    deepStrictEqual(werte(c(SCHEMA, "belege"), "absagegrund"), [...ABSAGEGRUENDE]);
+    deepStrictEqual(werte(c(SCHEMA, "angebotskontakte"), "art"), [...KONTAKTARTEN]);
   });
 
-  it("einrichten.mjs hat die neuen Felder", () => {
-    for (const f of ["wiedervorlage", "absagegrund", "absagenotiz"]) ok(abschnitt("belege").includes(`name: "${f}"`), f);
-    ok(abschnitt("betrieb").includes('name: "nachfassTage"'));
+  it("hat die Felder der Angebotsverfolgung", () => {
+    const felder = c(SCHEMA, "belege").schema.map((f) => f.name);
+    for (const f of ["wiedervorlage", "absagegrund", "absagenotiz"]) ok(felder.includes(f), f);
+    ok(c(KERN, "betrieb").schema.some((f) => f.name === "nachfassTage"));
   });
 
-  it("die Moduldefinition stimmt mit einrichten.mjs überein", () => {
-    const modul = VERRECHNUNG_COLLECTIONS.find((c) => c.name === "angebotskontakte");
-    ok(modul, "angebotskontakte fehlt im Modul");
-    deepStrictEqual(
-      modul.schema.map((f) => f.name),
-      [...abschnitt("angebotskontakte").matchAll(/\{ name: "([^"]+)"/g)].map((m) => m[1]),
-    );
-    strictEqual(modul.updateRule, null);
+  it("hält Nachfasseinträge unveränderlich", () => {
+    const k = c(SCHEMA, "angebotskontakte");
+    strictEqual(k.updateRule, null);
+    strictEqual(k.deleteRule, null);
   });
 });

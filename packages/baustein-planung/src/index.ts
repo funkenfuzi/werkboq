@@ -1,6 +1,5 @@
 import { dienstAnbieten, type WerkboqModul } from "@werkboq/core";
 import { Kalender } from "./seiten/Kalender";
-import { PLANUNG_COLLECTIONS } from "./daten/collections";
 import { termineAmTag } from "./daten/termine";
 
 export * from "./daten/termine";
@@ -35,7 +34,6 @@ export const bausteinPlanung: WerkboqModul = {
   benoetigtKern: "^0.1.0",
   ergaenzt: ["zeiterfassung"],
 
-  collections: PLANUNG_COLLECTIONS,
 
   navigation: [
     {

@@ -1,7 +1,6 @@
 import { dienstAnbieten, type WerkboqModul } from "@werkboq/core";
 import { Katalog } from "./seiten/Katalog";
 import { AuftragPositionen, MaterialImAuftrag, MaterialKacheln } from "./erweiterungen/AuftragPositionen";
-import { MATERIAL_COLLECTIONS } from "./daten/collections";
 import { nurFreigegebene, positionenZuAuftrag, positionswert, summieren } from "./daten/positionen";
 
 export * from "./daten/artikel";
@@ -34,7 +33,6 @@ export const bausteinMaterial: WerkboqModul = {
   version: "0.1.0",
   benoetigtKern: "^0.1.0",
 
-  collections: MATERIAL_COLLECTIONS,
 
   navigation: [
     {

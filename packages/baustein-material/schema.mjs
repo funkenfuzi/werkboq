@@ -1,4 +1,4 @@
-import type { ModulCollection } from "@werkboq/core";
+import { angemeldet, schreibt } from "@werkboq/core/schema/regeln.mjs";
 
 /**
  * Collections des Bausteins Material.
@@ -7,9 +7,15 @@ import type { ModulCollection } from "@werkboq/core";
  * Fließkomma und Geld vertragen sich nicht: 0.1 + 0.2 ergibt in JavaScript
  * nicht 0.3, und auf einer Rechnung mit dreißig Zeilen wird daraus ein Cent
  * Differenz zwischen Summe und Einzelwerten.
+ *
+ * DIE EINZIGE STELLE für diese Collections. `server/einrichten.mjs` lädt
+ * die Datei über server/schema.mjs und legt an bzw. gleicht ab.
+ * Verknüpfungen dürfen nur auf Collections zeigen, die dort vorher stehen.
  */
-export const MATERIAL_COLLECTIONS: ModulCollection[] = [
+export default [
   {
+    // Leistungs- und Materialkatalog. Preise als Cent in ganzen Zahlen:
+    // Fließkomma und Geld vertragen sich nicht.
     name: "artikel",
     schema: [
       { name: "nummer", type: "text", required: true, options: { max: 20 } },
@@ -22,13 +28,12 @@ export const MATERIAL_COLLECTIONS: ModulCollection[] = [
       { name: "ustsatz", type: "number", options: { min: 0, max: 100 } },
       { name: "beschreibung", type: "text" },
       { name: "aktiv", type: "bool" },
-      // EAN/GTIN für den Scanner. Keine Pflicht und nicht eindeutig:
-      // derselbe Strichcode klebt manchmal auf zwei Artikeln, und ein
-      // eindeutiger Index würde dann das Anlegen verweigern statt zu
-      // helfen. Die Suche zeigt in dem Fall beide zur Auswahl.
+      // EAN/GTIN für den Scanner. Keine Pflicht und bewusst nicht
+      // eindeutig: derselbe Strichcode klebt manchmal auf zwei Artikeln,
+      // und ein eindeutiger Index würde dann das Anlegen verweigern statt
+      // zu helfen. Die Suche zeigt in dem Fall beide zur Auswahl.
       { name: "ean", type: "text", options: { max: 20 } },
       // Schnellauswahl für die Baustelle — betriebsweit, nicht je Person.
-      // Was ein Elektriker ständig braucht, braucht der nächste auch.
       { name: "favorit", type: "bool" },
     ],
     indexes: [
@@ -39,6 +44,9 @@ export const MATERIAL_COLLECTIONS: ModulCollection[] = [
     ],
   },
   {
+    // Positionen am Auftrag. Preis und Steuersatz werden beim Einfügen aus
+    // dem Katalog KOPIERT, nicht verknüpft — ein späterer Preiswechsel darf
+    // einen halbfertigen Auftrag nicht rückwirkend verteuern.
     name: "positionen",
     schema: [
       { name: "auftrag", type: "relation", required: true, options: { collectionId: "auftraege", maxSelect: 1, cascadeDelete: true } },
@@ -54,9 +62,10 @@ export const MATERIAL_COLLECTIONS: ModulCollection[] = [
       // Nachkommastellen erlaubt: die Schweiz kennt 8,1 %.
       { name: "ustsatz", type: "number", options: { min: 0, max: 100 } },
       { name: "verrechnet", type: "bool" },
-      // Vom Monteur erfasst und noch nicht geprüft, oder vom Büro
-      // freigegeben. Leer bedeutet freigegeben: Positionen, die es vor
-      // dieser Unterscheidung gab, ändern ihre Bedeutung nicht.
+      // Vom Monteur erfasst und noch ungeprüft, oder vom Büro freigegeben.
+      // LEER BEDEUTET FREIGEGEBEN: Positionen, die es vor dieser
+      // Unterscheidung gab, ändern ihre Bedeutung nicht, und was das Büro
+      // selbst eintippt, braucht keine Freigabe von sich selbst.
       { name: "zustand", type: "select", options: { maxSelect: 1, values: ["vorschlag", "freigegeben"] } },
       { name: "erfasstVon", type: "relation", options: { collectionId: "mitarbeiter", maxSelect: 1 } },
       { name: "freigabeVon", type: "relation", options: { collectionId: "users", maxSelect: 1 } },
@@ -66,5 +75,31 @@ export const MATERIAL_COLLECTIONS: ModulCollection[] = [
       "CREATE INDEX idx_positionen_auftrag ON positionen (auftrag, pos)",
       "CREATE INDEX idx_positionen_zustand ON positionen (zustand)",
     ],
+    // FREIGEBEN DARF NUR, WER LAGER SCHREIBEN DARF — und zwar wirklich,
+    // nicht bloß in der Oberfläche ausgeblendet. Gegen die API geprüft.
+    //
+    // PocketBase kennt keine Regeln je Feld, wohl aber `@request.data`
+    // (was hereinkommt) und den Feldnamen allein (was gespeichert ist).
+    // Daraus lässt sich die Freigabe einzeln absichern:
+    //
+    //   ANLEGEN: wer kein Lagerrecht hat, darf nur Vorschläge anlegen.
+    //   Ausdrücklich `= "vorschlag"` und nicht `!= "freigegeben"` — sonst
+    //   legt man die Position einfach ganz ohne Zustandsfeld an, und weil
+    //   leer als freigegeben gilt, wäre die Freigabe umgangen.
+    //
+    //   ÄNDERN: an einer Position, die ein Vorschlag IST, darf ohne
+    //   Lagerrecht nur ändern, wer sie einen Vorschlag bleiben lässt. Das
+    //   sperrt beides: das Setzen auf "freigegeben" und das Leerräumen
+    //   des Feldes, was auf dasselbe hinausliefe.
+    //
+    // Der Rest der Positionsrechte steht noch aus, siehe docs/rechte.md:
+    // Menge und Preis einer bereits freigegebenen Position kann derzeit
+    // jeder Angemeldete ändern.
+    listRule: angemeldet,
+    viewRule: angemeldet,
+    createRule: `${angemeldet} && (@request.data.zustand = "vorschlag" || ${schreibt("lager")})`,
+    updateRule:
+      `${angemeldet} && (zustand != "vorschlag" || @request.data.zustand = "vorschlag" || ${schreibt("lager")})`,
+    deleteRule: angemeldet,
   },
 ];

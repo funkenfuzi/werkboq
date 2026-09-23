@@ -136,7 +136,8 @@ darfSchreiben("personal")  // änderbar?
 stufe("technik")           // "keine" | "lesen" | "schreiben"
 ```
 
-Serverseitig, in `server/einrichten.mjs`:
+Serverseitig, in der `schema.mjs` des Pakets (Bausteine aus
+`@werkboq/core/schema/regeln.mjs`):
 
 ```js
 bereichsregeln("personal", "mitarbeiter.benutzer = @request.auth.id")

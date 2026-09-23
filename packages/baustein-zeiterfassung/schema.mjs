@@ -1,5 +1,3 @@
-import type { ModulCollection } from "@werkboq/core";
-
 /**
  * Collections der Zeiterfassung.
  *
@@ -9,13 +7,27 @@ import type { ModulCollection } from "@werkboq/core";
  *
  * `benutzer` ist der Erfasser, `mitarbeiter` derjenige, der gearbeitet hat.
  * Meist dieselbe Person, aber das Büro bucht auch für Monteure ohne Zugang.
+ *
+ * DIE EINZIGE STELLE für diese Collections. `server/einrichten.mjs` lädt
+ * die Datei über server/schema.mjs und legt an bzw. gleicht ab.
+ * Verknüpfungen dürfen nur auf Collections zeigen, die dort vorher stehen.
  */
-export const ZEITERFASSUNG_COLLECTIONS: ModulCollection[] = [
+export default [
   {
+    // Zeiten. Ein Eintrag ohne Auftrag ist allgemeine Arbeitszeit, einer mit
+    // Auftrag ist auf den Auftrag gebuchte Zeit — dieselbe Stunde zählt also
+    // nie doppelt. Beginn und Ende als "HH:MM", weil Handwerker so denken und
+    // schreiben; die Dauer rechnet die Anwendung daraus.
+    //
+    // Arbeitszeitaufzeichnungen nach § 26 AZG verlangen Beginn, Ende und
+    // Pausen und sind ein Jahr aufzubewahren (Fahrzeuglenker zwei Jahre).
+    // Deshalb ist auch hier Ändern erlaubt, Löschen aber nur für Admins.
     name: "zeiten",
     schema: [
       { name: "benutzer", type: "relation", required: true, options: { collectionId: "users", maxSelect: 1 } },
       { name: "benutzername", type: "text", required: true },
+      // Wer gearbeitet hat. Meist derselbe wie der Erfasser, aber das Büro
+      // bucht auch für Monteure ohne Zugang.
       { name: "mitarbeiter", type: "relation", options: { collectionId: "mitarbeiter", maxSelect: 1 } },
       { name: "datum", type: "date", required: true },
       { name: "beginn", type: "text", required: true, options: { max: 5 } },
@@ -34,8 +46,8 @@ export const ZEITERFASSUNG_COLLECTIONS: ModulCollection[] = [
   {
     // Fahrten zu einem Auftrag. Das Fahrzeug steht als Kennung und als
     // Kennzeichen da, nicht als Verknüpfung: die Zeiterfassung darf den
-    // Fuhrpark nicht kennen, und ohne ihn soll die Fahrt trotzdem lesbar
-    // bleiben.
+    // Fuhrpark nicht kennen, und ohne ihn soll die Fahrt lesbar bleiben.
+    // Regeln wie bei den Zeiten: der Monteur erfasst seine eigenen.
     name: "fahrten",
     schema: [
       { name: "auftrag", type: "relation", required: true, options: { collectionId: "auftraege", maxSelect: 1, cascadeDelete: true } },

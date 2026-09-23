@@ -32,6 +32,7 @@ packages/
   tokens/               Design-Tokens (Funkenfuzi-Farben, Barlow, hell/dunkel)
 server/
   start.mjs             startet PocketBase (lädt das Binary beim ersten Mal)
+  schema.mjs            sammelt die Collections aller Pakete (je Paket: schema.mjs)
   einrichten.mjs        legt alle Collections an – idempotent, ersetzt Migrationen
   pb_hooks/             die wenigen Endpunkte, die PocketBase nicht mitbringt
 scripts/

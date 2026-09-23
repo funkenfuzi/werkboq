@@ -1,7 +1,6 @@
 import { dienstAnbieten, type WerkboqModul } from "@werkboq/core";
 import { Zeiten } from "./seiten/Zeiten";
 import { AuftragArbeit, ArbeitKacheln } from "./erweiterungen/AuftragArbeit";
-import { ZEITERFASSUNG_COLLECTIONS } from "./daten/collections";
 import { dauer, summe, zeitenVonBisAlle, zeitenZuAuftrag } from "./daten/zeiten";
 import { fahrtenZuAuftrag, summeKm } from "./daten/fahrten";
 
@@ -37,7 +36,6 @@ export const bausteinZeiterfassung: WerkboqModul = {
   version: "0.1.0",
   benoetigtKern: "^0.1.0",
 
-  collections: ZEITERFASSUNG_COLLECTIONS,
 
   navigation: [
     {

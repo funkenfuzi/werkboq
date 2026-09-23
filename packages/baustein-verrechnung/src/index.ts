@@ -5,7 +5,6 @@ import { BelegDruck } from "./seiten/BelegDruck";
 import { AuftragBelege, BelegKachel } from "./erweiterungen/AuftragBelege";
 import { AngebotKachel } from "./erweiterungen/AngebotKachel";
 import { Angebote } from "./seiten/Angebote";
-import { VERRECHNUNG_COLLECTIONS } from "./daten/collections";
 import "./gestaltung/beleg.css";
 
 export * from "./daten/belege";
@@ -44,7 +43,6 @@ export const bausteinVerrechnung: WerkboqModul = {
   benoetigtKern: "^0.1.0",
   ergaenzt: ["material", "zeiterfassung"],
 
-  collections: VERRECHNUNG_COLLECTIONS,
 
   navigation: [
     {

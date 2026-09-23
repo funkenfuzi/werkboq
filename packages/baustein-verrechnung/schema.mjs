@@ -1,5 +1,3 @@
-import type { ModulCollection } from "@werkboq/core";
-
 /**
  * Collections der Verrechnung.
  *
@@ -8,9 +6,18 @@ import type { ModulCollection } from "@werkboq/core";
  * verschwindet; § 132 BAO verlangt sieben Jahre Aufbewahrung. Entwürfe
  * löscht die Anwendung über einen eigenen Weg, der prüft, dass der Beleg
  * noch nicht festgeschrieben ist.
+ *
+ * DIE EINZIGE STELLE für diese Collections. `server/einrichten.mjs` lädt
+ * die Datei über server/schema.mjs und legt an bzw. gleicht ab.
+ * Verknüpfungen dürfen nur auf Collections zeigen, die dort vorher stehen.
  */
-export const VERRECHNUNG_COLLECTIONS: ModulCollection[] = [
+export default [
   {
+    // Belege: Angebot, Auftragsbestätigung, Rechnung, Gutschrift.
+    // Kein Löschen — eine fortlaufende Rechnungsnummer verträgt keine
+    // Lücken, und § 132 BAO verlangt sieben Jahre Aufbewahrung. Entwürfe
+    // räumt die Anwendung über einen eigenen Weg weg, der prüft, dass der
+    // Beleg noch nicht festgeschrieben ist.
     name: "belege",
     schema: [
       { name: "belegart", type: "select", required: true, options: { maxSelect: 1, values: ["angebot", "auftragsbestaetigung", "rechnung", "gutschrift"] } },
@@ -52,10 +59,12 @@ export const VERRECHNUNG_COLLECTIONS: ModulCollection[] = [
       "CREATE INDEX idx_belege_kunde ON belege (kunde)",
       "CREATE INDEX idx_belege_art_status ON belege (belegart, status)",
     ],
-    // Kein Löschen: eine fortlaufende Nummer verträgt keine Lücken.
     deleteRule: null,
   },
   {
+    // Eingefrorene Kopie der Positionen zum Zeitpunkt der Belegerstellung.
+    // Ändert jemand später die Auftragsposition, bleibt die Rechnung, wie
+    // sie war — sie ist ein Dokument, kein Fenster in den aktuellen Stand.
     name: "belegpositionen",
     schema: [
       { name: "beleg", type: "relation", required: true, options: { collectionId: "belege", maxSelect: 1, cascadeDelete: true } },

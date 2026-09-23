@@ -1,6 +1,5 @@
 import type { WerkboqModul } from "@werkboq/core";
 import { PruefberichteSeite } from "./seiten/Pruefberichte";
-import { ELEKTRO_COLLECTIONS } from "./daten/collections";
 
 /**
  * Modul Elektro – erster Konsument der Modulschnittstelle.
@@ -16,7 +15,6 @@ export const modulElektro: WerkboqModul = {
   version: "0.1.0",
   benoetigtKern: "^0.1.0",
 
-  collections: ELEKTRO_COLLECTIONS,
 
   navigation: [
     {
