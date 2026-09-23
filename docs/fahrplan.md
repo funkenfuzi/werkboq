@@ -171,11 +171,31 @@ grenzüberschreitende Rechnungen verlangt. Das Datenmodell trägt es, die
 Ausgabe fehlt. Ebenfalls offen: das PDF automatisch am Auftrag ablegen,
 Sammelrechnung über mehrere Aufträge, Teilrechnung mit Anzahlung.
 
-## Scheibe 8 – Export für den Steuerberater
+## Scheibe 8 – Export für den Steuerberater (erledigt, BMD ungeprüft)
 
-Ausgangsrechnungsjournal und Zahlungen als CSV in einem Aufbau, den BMD und
-RZL einlesen können. Kein Kontenrahmen, keine UVA, kein Abschluss —
-gebucht wird beim Steuerberater.
+Seite „Steuerberater" (Bereich Buchhaltung): Zeitraum wählen (voriger
+Monat, Quartal, Jahr oder frei), oben die Summen je Steuersatz, darunter
+drei Dateien:
+
+* **Rechnungsausgangsbuch** — eine Zeile je Beleg und Steuersatz,
+  Semikolon, Komma als Dezimaltrenner, UTF-8 mit BOM für Excel. Nur
+  festgeschriebene Rechnungen und Gutschriften; Gutschriften negativ, mit
+  der Nummer der stornierten Rechnung. Die Steuer je Satz ist genauso
+  gerundet wie auf dem Beleg.
+* **Zahlungseingänge** — Datum, Belegnummer, Kunde, Betrag, Art.
+* **BMD-Buchungsimport** — Feldaufbau nach der öffentlichen BMD-Beschreibung
+  (konto = Erlöskonto, gkto = Debitor, betrag netto und im Haben negativ,
+  steucod 3 bzw. 17 für die Bauleistung nach § 19 Abs 1a), Windows-1252.
+  Braucht die Konten des Betriebs, die auf derselben Seite eingetragen
+  werden. **Nicht gegen eine echte BMD-Installation geprüft** —
+  Importdefinitionen sind je Kanzlei einstellbar. Vor dem ersten Einsatz
+  mit dem Steuerberater an einer Testdatei abstimmen.
+
+Offen: RZL hat ein eigenes Format mit 41 Feldern (zweizeilig, Brutto am
+Kunden), DATEV einen EXTF-Buchungsstapel. Beide kommen, wenn ein Kunde
+sie braucht; bis dahin nimmt jede Kanzlei das Rechnungsausgangsbuch.
+Kein Kontenrahmen, keine UVA, kein Abschluss — gebucht wird beim
+Steuerberater.
 
 ## Scheibe 9 – Verträge (Baustein)
 

@@ -36,6 +36,9 @@ export default [
       // Nachfassrhythmus für Angebote in Tagen, etwa [7, 14, 30]. Leer heißt
       // Voreinstellung.
       { name: "nachfassTage", type: "json", options: { maxSize: 2000 } },
+      // Konten für den Buchungsexport an den Steuerberater (Debitor,
+      // Erlöskonten je Steuersatz). Vom Steuerberater, nicht erraten.
+      { name: "exportKonten", type: "json", options: { maxSize: 4000 } },
       { name: "inhaber", type: "text" },
       { name: "strasse", type: "text" },
       { name: "plz", type: "text" },

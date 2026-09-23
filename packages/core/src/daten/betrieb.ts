@@ -68,6 +68,8 @@ export interface Betrieb extends Basisdatensatz {
    * dem ersten Anruf, dreißig nach dem zweiten. Leer: Voreinstellung.
    */
   nachfassTage?: number[] | null;
+  /** Konten für den BMD-Export, siehe baustein-verrechnung/src/daten/export.ts. */
+  exportKonten?: unknown;
 }
 
 export const NACHFASS_RHYTHMUS_VORGABE: readonly number[] = [7, 14, 30];

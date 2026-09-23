@@ -5,12 +5,14 @@ import { BelegDruck } from "./seiten/BelegDruck";
 import { AuftragBelege, BelegKachel } from "./erweiterungen/AuftragBelege";
 import { AngebotKachel } from "./erweiterungen/AngebotKachel";
 import { Angebote } from "./seiten/Angebote";
+import { Export } from "./seiten/Export";
 import "./gestaltung/beleg.css";
 
 export * from "./daten/belege";
 export * from "./daten/zahlungen";
 export * from "./daten/mahnwesen";
 export * from "./daten/nachfassen";
+export * from "./daten/export";
 
 /**
  * Baustein Verrechnung.
@@ -57,6 +59,13 @@ export const bausteinVerrechnung: WerkboqModul = {
       titel: "Angebote",
       symbol: "vertrag",
       komponente: Angebote,
+      bereich: "buchhaltung",
+    },
+    {
+      pfad: "/export",
+      titel: "Steuerberater",
+      symbol: "geld",
+      komponente: Export,
       bereich: "buchhaltung",
     },
     {

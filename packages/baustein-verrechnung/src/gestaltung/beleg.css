@@ -415,7 +415,7 @@
 
 .wb-schnellzahlen {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(160px, 100%), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(130px, 100%), 1fr));
   gap: var(--wb-space-3);
   margin: 0 0 var(--wb-space-3);
 }
@@ -483,4 +483,75 @@
   .wb-kontaktliste__notiz {
     grid-column: 1 / -1;
   }
+}
+
+/* ---------- Export für den Steuerberater ---------- */
+
+.wb-export {
+  display: grid;
+  gap: var(--wb-space-4);
+  margin-bottom: var(--wb-space-4);
+}
+
+.wb-export .wb-werkzeugleiste {
+  margin-bottom: 0;
+}
+
+.wb-export__datum {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--wb-space-2);
+  font-size: var(--wb-text-sm);
+  color: var(--wb-text-muted);
+}
+
+.wb-export__datum input {
+  font: inherit;
+  min-height: 38px;
+  padding: 0 var(--wb-space-2);
+  border: 1px solid var(--wb-border-strong);
+  border-radius: var(--wb-radius-md);
+  background: var(--wb-surface);
+  color: var(--wb-text);
+}
+
+.wb-exportdateien {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
+  gap: var(--wb-space-4);
+}
+
+.wb-exportdateien > div {
+  display: grid;
+  gap: var(--wb-space-2);
+  align-content: start;
+}
+
+.wb-exportdateien .wb-button {
+  justify-self: start;
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  width: auto;
+}
+
+.wb-exportsaetze {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.wb-exportsaetze li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  white-space: nowrap;
+  gap: var(--wb-space-3);
+  padding: var(--wb-space-2) 0;
+  border-top: 1px solid var(--wb-border);
+  font-variant-numeric: tabular-nums;
+}
+
+.wb-exportsaetze li span + span {
+  text-align: right;
+  white-space: nowrap;
 }
