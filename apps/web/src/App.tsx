@@ -37,6 +37,7 @@ const MODULSYMBOLE: Record<string, SymbolName> = {
   beleg: "beleg",
   geld: "geld",
   vertrag: "vertrag",
+  wiederholung: "wiederholung",
 };
 
 export function App() {

@@ -1,4 +1,5 @@
-import { darf, dienstAnbieten, pb, type WerkboqModul } from "@werkboq/core";
+import { aktuellerRechtsraum, darf, dienstAnbieten, kundeLaden, pb, type WerkboqModul } from "@werkboq/core";
+import { anschriftVon, belegAnlegen, heute, LEERER_BELEG, naechsteBelegnummer } from "./daten/belege";
 import { Belege } from "./seiten/Belege";
 import { BelegAkte } from "./seiten/BelegAkte";
 import { BelegDruck } from "./seiten/BelegDruck";
@@ -95,6 +96,42 @@ export const bausteinVerrechnung: WerkboqModul = {
     // Pflichthinweis eines bestimmten Rechts. Ab da darf das Land nicht mehr
     // umgestellt werden — sonst stünden alte Rechnungen mit falscher
     // Grundlage da, und niemand würde es merken.
+    // Für Verträge und andere Bausteine, die eine Rechnung auslösen,
+    // ohne Belege zu kennen. Immer ein Entwurf.
+    dienstAnbieten("belegentwurf", async (e) => {
+      const kunde = await kundeLaden(e.kunde);
+      const satz = aktuellerRechtsraum().normalsatz;
+      const beleg = await belegAnlegen(
+        {
+          ...LEERER_BELEG,
+          belegart: "rechnung",
+          nummer: await naechsteBelegnummer("rechnung"),
+          kunde: e.kunde,
+          auftrag: e.auftrag,
+          datum: heute(),
+          leistungVon: e.leistungVon,
+          leistungBis: e.leistungBis,
+          empfaengerName: kunde.name,
+          empfaengerAnschrift: anschriftVon(kunde),
+          empfaengerUid: kunde.uid ?? "",
+          kopftext: e.kopftext,
+        },
+        e.zeilen.map((z, i) => ({
+          pos: (i + 1) * 10,
+          art: "leistung",
+          bezeichnung: z.bezeichnung,
+          beschreibung: z.beschreibung ?? "",
+          menge: z.menge,
+          einheit: z.einheit,
+          einzelpreis: z.einzelpreis,
+          rabatt: 0,
+          ustsatz: satz,
+          quelle: "vertrag",
+        })),
+      );
+      return { id: beleg.id, nummer: beleg.nummer };
+    });
+
     dienstAnbieten("rechtsraumSperre", async () => {
       // Seit die Belege nur noch die Buchhaltung lesen darf, sähe ein
       // Zugang ohne dieses Recht eine leere Liste — und hielte das Land für

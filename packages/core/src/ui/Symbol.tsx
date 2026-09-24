@@ -32,6 +32,7 @@ export type SymbolName =
   | "beleg"
   | "geld"
   | "vertrag"
+  | "wiederholung"
   | "personal"
   | "haken"
   | "kreuz"
@@ -60,6 +61,8 @@ const PFADE: Record<SymbolName, string> = {
   beleg: "M6 3.5h12v17l-2-1.5-2 1.5-2-1.5-2 1.5-2-1.5-2 1.5v-17ZM9 8h6M9 11.5h6M9 15h3",
   geld: "M3.5 6.5h17v11h-17v-11ZM12 14.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM6.5 9.5v5M17.5 9.5v5",
   vertrag: "M5 3.5h9l5 5V20a.5.5 0 0 1-.5.5h-13A.5.5 0 0 1 5 20V4a.5.5 0 0 1 .5-.5ZM14 3.5V9h5M8.5 13.5h7M8.5 17h4M8.5 10h2",
+  // Zwei Pfeile im Kreis — was wiederkehrt: Wartungsverträge.
+  wiederholung: "M20 11a8 8 0 0 0-14.3-4.9L4 8M4 3.5V8h4.5M4 13a8 8 0 0 0 14.3 4.9L20 16m0 4.5V16h-4.5",
   warnung: "M12 4 2.5 20.5h19L12 4ZM12 10v5M12 17.8v.2",
   // Personalwesen: eine Person mit Karte — nicht dieselbe Figur wie "kunden",
   // sonst stehen im Menü zwei Einträge mit demselben Zeichen.

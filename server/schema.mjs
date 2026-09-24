@@ -17,6 +17,7 @@ import material from "@werkboq/baustein-material/schema.mjs";
 import verrechnung from "@werkboq/baustein-verrechnung/schema.mjs";
 import personal from "@werkboq/baustein-personal/schema.mjs";
 import fuhrpark from "@werkboq/baustein-fuhrpark/schema.mjs";
+import vertraege from "@werkboq/baustein-vertraege/schema.mjs";
 import elektro from "@werkboq/modul-elektro/schema.mjs";
 
 export const KERN = kern;
@@ -35,6 +36,7 @@ export const BAUSTEINE = [
   ...verrechnung,
   ...personal,
   ...fuhrpark,
+  ...vertraege,
 ];
 
 /** Collections der Fachmodule. */

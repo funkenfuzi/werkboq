@@ -42,6 +42,7 @@ dort ist leer:**
 | `belege`, `belegpositionen` | Bereich `buchhaltung` | Bereich `buchhaltung`; löschen nur Entwürfe. **Nach dem Festschreiben ändert niemand mehr Inhalt oder Zeilen** — nur Status, Verknüpfungen und Angebotsverfolgung (Hook `server/pb_hooks/belege.pb.js`) |
 | `zahlungen`, `mahnungen` | Bereich `buchhaltung` | Bereich `buchhaltung`; löschen nur Administrator |
 | `angebotskontakte` | Bereich `buchhaltung` | anlegen `buchhaltung`; **ändern und löschen niemand** |
+| `vertraege`, `vertragsereignisse` | Bereich `buchhaltung` | Bereich `buchhaltung`; Ereignisse nicht änderbar |
 | `kunden`, `standorte`, `ansprechpartner`, `auftraege` | jeder Angemeldete | Schreibrecht `technik` **oder** `buchhaltung`; löschen nur Administrator |
 | `artikel` | jeder Angemeldete — **den Einkaufspreis nur mit `lager` oder `buchhaltung`** (Hook `artikel.pb.js`) | Schreibrecht `lager` |
 | `positionen` (Nachtrag) | — | eine **freigegebene** Position ändern und löschen nur mit Schreibrecht `lager`; Vorschläge darf jeder zurücknehmen |

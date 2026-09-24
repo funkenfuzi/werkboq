@@ -1307,3 +1307,15 @@
   border-radius: var(--wb-radius-md);
   opacity: 0.85;
 }
+
+/* Lange Titel in der Kopfzeile einer Akte („Notbeleuchtung und
+   wiederkehrende Prüfung, Objekt Lindenhof") dürfen die Seite am Handy
+   nicht verbreitern: der Textblock darf schrumpfen, Wörter trennen. */
+.wb-akte__kopf > div {
+  min-width: 0;
+}
+
+.wb-akte__kopf h1 {
+  overflow-wrap: break-word;
+  hyphens: auto;
+}

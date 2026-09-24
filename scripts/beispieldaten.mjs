@@ -413,6 +413,7 @@ async function anlegen() {
   await termineAnlegen(auftraege, mitarbeiter);
   await belegeAnlegen(auftraege, kunden);
   await angeboteAnlegen(auftraege, kunden);
+  await vertraegeAnlegen(kunden);
 
   console.log("\nFertig. Zum Aufräumen: npm run beispieldaten -- weg");
 }
@@ -849,6 +850,61 @@ async function angeboteAnlegen(auftraege, kunden) {
   );
 }
 
+/**
+ * Zwei Wartungsverträge: einer mit Quartalspauschale, deren Rechnung
+ * fällig ist, einer nach Aufwand, dessen Wartung in drei Wochen ansteht
+ * und dessen Kündigungsfrist bald abläuft.
+ */
+async function vertraegeAnlegen(kunden) {
+  const da = await pb.collection("vertraege").getList(1, 1).catch(() => null);
+  if (!da) {
+    console.log("Verträge: Baustein nicht eingerichtet, übersprungen");
+    return;
+  }
+  if (da.totalItems > 0) {
+    console.log("Verträge: schon welche vorhanden, übersprungen");
+    return;
+  }
+  const jahr = new Date().getFullYear();
+  const hv = kunden.get("Hausverwaltung Föhrenwald");
+  const mb = kunden.get("Musterbau GmbH");
+  await pb.collection("vertraege").create({
+    nummer: `WV-${jahr}-001`,
+    kunde: hv.id,
+    titel: "Notbeleuchtung und wiederkehrende Prüfung, Objekt Lindenhof",
+    leistungen: "Sichtprüfung Verteiler, Funktionsprüfung Notbeleuchtung (Einzelbatterie), Prüfbuch führen, Mängelliste.",
+    status: "aktiv",
+    intervallMonate: 12,
+    naechsteWartung: tagNach(75),
+    vorlaufTage: 30,
+    verrechnung: "pauschale",
+    pauschale: 48000,
+    rhythmus: "quartal",
+    naechsteRechnung: tagVor(3),
+    preisStand: tagVor(400),
+    beginn: `${jahr - 2}-01-01`,
+    laufzeitMonate: 24,
+    verlaengerungMonate: 12,
+    kuendigungsfristMonate: 3,
+  });
+  await pb.collection("vertraege").create({
+    nummer: `WV-${jahr}-002`,
+    kunde: mb.id,
+    titel: "Baustromverteiler und Bürotrakt, halbjährliche Wartung",
+    leistungen: "FI-Prüfung aller Verteiler, Thermografie Hauptverteiler.",
+    status: "aktiv",
+    intervallMonate: 6,
+    naechsteWartung: tagNach(20),
+    vorlaufTage: 30,
+    verrechnung: "aufwand",
+    beginn: `${jahr - 1}-01-01`,
+    laufzeitMonate: 12,
+    verlaengerungMonate: 12,
+    kuendigungsfristMonate: 3,
+  });
+  console.log("Verträge: 2 (Pauschale fällig, Wartung in 20 Tagen)");
+}
+
 async function angebotAnlegen(kunde, auftrag, datum, titel, zeilen) {
   const nummer = await naechsteBelegnummer("AN");
   const netto = zeilen.reduce((s, [, menge, , preis]) => s + Math.round(menge * preis), 0);
@@ -977,6 +1033,7 @@ async function entfernen() {
   }
 
   for (const k of kunden) {
+    weg += await loescheAlle("vertraege", `kunde = "${k.id}"`);
     // Verweise zwischen Belegen zuerst lösen — ein Angebot, das auf seine
     // Auftragsbestätigung zeigt, ließe diese sonst nicht löschen.
     for (const b of await gefunden("belege", `kunde = "${k.id}"`)) {
@@ -1051,6 +1108,10 @@ async function naechsteBelegnummer(kuerzel) {
 
 function alsDatum(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function tagNach(tage) {
+  return tagVor(-tage);
 }
 
 function tagVor(tage) {

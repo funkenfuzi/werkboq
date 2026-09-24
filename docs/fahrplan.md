@@ -197,11 +197,29 @@ sie braucht; bis dahin nimmt jede Kanzlei das Rechnungsausgangsbuch.
 Kein Kontenrahmen, keine UVA, kein Abschluss — gebucht wird beim
 Steuerberater.
 
-## Scheibe 9 – Verträge (Baustein)
+## Scheibe 9 – Verträge (Baustein, erledigt)
 
-Wartungsverträge mit Intervall und wiederkehrender Verrechnung,
-Vertragsdokumente am Kunden mit Laufzeit, Kündigungsfrist und Erinnerung vor
-Ablauf, Auftragsbestätigung aus dem angenommenen Angebot.
+Baustein `vertraege` (Bereich Buchhaltung): Wartungsverträge mit
+Intervall, Verrechnung je Vertrag als Pauschale im Voraus (monatlich bis
+jährlich) oder nach Aufwand, Laufzeit mit Verlängerung und
+Kündigungsfrist. Die Auftragsbestätigung aus dem Angebot kam schon mit der
+Angebotsverfolgung.
+
+Er legt nichts von selbst an (so entschieden): er erinnert — auf der
+Vertragsseite, in der Startkachel und beim Kunden — und ein Klick macht
+aus der fälligen Wartung einen Auftrag (Art Wartung, Phase „Geplant")
+und aus der fälligen Pauschale einen Rechnungsentwurf. Die nächste
+Wartung rechnet vom Fälligkeitstag, nicht vom Klick; die Pauschale nach
+einer Kündigung nur anteilig bis zum Ende.
+
+Die Kündigungsfrist rechnet mit Fristbeginn am Tag nach dem Zugang: drei
+Monate zum 31. Dezember heißt, die Kündigung muss am 30. September da
+sein. Erinnert wird 60 Tage vorher — auch als Anlass, den Preis
+anzupassen, bevor sich der Vertrag verlängert; eine Pauschale, die seit
+einem Jahr gleich ist, meldet sich eigens.
+
+Den Rechnungsentwurf legt die Verrechnung über den neuen Dienst
+`belegentwurf` an — Verträge kennen keine Belege.
 
 ## Scheibe 10 – Fuhrpark (erledigt)
 

@@ -141,7 +141,32 @@ export interface Fahrzeugauswahl {
 }
 export type FahrzeugeDienst = () => Promise<Fahrzeugauswahl[]>;
 
+/**
+ * Einen Rechnungsentwurf anlegen lassen — von der Verrechnung.
+ *
+ * Für Bausteine, die Geld auslösen, aber keine Belege kennen dürfen: der
+ * Wartungsvertrag, dessen Pauschale fällig ist. Er beschreibt, was auf die
+ * Rechnung soll; Nummer, Empfänger und Summen macht die Verrechnung.
+ * Es entsteht immer ein ENTWURF — festgeschrieben wird von Hand.
+ */
+export interface Belegentwurf {
+  kunde: string;
+  auftrag?: string;
+  kopftext: string;
+  leistungVon: string;
+  leistungBis: string;
+  zeilen: {
+    bezeichnung: string;
+    beschreibung?: string;
+    menge: number;
+    einheit: string;
+    einzelpreis: number;
+  }[];
+}
+export type BelegentwurfDienst = (entwurf: Belegentwurf) => Promise<{ id: string; nummer: string }>;
+
 export interface Dienste {
+  belegentwurf: BelegentwurfDienst;
   auftragsfahrten: AuftragsfahrtenDienst;
   fahrzeuge: FahrzeugeDienst;
   tagesstunden: TagesstundenDienst;

@@ -94,6 +94,7 @@ sonst niemand. Bisher vergeben:
 | `tagestermine` | Planung | Kern (Startseite) |
 | `auftragsfahrten` | Zeiterfassung | Verrechnung |
 | `fahrzeuge` | Fuhrpark | Zeiterfassung (Fahrten) |
+| `belegentwurf` | Verrechnung | Verträge (Pauschale verrechnen) |
 
 Der Kern kennt die *Namen und Formen* beider — so wie eine Steckdose die Form
 des Steckers kennt, aber kein Gerät. Anbieter kennt er keine.
@@ -149,6 +150,7 @@ packages/baustein-material        Baustein
 packages/baustein-verrechnung     Baustein
 packages/baustein-personal        Baustein
 packages/baustein-fuhrpark        Baustein
+packages/baustein-vertraege       Baustein
 packages/modul-elektro            Fachmodul
 apps/web                          Hülle: Seitenleiste, Routen, Kernseiten
 packages/*/schema.mjs             Collections des Pakets — die einzige Stelle

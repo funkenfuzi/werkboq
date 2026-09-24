@@ -11,6 +11,7 @@ import {
   ansprechpartnerLoeschen,
   ansprechpartnerZuKunde,
   darf,
+  erweiterungen,
   darfAuftraegeAendern,
   KERN_COLLECTIONS,
   kundeLaden,
@@ -158,7 +159,16 @@ export function KundeAkte() {
       </nav>
 
       <div className="wb-akte__inhalt">
-        {reiter === "uebersicht" && <Uebersicht kunde={kunde} auftraege={auftraege} />}
+        {reiter === "uebersicht" && (
+          <>
+            <Uebersicht kunde={kunde} auftraege={auftraege} />
+            {/* Blöcke der Bausteine zum Kunden, etwa seine Wartungsverträge.
+                Der Kern kennt sie nicht namentlich. */}
+            {erweiterungen("kunde.reiter").map(({ modulId, Komponente }) => (
+              <Komponente key={modulId} datensatzId={kunde.id} />
+            ))}
+          </>
+        )}
         {reiter === "auftraege" && <Auftragstabelle auftraege={auftraege} kundeId={kunde.id} />}
         {reiter === "standorte" && <Standortliste standorte={standorte} />}
         {reiter === "ansprechpartner" && (

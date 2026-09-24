@@ -109,6 +109,7 @@ try {
   await pruefe("Belegzeilen lesen", () => alsMonteur.collection("belegpositionen").getFullList(), false);
   await pruefe("Zahlungen lesen", () => alsMonteur.collection("zahlungen").getFullList(), false);
   await pruefe("Nachfassnotizen lesen", () => alsMonteur.collection("angebotskontakte").getFullList(), false);
+  await pruefe("Wartungsverträge lesen", () => alsMonteur.collection("vertraege").getFullList(), false);
   await pruefe("einen Auftrag ändern", async () => {
     const a = (await alsMonteur.collection("auftraege").getFullList())[0];
     return await alsMonteur.collection("auftraege").update(a.id, { titel: a.titel });
@@ -153,6 +154,7 @@ try {
   // --------------------------------------------------------------------
   abschnitt("Büro — Buchhaltung");
   await pruefe("Belege lesen", () => alsBuero.collection("belege").getFullList(), true);
+  await pruefe("Wartungsverträge lesen", () => alsBuero.collection("vertraege").getFullList(), true);
   await pruefe("Einkaufspreise sehen", async () => {
     const liste = await alsBuero.collection("artikel").getFullList();
     return liste.filter((a) => a.einkauf > 0);
