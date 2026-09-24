@@ -63,6 +63,7 @@ export const bausteinPersonal: WerkboqModul = {
       symbol: "personal",
       komponente: Personal,
       bereich: "personal",
+      gruppe: "betrieb",
     },
     {
       pfad: "/personal/lohn",
@@ -70,12 +71,14 @@ export const bausteinPersonal: WerkboqModul = {
       symbol: "geld",
       komponente: Lohnvorbereitung,
       bereich: "personal",
+      gruppe: "betrieb",
     },
     {
       pfad: "/personal/:id",
       titel: "Personalakte",
       komponente: Personalakte,
       bereich: "personal",
+      gruppe: "betrieb",
       versteckt: true,
     },
   ],

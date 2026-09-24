@@ -17,6 +17,7 @@ export const LEERER_KUNDE: KundeEingabe = {
   name: "",
   intern: false,
   unternehmer: false,
+  nurWare: false,
   strasse: "",
   plz: "",
   ort: "",

@@ -77,7 +77,16 @@ jeder Reiter einen eigenen Punkt: `auftrag.arbeit`, `auftrag.baustelle`,
 `auftrag.abrechnung`; dazu `auftrag.kachel` für die kleinen Kacheln im
 Überblick (Komponente `Auftragskachel` aus dem Kern, damit alle gleich
 aussehen). `auftrag.abschnitt` gibt es noch für ältere Module; es landet im
-Reiter Arbeit.
+Reiter Arbeit. Weitere Punkte: `kunde.reiter` (Block in der Übersicht der
+Kundenakte), `lieferant.reiter` (Block in der Lieferantenakte, seit
+September 2026 — Verträge hängt dort die eigenen Verträge ein) und
+`dashboard.kachel`.
+
+Auch die Seitenleiste ist so gebaut: ein Navigationseintrag sagt mit
+`gruppe`, unter welche Überschrift er gehört (`kunden`, `auftraege`,
+`verkauf`, `betrieb`; Fachmodule stehen immer unter „Fachmodule"). Die
+Leiste kennt keinen Baustein beim Namen, siehe
+`packages/core/src/modul/navgruppen.ts`.
 
 *Dienste* reichen Daten durch (`packages/core/src/modul/dienste.ts`). Ein
 Modul bietet eine Funktion unter einem Namen an, ein anderes fragt danach.

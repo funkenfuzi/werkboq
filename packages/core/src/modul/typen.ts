@@ -82,6 +82,12 @@ export interface NavEintrag {
   /** Nur sichtbar, wenn der Nutzer diesen Bereich hat. */
   bereich?: Bereich;
   /**
+   * Unter welche Überschrift der Seitenleiste der Eintrag gehört. Ohne
+   * Angabe landet er unter „Betrieb"; Fachmodule stehen immer unter
+   * „Fachmodule", egal was hier steht. Siehe modul/navgruppen.ts.
+   */
+  gruppe?: Navgruppe;
+  /**
    * Route ja, Eintrag in der Seitenleiste nein.
    * Für Unterseiten wie /belege/:id, die über eine Liste erreicht werden.
    */
@@ -89,6 +95,9 @@ export interface NavEintrag {
   /** Setzt das Registry beim Ausliefern; Module geben das nicht selbst an. */
   modulId?: string;
 }
+
+/** Überschriften der Seitenleiste, in dieser Reihenfolge. */
+export type Navgruppe = "kunden" | "auftraege" | "verkauf" | "betrieb" | "fachmodule";
 
 /** Stellen im Kern, an denen Module Oberfläche beisteuern können. */
 export type Erweiterungspunkt =
@@ -103,6 +112,7 @@ export type Erweiterungspunkt =
   | "auftrag.abschnitt"     // ALT: landet im Reiter Arbeit, damit nichts verschwindet
   | "auftrag.aktionen"      // Schaltflächen in der Kopfzeile eines Auftrags
   | "kunde.reiter"          // zusätzlicher Reiter in der Kundenansicht
+  | "lieferant.reiter"      // Block in der Lieferantenakte, etwa eigene Verträge
   | "dashboard.kachel";     // Kachel auf der Startseite
 
 export interface ErweiterungsProps {

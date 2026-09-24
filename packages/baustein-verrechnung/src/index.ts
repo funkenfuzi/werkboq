@@ -54,6 +54,7 @@ export const bausteinVerrechnung: WerkboqModul = {
       symbol: "beleg",
       komponente: Belege,
       bereich: "buchhaltung",
+      gruppe: "verkauf",
     },
     {
       pfad: "/angebote",
@@ -61,6 +62,7 @@ export const bausteinVerrechnung: WerkboqModul = {
       symbol: "vertrag",
       komponente: Angebote,
       bereich: "buchhaltung",
+      gruppe: "verkauf",
     },
     {
       pfad: "/export",
@@ -68,12 +70,14 @@ export const bausteinVerrechnung: WerkboqModul = {
       symbol: "geld",
       komponente: Export,
       bereich: "buchhaltung",
+      gruppe: "verkauf",
     },
     {
       pfad: "/belege/:id",
       titel: "Beleg",
       komponente: BelegAkte,
       bereich: "buchhaltung",
+      gruppe: "verkauf",
       versteckt: true,
     },
     {
@@ -81,6 +85,7 @@ export const bausteinVerrechnung: WerkboqModul = {
       titel: "Beleg drucken",
       komponente: BelegDruck,
       bereich: "buchhaltung",
+      gruppe: "verkauf",
       versteckt: true,
     },
   ],

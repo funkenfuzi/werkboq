@@ -33,6 +33,8 @@ export interface Kunde extends Basisdatensatz {
    * voraus.
    */
   unternehmer?: boolean;
+  /** Kauft nur Ware — der einzige Kunde ohne Standort. */
+  nurWare?: boolean;
   strasse?: string;
   plz?: string;
   ort?: string;
@@ -49,6 +51,8 @@ export interface Standort extends Basisdatensatz {
   strasse?: string;
   plz?: string;
   ort?: string;
+  land?: string;
+  notiz?: string;
 }
 
 /**
@@ -155,6 +159,7 @@ export const KERN_COLLECTIONS = {
   benutzer: "users",
   kunden: "kunden",
   standorte: "standorte",
+  standortteile: "standortteile",
   auftraege: "auftraege",
   dokumente: "dokumente",
   fotos: "fotos",

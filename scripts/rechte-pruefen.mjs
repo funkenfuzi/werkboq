@@ -131,6 +131,17 @@ try {
     const p = (await alsMonteur.collection("positionen").getFullList({ filter: 'zustand = "freigegeben"' }))[0];
     return await alsMonteur.collection("positionen").update(p.id, { menge: p.menge });
   }, false);
+  await pruefe("Lieferanten lesen (wo hole ich Material)", () => alsMonteur.collection("lieferanten").getFullList(), true);
+  await pruefe("einen Lieferanten anlegen", () => alsMonteur.collection("lieferanten").create({ name: "PRUEF-MONTEUR" }), false, aufraeumenAls("lieferanten"));
+  await pruefe("Standorte lesen", () => alsMonteur.collection("standorte").getFullList(), true);
+  await pruefe("einen Raum an einem Standort anlegen", async () => {
+    const st = (await alsMonteur.collection("standorte").getFullList())[0];
+    return await alsMonteur.collection("standortteile").create({ standort: st.id, art: "raum", bezeichnung: "PRUEF-MONTEUR" });
+  }, false, aufraeumenAls("standortteile"));
+  await pruefe("einen Standort löschen", async () => {
+    const st = (await alsMonteur.collection("standorte").getFullList())[0];
+    return await alsMonteur.collection("standorte").delete(st.id);
+  }, false);
   await pruefe("einen Beleg anlegen", () => alsMonteur.collection("belege").create({ belegart: "rechnung", nummer: "PRUEF-MONTEUR", kunde: kundeId, status: "entwurf", datum: "2026-09-23", empfaengerName: "x", steuerfrei: "keiner" }), false, aufraeumenAls("belege"));
 
   abschnitt("Der Betroffene selbst — ohne Personalrecht");
@@ -155,6 +166,19 @@ try {
   abschnitt("Büro — Buchhaltung");
   await pruefe("Belege lesen", () => alsBuero.collection("belege").getFullList(), true);
   await pruefe("Wartungsverträge lesen", () => alsBuero.collection("vertraege").getFullList(), true);
+  await pruefe("einen Lieferanten anlegen", () => alsBuero.collection("lieferanten").create({ name: "PRUEF-BUERO", aktiv: true }), true, aufraeumenAls("lieferanten"));
+  await pruefe("Gebäude an einem Standort anlegen", async () => {
+    const st = (await alsBuero.collection("standorte").getFullList())[0];
+    return await alsBuero.collection("standortteile").create({ standort: st.id, art: "gebaeude", bezeichnung: "PRUEF-BUERO" });
+  }, true, aufraeumenAls("standortteile"));
+  await pruefe("den einzigen Standort eines Kunden löschen", async () => {
+    // Ein Kunde mit genau einem Standort: der Hook hält ihn fest.
+    for (const k of await alsBuero.collection("kunden").getFullList({ filter: "intern = false && nurWare = false" })) {
+      const st = await alsBuero.collection("standorte").getFullList({ filter: `kunde = "${k.id}"` });
+      if (st.length === 1) return await alsBuero.collection("standorte").delete(st[0].id);
+    }
+    throw new Error("kein Kunde mit genau einem Standort gefunden");
+  }, false);
   await pruefe("Einkaufspreise sehen", async () => {
     const liste = await alsBuero.collection("artikel").getFullList();
     return liste.filter((a) => a.einkauf > 0);

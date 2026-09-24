@@ -42,6 +42,7 @@ export const bausteinPlanung: WerkboqModul = {
       symbol: "kalender",
       komponente: Kalender,
       bereich: "technik",
+      gruppe: "auftraege",
     },
   ],
 

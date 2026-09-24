@@ -43,6 +43,7 @@ export const bausteinZeiterfassung: WerkboqModul = {
       titel: "Meine Zeiten",
       symbol: "uhr",
       komponente: Zeiten,
+      gruppe: "auftraege",
     },
   ],
 

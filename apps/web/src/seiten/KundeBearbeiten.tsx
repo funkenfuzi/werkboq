@@ -121,6 +121,36 @@ export function KundeBearbeiten() {
           </span>
         </label>
 
+        <label className="wb-schalter wb-feld--breit">
+          <input
+            type="checkbox"
+            checked={werte.unternehmer ?? false}
+            onChange={(e) => feld("unternehmer", e.target.checked)}
+          />
+          <span>
+            Unternehmer
+            <small>
+              Entscheidet über Verzugszinsen, Mahnspesen und den Übergang der Steuerschuld bei
+              Bauleistungen. Privatkunden: abgehakt lassen.
+            </small>
+          </span>
+        </label>
+
+        <label className="wb-schalter wb-feld--breit">
+          <input
+            type="checkbox"
+            checked={werte.nurWare ?? false}
+            onChange={(e) => feld("nurWare", e.target.checked)}
+          />
+          <span>
+            Kauft nur Ware
+            <small>
+              Der einzige Kunde ohne Standort. Alle anderen bekommen beim Speichern ihre Anschrift als
+              ersten Standort.
+            </small>
+          </span>
+        </label>
+
         <label className="wb-feld wb-feld--breit">
           <span>Straße</span>
           <input type="text" value={werte.strasse ?? ""} onChange={(e) => feld("strasse", e.target.value)} />

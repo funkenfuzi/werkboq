@@ -13,6 +13,9 @@ import {
   AUFTRAGSARTEN,
   artVon,
   phasenFuer,
+  standorteZuKunde,
+  anschriftZeile,
+  type Standort,
   type Auftrag,
   type AuftragEingabe,
   type AuftragPhase,
@@ -26,6 +29,12 @@ import {
  * Beim Anlegen aus einer Kundenakte heraus kommt der Kunde über ?kunde=… mit
  * und ist dann vorbelegt — sonst tippt man ihn zweimal.
  */
+/** Was hinter der Bezeichnung steht: die Anschrift, ohne sie zu wiederholen. */
+function standortZusatz(s: Standort): string {
+  const ganz = s.strasse?.trim() === s.bezeichnung.trim() ? [s.plz, s.ort].filter(Boolean).join(" ") : anschriftZeile(s);
+  return ganz && ganz !== s.bezeichnung ? ` — ${ganz}` : "";
+}
+
 export function AuftragBearbeiten() {
   const { id } = useParams<{ id: string }>();
   const [suchparameter] = useSearchParams();
@@ -35,6 +44,7 @@ export function AuftragBearbeiten() {
   const [werte, setWerte] = useState<AuftragEingabe>(LEERER_AUFTRAG);
   const [vorher, setVorher] = useState<Auftrag | null>(null);
   const [kunden, setKunden] = useState<Kunde[]>([]);
+  const [standorte, setStandorte] = useState<Standort[]>([]);
   const [laedt, setLaedt] = useState(true);
   const [speichert, setSpeichert] = useState(false);
   const [fehler, setFehler] = useState<string | null>(null);
@@ -72,6 +82,29 @@ export function AuftragBearbeiten() {
       setLaedt(false);
     });
   }, [id, neu, suchparameter]);
+
+  // Standorte des gewählten Kunden. Hat er genau einen, ist der gleich
+  // gesetzt — beim Einfamilienhaus gibt es nichts zu wählen.
+  useEffect(() => {
+    if (!werte.kunde) {
+      setStandorte([]);
+      return;
+    }
+    let aktuell = true;
+    standorteZuKunde(werte.kunde)
+      .then((liste) => {
+        if (!aktuell) return;
+        setStandorte(liste);
+        setWerte((v) => {
+          if (v.standort && liste.some((x) => x.id === v.standort)) return v;
+          return { ...v, standort: liste.length === 1 ? liste[0]!.id : "" };
+        });
+      })
+      .catch(() => aktuell && setStandorte([]));
+    return () => {
+      aktuell = false;
+    };
+  }, [werte.kunde]);
 
   function feld<K extends keyof AuftragEingabe>(name: K, wert: AuftragEingabe[K]) {
     setWerte((v) => ({ ...v, [name]: wert }));
@@ -139,6 +172,21 @@ export function AuftragBearbeiten() {
             ))}
           </select>
         </label>
+
+        {standorte.length > 0 && (
+          <label className="wb-feld wb-feld--breit">
+            <span>Standort</span>
+            <select value={werte.standort ?? ""} onChange={(e) => feld("standort", e.target.value)}>
+              {standorte.length > 1 && <option value="">— bitte wählen —</option>}
+              {standorte.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.bezeichnung}
+                  {standortZusatz(s)}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
 
         <label className="wb-feld wb-feld--schmal">
           <span>Nummer *</span>

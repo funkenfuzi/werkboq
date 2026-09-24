@@ -82,6 +82,13 @@ const STANDORTE = [
   { kunde: "Hausverwaltung Föhrenwald", bezeichnung: "Objekt Lindenhof", strasse: "Lindenweg 12", plz: "2751", ort: "Steinabrückl" },
 ];
 
+// Die andere Richtung: bei wem der Betrieb kauft und wer für ihn arbeitet.
+const LIEFERANTEN = [
+  { name: "Brandschutz Huber GmbH", art: "dienstleister", ort: "Wiener Neustadt", telefon: "02622 / 55443", kundennummer: "K-20931", aktiv: true },
+  { name: "Autoleasing Mitte", art: "dienstleister", ort: "Wien", telefon: "01 / 5556677", kundennummer: "LV-778812", aktiv: true },
+  { name: "Elektrogroßhandel Süd", art: "grosshandel", ort: "Wiener Neustadt", telefon: "02622 / 11220", kundennummer: "400512", aktiv: true },
+];
+
 const ANSPRECHPARTNER = [
   { kunde: "Musterbau GmbH", name: "Ing. Peter Novak", funktion: "Bauleiter", telefon: "0664 / 3334455", email: "novak@musterbau.example" },
   { kunde: "Hausverwaltung Föhrenwald", name: "Sabine Wolf", funktion: "Objektbetreuung", telefon: "0676 / 7778899", email: "wolf@hv-foehrenwald.example" },
@@ -335,6 +342,26 @@ async function anlegen() {
     standorte.set(s.bezeichnung, d);
   }
 
+  // Ein Objekt mit Innenleben: so sieht ein Standort aus, sobald jemand
+  // Gebäude, Geschoße und Verteiler anlegt.
+  const lindenhof = standorte.get("Objekt Lindenhof");
+  const teil = async (bezeichnung, art, eltern, reihenfolge) =>
+    await einmalig("standortteile", `standort = "${lindenhof.id}" && bezeichnung = "${bezeichnung}"`, {
+      standort: lindenhof.id,
+      eltern: eltern?.id ?? "",
+      art,
+      bezeichnung,
+      reihenfolge,
+    });
+  const hausA = await teil("Haus A", "gebaeude", null, 1);
+  const keller = await teil("Keller", "geschoss", hausA, 1);
+  await teil("Hauptverteiler HV", "verteiler", keller, 1);
+  await teil("Kellerabteil 1–8", "bereich", keller, 2);
+  const eg = await teil("Erdgeschoß", "geschoss", hausA, 2);
+  await teil("Stiegenhaus", "bereich", eg, 1);
+  await teil("Top 1", "raum", eg, 2);
+  await teil("Tiefgarage", "aussen", null, 2);
+
   for (const a of ANSPRECHPARTNER) {
     await einmalig("ansprechpartner", `name = "${a.name}"`, { ...a, kunde: kunden.get(a.kunde).id });
   }
@@ -414,6 +441,7 @@ async function anlegen() {
   await belegeAnlegen(auftraege, kunden);
   await angeboteAnlegen(auftraege, kunden);
   await vertraegeAnlegen(kunden);
+  await eigeneVertraegeAnlegen();
 
   console.log("\nFertig. Zum Aufräumen: npm run beispieldaten -- weg");
 }
@@ -905,6 +933,65 @@ async function vertraegeAnlegen(kunden) {
   console.log("Verträge: 2 (Pauschale fällig, Wartung in 20 Tagen)");
 }
 
+/**
+ * Die andere Richtung: Verträge, bei denen der Betrieb zahlt. Ein
+ * Dienstleister mit Prüftermin, ein Leasing ohne Termin, aber mit
+ * Kündigungsfrist, die bald abläuft.
+ */
+
+async function eigeneVertraegeAnlegen() {
+  const lief = new Map();
+  for (const l of LIEFERANTEN) {
+    const d = await einmalig("lieferanten", `name = "${l.name}"`, l).catch(() => null);
+    if (!d) {
+      console.log("Lieferanten: Collection fehlt, übersprungen");
+      return;
+    }
+    lief.set(l.name, d);
+  }
+  const schon = await pb.collection("vertraege").getList(1, 1, { filter: 'richtung = "lieferant"' }).catch(() => null);
+  if (!schon || schon.totalItems > 0) {
+    console.log(`Lieferanten: ${lief.size}; eigene Verträge ${schon ? "schon vorhanden" : "nicht möglich"}, übersprungen`);
+    return;
+  }
+  const jahr = new Date().getFullYear();
+  await pb.collection("vertraege").create({
+    richtung: "lieferant",
+    nummer: `EV-${jahr}-001`,
+    lieferant: lief.get("Brandschutz Huber GmbH").id,
+    kategorie: "pruefung",
+    fremdnummer: "PV-2211",
+    titel: "Überprüfung der Feuerlöscher, Werkstatt und Lager",
+    leistungen: "12 Handfeuerlöscher, Prüfung alle zwei Jahre, Plaketten und Prüfbuch.",
+    status: "aktiv",
+    intervallMonate: 24,
+    naechsteWartung: tagNach(12),
+    vorlaufTage: 30,
+    pauschale: 18000,
+    rhythmus: "jahr",
+    beginn: `${jahr - 3}-03-01`,
+    laufzeitMonate: 0,
+    kuendigungsfristMonate: 3,
+  });
+  await pb.collection("vertraege").create({
+    richtung: "lieferant",
+    nummer: `EV-${jahr}-002`,
+    lieferant: lief.get("Autoleasing Mitte").id,
+    kategorie: "leasing",
+    fremdnummer: "LV-778812-03",
+    titel: "Leasing Kastenwagen W-12345",
+    status: "aktiv",
+    intervallMonate: 0,
+    pauschale: 42000,
+    rhythmus: "monat",
+    beginn: tagVor(365 * 3 - 70),
+    laufzeitMonate: 36,
+    verlaengerungMonate: 12,
+    kuendigungsfristMonate: 1,
+  });
+  console.log(`Lieferanten: ${lief.size}; eigene Verträge: 2 (Prüftermin in 12 Tagen, Leasing mit nahender Frist)`);
+}
+
 async function angebotAnlegen(kunde, auftrag, datum, titel, zeilen) {
   const nummer = await naechsteBelegnummer("AN");
   const netto = zeilen.reduce((s, [, menge, , preis]) => s + Math.round(menge * preis), 0);
@@ -1030,6 +1117,12 @@ async function entfernen() {
     weg += await loescheAlle("abwesenheiten", `mitarbeiter = "${m.id}"`);
     weg += await loescheAlle("personaldokumente", `mitarbeiter = "${m.id}"`);
     weg += await loescheAlle("personaldaten", `mitarbeiter = "${m.id}"`);
+  }
+
+  for (const l of await gefunden("lieferanten", LIEFERANTEN.map((x) => `name = "${x.name}"`).join(" || "))) {
+    weg += await loescheAlle("vertraege", `lieferant = "${l.id}"`);
+    await pb.collection("lieferanten").delete(l.id);
+    weg++;
   }
 
   for (const k of kunden) {

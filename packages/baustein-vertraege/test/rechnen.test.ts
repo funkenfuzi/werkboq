@@ -178,3 +178,30 @@ describe("kuendigungWirktZum", () => {
     strictEqual(kuendigungWirktZum(v({ laufzeitMonate: 0, kuendigungsfristMonate: 0 }), "2026-09-24"), "2026-09-24");
   });
 });
+
+describe("eigene Verträge (mit Lieferanten)", () => {
+  const e = (x: Partial<Vertragsdaten> = {}) => v({ richtung: "lieferant", ...x });
+  const arten = (h: ReturnType<typeof hinweise>) => h.map((x) => x.art);
+
+  it("erinnern an den Termin, aber nie ans Verrechnen oder an den Preis", () => {
+    const h = hinweise(e(), "2027-01-02");
+    ok(!arten(h).includes("rechnung"));
+    ok(!arten(h).includes("preis"));
+    ok(arten(hinweise(e(), "2026-10-01")).includes("wartung"));
+    ok(hinweise(e(), "2026-10-01").find((x) => x.art === "wartung")!.text.includes("Dienstleister"));
+  });
+
+  it("erinnern an die Kündigungsfrist wie Kundenverträge", () => {
+    ok(arten(hinweise(e(), "2026-08-01")).includes("kuendigung"));
+  });
+
+  it("kommen ohne wiederkehrenden Termin aus", () => {
+    const x = e({ intervallMonate: 0, naechsteWartung: undefined });
+    strictEqual(folgewartung(x), null);
+    ok(!arten(hinweise(x, "2026-10-01")).includes("wartung"));
+  });
+
+  it("haben keinen Pauschalzeitraum", () => {
+    strictEqual(pauschalzeitraum(e(), "2026-10-01"), null);
+  });
+});

@@ -19,6 +19,17 @@ const stammdatenRegeln = {
   deleteRule: nurAdmin,
 };
 
+/**
+ * Standorte und ihre Teile löschen darf, wer sie anlegen darf — ein
+ * vertippter Raum soll nicht auf den Administrator warten. Den letzten
+ * Standort eines Kunden und einen, an dem Aufträge hängen, hält der Hook
+ * kunden.pb.js fest.
+ */
+const standortRegeln = {
+  ...stammdatenRegeln,
+  deleteRule: stammdatenRegeln.updateRule,
+};
+
 export default [
   {
     // Stammdaten des eigenen Betriebs. Genau ein Datensatz; die Angaben
@@ -93,6 +104,10 @@ export default [
       // Unternehmer oder Verbraucher — entscheidet über Verzugszinssatz,
       // Betreibungskostenpauschale und Übergang der Steuerschuld.
       { name: "unternehmer", type: "bool" },
+      // Kauft nur Ware über den Ladentisch — der einzige Kunde ohne
+      // Standort. Alle anderen bekommen beim Anlegen einen aus der Anschrift
+      // (Hook kunden.pb.js), weil gearbeitet immer an einem Ort wird.
+      { name: "nurWare", type: "bool" },
       { name: "strasse", type: "text" },
       { name: "plz", type: "text" },
       { name: "ort", type: "text" },
@@ -114,10 +129,66 @@ export default [
       { name: "strasse", type: "text" },
       { name: "plz", type: "text" },
       { name: "ort", type: "text" },
+      { name: "land", type: "text" },
+      { name: "notiz", type: "text" },
     ],
     // Stammdaten: lesen jeder Angemeldete, anlegen und ändern mit
     // Schreibrecht Technik oder Buchhaltung — wie bei den Aufträgen.
-    ...stammdatenRegeln,
+    ...standortRegeln,
+  },
+  {
+    // Lieferanten und Dienstleister — die Gegenseite der Kunden. Großhandel
+    // für Material, die Firma, die die Feuerlöscher prüft, der Leasinggeber
+    // der Busse. Kern, weil mehrere Bausteine sie brauchen: Verträge schon
+    // jetzt, Bestellwesen und Eingangsrechnungen später.
+    name: "lieferanten",
+    schema: [
+      { name: "name", type: "text", required: true },
+      { name: "art", type: "select", options: { maxSelect: 1, values: ["grosshandel", "hersteller", "dienstleister", "sonstiges"] } },
+      { name: "strasse", type: "text" },
+      { name: "plz", type: "text" },
+      { name: "ort", type: "text" },
+      { name: "land", type: "text" },
+      { name: "telefon", type: "text" },
+      { name: "email", type: "email" },
+      { name: "web", type: "text" },
+      // Unter welcher Nummer WIR dort geführt werden — fragt jede Hotline.
+      { name: "kundennummer", type: "text" },
+      { name: "ansprechpartner", type: "text" },
+      { name: "uid", type: "text" },
+      { name: "notizen", type: "text" },
+      { name: "aktiv", type: "bool" },
+    ],
+    indexes: ["CREATE INDEX idx_lieferanten_name ON lieferanten (name)"],
+    // Lesen jeder Angemeldete (der Monteur muss wissen, wo er Material
+    // holt); anlegen und ändern Buchhaltung oder Lager.
+    listRule: angemeldet,
+    viewRule: angemeldet,
+    createRule: `${schreibt("buchhaltung")} || @request.auth.bereiche ~ '"lager"'`,
+    updateRule: `${schreibt("buchhaltung")} || @request.auth.bereiche ~ '"lager"'`,
+    deleteRule: nurAdmin,
+  },
+  {
+    // Was an einem Standort liegt: Gebäude, Geschoß, Raum, Bereich,
+    // Verteiler … als Baum beliebiger Tiefe. Feste Ebenen passen nicht:
+    // ein Einfamilienhaus hat keine Geschoßverwaltung, ein Parkplatz kein
+    // Gebäude, ein Krankenhaus hat Trakte. Die Art ist nur Beschriftung.
+    name: "standortteile",
+    schema: [
+      { name: "standort", type: "relation", required: true, options: { collectionId: "standorte", maxSelect: 1, cascadeDelete: true } },
+      { name: "eltern", type: "relation", options: { collectionId: "standortteile", maxSelect: 1, cascadeDelete: true } },
+      {
+        name: "art",
+        type: "select",
+        required: true,
+        options: { maxSelect: 1, values: ["gebaeude", "geschoss", "raum", "bereich", "verteiler", "anlage", "aussen", "sonstiges"] },
+      },
+      { name: "bezeichnung", type: "text", required: true },
+      { name: "notiz", type: "text" },
+      { name: "reihenfolge", type: "number", options: { noDecimal: true } },
+    ],
+    indexes: ["CREATE INDEX idx_standortteile_standort ON standortteile (standort)"],
+    ...standortRegeln,
   },
   {
     name: "auftraege",

@@ -31,10 +31,17 @@
   min-width: 0;
 }
 
+/* Der Textblock neben den Initialen muss schrumpfen dürfen — sonst schiebt
+   „Hausverwaltung Föhrenwald" am Handy die Seite auf 422 px. */
+.wb-akte__kennung > div {
+  min-width: 0;
+}
+
 .wb-akte__kennung h1 {
   margin: 0;
   font-size: var(--wb-text-2xl);
   overflow-wrap: anywhere;
+  hyphens: auto;
 }
 
 .wb-akte__unterzeile {
@@ -1269,7 +1276,10 @@
 }
 
 .wb-fristenliste__wann {
-  flex: none;
+  /* Darf umbrechen: „Termin … · bis … · kündbar bis …" ist am Handy
+     breiter als die Zeile. */
+  flex: 0 1 auto;
+  min-width: 0;
   font-size: var(--wb-text-sm);
   font-family: var(--wb-font-mono);
   color: var(--wb-text-muted);
@@ -1318,4 +1328,198 @@
 .wb-akte__kopf h1 {
   overflow-wrap: break-word;
   hyphens: auto;
+}
+
+/* ---------- Standorte und ihr Innenleben ---------- */
+
+.wb-standort {
+  display: grid;
+  gap: var(--wb-space-3);
+}
+
+.wb-standort__kopf {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--wb-space-3);
+  align-items: start;
+}
+
+.wb-standort__kopf h2 {
+  margin: 0;
+  font-size: var(--wb-text-lg);
+  overflow-wrap: anywhere;
+}
+
+.wb-standort__kopf p {
+  margin: 2px 0 0;
+}
+
+.wb-standort__symbol {
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--wb-radius-md);
+  background: var(--wb-brand-soft);
+  color: var(--wb-brand);
+}
+
+.wb-standort__aktionen {
+  display: flex;
+  gap: 2px;
+}
+
+.wb-teilbaum {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.wb-teilbaum__kinder {
+  margin-left: 14px;
+  padding-left: var(--wb-space-3);
+  border-left: 2px solid var(--wb-border);
+}
+
+.wb-teilbaum__zeile {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--wb-space-2);
+  align-items: center;
+  min-height: 40px;
+  padding: 2px var(--wb-space-2);
+  border-radius: var(--wb-radius-sm);
+}
+
+.wb-teilbaum__zeile:hover {
+  background: var(--wb-surface-2);
+}
+
+/* Art und Name nebeneinander, am Handy untereinander — sonst bleibt für
+   den Namen eine Spalte von einem Buchstaben. */
+.wb-teilbaum__text {
+  display: flex;
+  align-items: baseline;
+  gap: var(--wb-space-2);
+  min-width: 0;
+}
+
+.wb-teilbaum__name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.wb-teilbaum__name small {
+  display: block;
+  color: var(--wb-text-muted);
+  font-size: var(--wb-text-xs);
+}
+
+.wb-teilbaum__art {
+  flex: none;
+  font-size: var(--wb-text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--wb-text-muted);
+  min-width: 5.5em;
+}
+
+.wb-teilbaum__art--gebaeude,
+.wb-teilbaum__art--aussen {
+  color: var(--wb-brand);
+  font-weight: 600;
+}
+
+.wb-teilbaum__art--verteiler,
+.wb-teilbaum__art--anlage {
+  color: var(--wb-orange-deep);
+  font-weight: 600;
+}
+
+.wb-teilbaum__aktionen {
+  display: flex;
+  gap: 2px;
+}
+
+/* Hinzufügen und Umbenennen sind keine Gefahr — nicht rot anlaufen lassen. */
+.wb-teilbaum__aktionen .wb-zeilenknopf:not(:last-child):hover,
+.wb-standort__aktionen .wb-zeilenknopf:first-child:hover {
+  border-color: var(--wb-brand);
+  background: var(--wb-brand-soft);
+  color: var(--wb-brand);
+}
+
+.wb-teilmaske {
+  display: grid;
+  grid-template-columns: minmax(8em, auto) minmax(0, 2fr) minmax(0, 2fr) auto;
+  gap: var(--wb-space-2);
+  align-items: center;
+  padding: var(--wb-space-2);
+  border: 1px dashed var(--wb-border-strong);
+  border-radius: var(--wb-radius-md);
+  background: var(--wb-surface-2);
+}
+
+.wb-teilmaske select,
+.wb-teilmaske input {
+  font: inherit;
+  min-width: 0;
+  min-height: var(--wb-touch-min);
+  padding: var(--wb-space-2) var(--wb-space-3);
+  border: 1px solid var(--wb-border-strong);
+  border-radius: var(--wb-radius-md);
+  background: var(--wb-surface);
+  color: var(--wb-text);
+}
+
+.wb-teilmaske__knoepfe {
+  display: flex;
+  gap: var(--wb-space-2);
+}
+
+.wb-teilmaske .wb-fehler {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+
+@media (max-width: 720px) {
+  .wb-teilmaske {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .wb-teilbaum__text {
+    flex-direction: column;
+    gap: 0;
+  }
+  .wb-teilbaum__art {
+    min-width: 0;
+  }
+  .wb-teilbaum__kinder {
+    margin-left: 6px;
+    padding-left: var(--wb-space-2);
+  }
+  .wb-teilbaum__aktionen .wb-zeilenknopf {
+    width: 28px;
+  }
+}
+
+.wb-textknopf {
+  display: inline-flex;
+  align-items: center;
+  text-align: left;
+  gap: var(--wb-space-2);
+  justify-self: start;
+  min-height: var(--wb-touch-min);
+  padding: 0 var(--wb-space-2);
+  border: 0;
+  background: none;
+  color: var(--wb-brand);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.wb-textknopf:hover {
+  text-decoration: underline;
 }

@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { darfSchreiben, dienst, fehlersatz } from "@werkboq/core";
-import { hinweise, type Hinweis } from "../daten/rechnen";
-import { heute, pauschaleVerrechnen, wartungAnlegen, type Vertrag } from "../daten/vertraege";
+import { hinweise, istEigener, type Hinweis } from "../daten/rechnen";
+import { heute, partnerName, pauschaleVerrechnen, wartungAnlegen, type Vertrag } from "../daten/vertraege";
 
 const KURZ: Record<Hinweis["art"], string> = {
   wartung: "Wartung",
@@ -82,20 +82,23 @@ export function Hinweisliste({
       <ul className="wb-fristenliste">
         {zeilen.map(({ v, h }) => {
           const schluessel = `${v.id}-${h.art}`;
+          const eigen = istEigener(v);
           return (
             <li key={schluessel}>
-              <span className={`wb-plakette wb-plakette--${h.dringend ? "fehler" : FARBE[h.art]}`}>{KURZ[h.art]}</span>
+              <span className={`wb-plakette wb-plakette--${h.dringend ? "fehler" : FARBE[h.art]}`}>
+                {eigen && h.art === "wartung" ? "Termin" : KURZ[h.art]}
+              </span>
               <span className="wb-fristenliste__was">
                 {mitName ? (
                   <Link to={`/vertraege/${v.id}`}>
-                    <strong>{v.expand?.kunde?.name ?? v.nummer}</strong> <span>{h.text}</span>
+                    <strong>{v.expand?.kunde || v.expand?.lieferant ? partnerName(v) : v.nummer}</strong> <span>{h.text}</span>
                   </Link>
                 ) : (
                   <span>{h.text}</span>
                 )}
               </span>
               <span className="wb-fristenliste__wann">{wann(h)}</span>
-              {darf && h.art === "wartung" && (
+              {darf && h.art === "wartung" && !eigen && (
                 <button
                   type="button"
                   className="wb-button wb-button--klein"
@@ -127,7 +130,7 @@ export function Hinweisliste({
                   Rechnung anlegen
                 </button>
               )}
-              {(h.art === "kuendigung" || h.art === "preis" || h.art === "ablauf") && mitName && (
+              {(h.art === "kuendigung" || h.art === "preis" || h.art === "ablauf" || (eigen && h.art === "wartung")) && mitName && (
                 <Link className="wb-button wb-button--sekundaer wb-button--klein" to={`/vertraege/${v.id}`}>
                   Öffnen
                 </Link>

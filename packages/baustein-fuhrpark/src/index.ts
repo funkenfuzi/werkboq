@@ -40,15 +40,17 @@ export const bausteinFuhrpark: WerkboqModul = {
     {
       pfad: "/fuhrpark",
       titel: "Fuhrpark",
-      symbol: "auftraege",
+      symbol: "fahrzeug",
       komponente: Fuhrpark,
       bereich: "fuhrpark",
+      gruppe: "betrieb",
     },
     {
       pfad: "/fuhrpark/:id",
       titel: "Fahrzeug",
       komponente: Fahrzeugakte,
       bereich: "fuhrpark",
+      gruppe: "betrieb",
       versteckt: true,
     },
   ],

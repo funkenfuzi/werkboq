@@ -1,14 +1,21 @@
 import { useEffect, useState, type FormEvent } from "react";
+import { Link } from "react-router-dom";
 import {
   aktuellerRechtsraum,
+  alleLieferanten,
   alsEingabe,
   ausGeld,
   fehlersatz,
   kundenSuchen,
   schreibweiseVon,
   type Kunde,
+  type Lieferant,
 } from "@werkboq/core";
 import {
+  istEigener,
+  KATEGORIE_TEXT,
+  KATEGORIEN,
+  type Kategorie,
   RHYTHMEN,
   RHYTHMUS_TEXT,
   VERRECHNUNGSART_TEXT,
@@ -23,6 +30,9 @@ import { standorteZuKunde, type VertragEingabe } from "../daten/vertraege";
  * Laufzeit. Die Felder, die nur bei Pauschale Sinn haben, erscheinen nur
  * dann — ein Aufwandsvertrag mit einem Pauschalbetrag von 0 € ist ein
  * Feld, das Fragen aufwirft.
+ *
+ * Eigene Verträge (mit einem Lieferanten) nutzen dieselbe Maske mit
+ * anderen Abschnitten: Termin statt Wartung, Kosten statt Verrechnung.
  */
 export function Vertragsmaske({
   vorher,
@@ -37,14 +47,21 @@ export function Vertragsmaske({
   const [w, setW] = useState<VertragEingabe>(vorher);
   const [pauschaleText, setPauschaleText] = useState(vorher.pauschale ? alsEingabe(vorher.pauschale, sw) : "");
   const [kunden, setKunden] = useState<Kunde[]>([]);
+  const [lieferanten, setLieferanten] = useState<Lieferant[]>([]);
+  const eigen = istEigener(w);
   const [standorte, setStandorte] = useState<{ id: string; bezeichnung: string }[]>([]);
   const [fehler, setFehler] = useState<string | null>(null);
   const [laeuft, setLaeuft] = useState(false);
 
   useEffect(() => {
-    kundenSuchen("", 500).then(setKunden).catch(() => setKunden([]));
-  }, []);
+    if (eigen) alleLieferanten().then(setLieferanten).catch(() => setLieferanten([]));
+    else kundenSuchen("", 500).then(setKunden).catch(() => setKunden([]));
+  }, [eigen]);
   useEffect(() => {
+    if (!w.kunde) {
+      setStandorte([]);
+      return;
+    }
     standorteZuKunde(w.kunde).then(setStandorte).catch(() => setStandorte([]));
   }, [w.kunde]);
 
@@ -53,6 +70,26 @@ export function Vertragsmaske({
 
   async function absenden(e: FormEvent) {
     e.preventDefault();
+    if (eigen) {
+      const kosten = pauschaleText.trim() ? ausGeld(pauschaleText) : 0;
+      if (!Number.isFinite(kosten) || kosten < 0) {
+        setFehler("Der Betrag ist keine Zahl.");
+        return;
+      }
+      if (!w.lieferant) {
+        setFehler("Ein eigener Vertrag gehört zu einem Lieferanten oder Dienstleister.");
+        return;
+      }
+      setLaeuft(true);
+      try {
+        await beiSpeichern({ ...w, kunde: "", standort: "", verrechnung: "", pauschale: kosten });
+      } catch (x: unknown) {
+        setFehler(fehlersatz(x));
+      } finally {
+        setLaeuft(false);
+      }
+      return;
+    }
     const pauschale = w.verrechnung === "pauschale" ? ausGeld(pauschaleText) : 0;
     if (w.verrechnung === "pauschale" && (!Number.isFinite(pauschale) || pauschale <= 0)) {
       setFehler("Bei einer Pauschale fehlt der Betrag.");
@@ -78,29 +115,68 @@ export function Vertragsmaske({
         <span>Nummer</span>
         <input type="text" value={w.nummer} onChange={(e) => feld("nummer", e.target.value)} required />
       </label>
+      {eigen ? (
+        <>
+          <label className="wb-feld">
+            <span>Lieferant oder Dienstleister *</span>
+            <select value={w.lieferant ?? ""} onChange={(e) => feld("lieferant", e.target.value)} required>
+              <option value="">bitte wählen</option>
+              {lieferanten
+                .filter((l) => l.aktiv !== false || l.id === w.lieferant)
+                .map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.name}
+                  </option>
+                ))}
+            </select>
+            {lieferanten.length === 0 && (
+              <small className="wb-notiz">
+                Noch keiner erfasst — <Link to="/lieferanten/neu">Lieferant anlegen</Link>.
+              </small>
+            )}
+          </label>
+          <label className="wb-feld">
+            <span>Art</span>
+            <select value={w.kategorie ?? "sonstiges"} onChange={(e) => feld("kategorie", e.target.value as Kategorie)}>
+              {KATEGORIEN.map((k) => (
+                <option key={k} value={k}>
+                  {KATEGORIE_TEXT[k]}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="wb-feld">
+            <span>Nummer beim Partner</span>
+            <input type="text" value={w.fremdnummer ?? ""} onChange={(e) => feld("fremdnummer", e.target.value)} placeholder="Polizze, Leasingnummer …" />
+          </label>
+        </>
+      ) : (
+        <>
       <label className="wb-feld">
-        <span>Kunde *</span>
-        <select value={w.kunde} onChange={(e) => setW((x) => ({ ...x, kunde: e.target.value, standort: "" }))} required>
-          <option value="">bitte wählen</option>
-          {kunden.map((k) => (
-            <option key={k.id} value={k.id}>
-              {k.name}
-            </option>
-          ))}
-        </select>
-      </label>
-      {standorte.length > 0 && (
-        <label className="wb-feld">
-          <span>Standort / Objekt</span>
-          <select value={w.standort ?? ""} onChange={(e) => feld("standort", e.target.value)}>
-            <option value="">—</option>
-            {standorte.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.bezeichnung}
-              </option>
-            ))}
-          </select>
-        </label>
+            <span>Kunde *</span>
+            <select value={w.kunde ?? ""} onChange={(e) => setW((x) => ({ ...x, kunde: e.target.value, standort: "" }))} required>
+              <option value="">bitte wählen</option>
+              {kunden.map((k) => (
+                <option key={k.id} value={k.id}>
+                  {k.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          {standorte.length > 0 && (
+            <label className="wb-feld">
+              <span>Standort / Objekt</span>
+              <select value={w.standort ?? ""} onChange={(e) => feld("standort", e.target.value)}>
+                <option value="">—</option>
+                {standorte.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.bezeichnung}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+        </>
       )}
       <label className="wb-feld wb-feld--breit">
         <span>Worum geht es *</span>
@@ -108,27 +184,34 @@ export function Vertragsmaske({
           type="text"
           value={w.titel}
           onChange={(e) => feld("titel", e.target.value)}
-          placeholder="z. B. Wiederkehrende Prüfung und Notbeleuchtung, Objekt Lindenhof"
+          placeholder={eigen ? "z. B. Überprüfung der Feuerlöscher, Werkstatt und Lager" : "z. B. Wiederkehrende Prüfung und Notbeleuchtung, Objekt Lindenhof"}
           required
         />
       </label>
       <label className="wb-feld wb-feld--breit">
-        <span>Leistungen bei jeder Wartung</span>
+        <span>{eigen ? "Was vereinbart ist" : "Leistungen bei jeder Wartung"}</span>
         <textarea
           rows={3}
           value={w.leistungen ?? ""}
           onChange={(e) => feld("leistungen", e.target.value)}
-          placeholder="Steht später im Wartungsauftrag — was der Monteur vor Ort tut."
+          placeholder={eigen ? "Umfang, Ansprechpartner, Besonderheiten" : "Steht später im Wartungsauftrag — was der Monteur vor Ort tut."}
         />
       </label>
 
-      <h2 className="wb-maske__abschnitt">Wartung</h2>
+      <h2 className="wb-maske__abschnitt">{eigen ? "Wiederkehrender Termin" : "Wartung"}</h2>
       <label className="wb-feld">
         <span>Alle … Monate</span>
-        <input type="number" min={1} max={120} value={w.intervallMonate} onChange={(e) => feld("intervallMonate", zahl(e.target.value) || 1)} />
+        <input
+          type="number"
+          min={eigen ? 0 : 1}
+          max={120}
+          value={w.intervallMonate ?? 0}
+          onChange={(e) => feld("intervallMonate", eigen ? zahl(e.target.value) : zahl(e.target.value) || 1)}
+        />
+        {eigen && <small className="wb-notiz">0 = kein wiederkehrender Termin (etwa bei Versicherung oder Leasing)</small>}
       </label>
       <label className="wb-feld">
-        <span>Nächste Wartung</span>
+        <span>{eigen ? "Nächster Termin" : "Nächste Wartung"}</span>
         <input type="date" value={w.naechsteWartung ?? ""} onChange={(e) => feld("naechsteWartung", e.target.value)} />
       </label>
       <label className="wb-feld">
@@ -136,10 +219,31 @@ export function Vertragsmaske({
         <input type="number" min={0} max={365} value={w.vorlaufTage ?? 30} onChange={(e) => feld("vorlaufTage", zahl(e.target.value))} />
       </label>
 
+      {eigen ? (
+        <>
+          <h2 className="wb-maske__abschnitt">Kosten</h2>
+          <label className="wb-feld">
+            <span>Betrag netto ({aktuellerRechtsraum().waehrungszeichen})</span>
+            <input type="text" inputMode="decimal" value={pauschaleText} onChange={(e) => setPauschaleText(e.target.value)} placeholder="0,00" />
+            <small className="wb-notiz">Nur zur Übersicht — was der Vertrag im Jahr kostet.</small>
+          </label>
+          <label className="wb-feld">
+            <span>je</span>
+            <select value={w.rhythmus ?? "jahr"} onChange={(e) => feld("rhythmus", e.target.value as Rhythmus)}>
+              {RHYTHMEN.map((r) => (
+                <option key={r} value={r}>
+                  {RHYTHMUS_TEXT[r]}
+                </option>
+              ))}
+            </select>
+          </label>
+        </>
+      ) : (
+        <>
       <h2 className="wb-maske__abschnitt">Verrechnung</h2>
       <label className="wb-feld">
         <span>Wie</span>
-        <select value={w.verrechnung} onChange={(e) => feld("verrechnung", e.target.value as Verrechnungsart)}>
+        <select value={w.verrechnung || "aufwand"} onChange={(e) => feld("verrechnung", e.target.value as Verrechnungsart)}>
           {VERRECHNUNGSARTEN.map((a) => (
             <option key={a} value={a}>
               {VERRECHNUNGSART_TEXT[a]}
@@ -172,6 +276,8 @@ export function Vertragsmaske({
             <span>Nächste Rechnung am</span>
             <input type="date" value={w.naechsteRechnung ?? ""} onChange={(e) => feld("naechsteRechnung", e.target.value)} />
           </label>
+        </>
+      )}
         </>
       )}
 

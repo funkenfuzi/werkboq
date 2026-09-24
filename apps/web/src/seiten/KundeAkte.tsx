@@ -17,6 +17,7 @@ import {
   kundeLaden,
   LEERER_ANSPRECHPARTNER,
   pb,
+  standorteZuKunde,
   verlauf,
   type Ansprechpartner,
   type Auftrag,
@@ -25,6 +26,7 @@ import {
   type Standort,
 } from "@werkboq/core";
 import { Verlaufsliste } from "../komponenten/Verlaufsliste";
+import { Standortblock } from "../komponenten/Standortblock";
 
 /**
  * Kundenakte — der Arbeitsplatz, nicht das Formular.
@@ -66,10 +68,7 @@ export function KundeAkte() {
         .collection(KERN_COLLECTIONS.auftraege)
         .getFullList<Auftrag>({ filter: `kunde = "${id}"`, sort: "-created" })
         .catch(() => [] as Auftrag[]),
-      pb()
-        .collection(KERN_COLLECTIONS.standorte)
-        .getFullList<Standort>({ filter: `kunde = "${id}"`, sort: "bezeichnung" })
-        .catch(() => [] as Standort[]),
+      standorteZuKunde(id).catch(() => [] as Standort[]),
       ansprechpartnerZuKunde(id).catch(() => [] as Ansprechpartner[]),
       verlauf(id).catch(() => [] as Protokollzeile[]),
     ])
@@ -110,6 +109,7 @@ export function KundeAkte() {
             <p className="wb-akte__unterzeile">
               {anschrift || "Keine Anschrift hinterlegt"}
               {kunde.intern && <span className="wb-plakette wb-plakette--info">Eigener Betrieb</span>}
+              {kunde.nurWare && <span className="wb-plakette wb-plakette--neutral">Nur Ware</span>}
             </p>
           </div>
         </div>
@@ -170,7 +170,16 @@ export function KundeAkte() {
           </>
         )}
         {reiter === "auftraege" && <Auftragstabelle auftraege={auftraege} kundeId={kunde.id} />}
-        {reiter === "standorte" && <Standortliste standorte={standorte} />}
+        {reiter === "standorte" && (
+          <Standortblock
+            kunde={kunde}
+            standorte={standorte}
+            beiAenderung={() => {
+              void standorteZuKunde(kunde.id).then(setStandorte).catch(() => undefined);
+              void verlauf(kunde.id).then(setZeilen).catch(() => undefined);
+            }}
+          />
+        )}
         {reiter === "ansprechpartner" && (
           <Ansprechpartnerliste
             kundeId={kunde.id}
@@ -293,33 +302,6 @@ function Auftragstabelle({ auftraege, kundeId }: { auftraege: Auftrag[]; kundeId
         </tbody>
       </table>
     </div>
-  );
-}
-
-function Standortliste({ standorte }: { standorte: Standort[] }) {
-  if (standorte.length === 0) {
-    return (
-      <div className="wb-nichts">
-        <p>
-          Kein Standort hinterlegt. Standorte lohnen sich, sobald ein Kunde mehrere Objekte hat —
-          etwa eine Gemeinde mit Amtshaus, Bauhof und Kindergarten.
-        </p>
-      </div>
-    );
-  }
-  return (
-    <ul className="wb-liste">
-      {standorte.map((s) => (
-        <li key={s.id}>
-          <div className="wb-zeile">
-            <span className="wb-zeile__titel">{s.bezeichnung}</span>
-            <span className="wb-zeile__neben">
-              {[s.strasse, s.plz, s.ort].filter(Boolean).join(", ") || "ohne Anschrift"}
-            </span>
-          </div>
-        </li>
-      ))}
-    </ul>
   );
 }
 

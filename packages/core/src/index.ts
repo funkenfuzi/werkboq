@@ -3,6 +3,7 @@
 
 export * from "./modul/typen";
 export * from "./modul/registry";
+export * from "./modul/navgruppen";
 export * from "./modul/dienste";
 export * from "./modul/bausteine";
 export * from "./ui/Symbol";
@@ -26,6 +27,8 @@ export {
 export * from "./daten/kunden";
 export * from "./daten/auftraege";
 export * from "./daten/ansprechpartner";
+export * from "./daten/standorte";
+export * from "./daten/lieferanten";
 export * from "./daten/protokoll";
 export * from "./daten/baustelle";
 export * from "./daten/unterschrift";

@@ -42,8 +42,10 @@ dort ist leer:**
 | `belege`, `belegpositionen` | Bereich `buchhaltung` | Bereich `buchhaltung`; löschen nur Entwürfe. **Nach dem Festschreiben ändert niemand mehr Inhalt oder Zeilen** — nur Status, Verknüpfungen und Angebotsverfolgung (Hook `server/pb_hooks/belege.pb.js`) |
 | `zahlungen`, `mahnungen` | Bereich `buchhaltung` | Bereich `buchhaltung`; löschen nur Administrator |
 | `angebotskontakte` | Bereich `buchhaltung` | anlegen `buchhaltung`; **ändern und löschen niemand** |
-| `vertraege`, `vertragsereignisse` | Bereich `buchhaltung` | Bereich `buchhaltung`; Ereignisse nicht änderbar |
-| `kunden`, `standorte`, `ansprechpartner`, `auftraege` | jeder Angemeldete | Schreibrecht `technik` **oder** `buchhaltung`; löschen nur Administrator |
+| `vertraege`, `vertragsereignisse` | Bereich `buchhaltung` (Kundenverträge wie eigene) | Bereich `buchhaltung`; Ereignisse nicht änderbar |
+| `kunden`, `ansprechpartner`, `auftraege` | jeder Angemeldete | Schreibrecht `technik` **oder** `buchhaltung`; löschen nur Administrator |
+| `standorte`, `standortteile` | jeder Angemeldete | Schreibrecht `technik` **oder** `buchhaltung`, auch löschen — **aber nicht den letzten Standort eines Kunden und keinen, an dem Aufträge hängen** (Hook `kunden.pb.js`; der Serveradministrator ist ausgenommen) |
+| `lieferanten` | jeder Angemeldete (der Monteur muss wissen, wo er Material holt) | Schreibrecht `buchhaltung` **oder** `lager`; löschen nur Administrator |
 | `artikel` | jeder Angemeldete — **den Einkaufspreis nur mit `lager` oder `buchhaltung`** (Hook `artikel.pb.js`) | Schreibrecht `lager` |
 | `positionen` (Nachtrag) | — | eine **freigegebene** Position ändern und löschen nur mit Schreibrecht `lager`; Vorschläge darf jeder zurücknehmen |
 | `versand` | jeder Angemeldete | nur `bestaetigt` bzw. `nichtErfolgt` nachtragen, beides nicht zurücknehmbar (Hook `versand.pb.js`) |

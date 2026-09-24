@@ -109,6 +109,70 @@
   font-weight: 600;
 }
 
+/* ---------- Gruppen der Seitenleiste ---------- */
+
+.wb-seitenleiste__gruppen {
+  gap: 2px;
+}
+
+.wb-navgruppe__kopf {
+  display: flex;
+  align-items: center;
+  gap: var(--wb-space-3);
+  width: 100%;
+  min-height: var(--wb-touch-min);
+  padding: 0 var(--wb-space-3);
+  border: 0;
+  border-left: 3px solid transparent;
+  border-radius: var(--wb-radius-md);
+  background: none;
+  color: var(--wb-ink-on-dark-soft);
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.wb-navgruppe__kopf:hover {
+  background: rgb(255 255 255 / 0.07);
+  color: #fff;
+}
+
+.wb-navgruppe.ist-aktiv > .wb-navgruppe__kopf {
+  color: #fff;
+  cursor: default;
+}
+
+.wb-navgruppe__kopf > span:nth-of-type(1) {
+  flex: 1;
+}
+
+.wb-navgruppe__pfeil {
+  display: inline-flex;
+  transition: transform 0.15s ease;
+  transform: rotate(-90deg);
+  opacity: 0.7;
+}
+
+.wb-navgruppe.ist-offen .wb-navgruppe__pfeil {
+  transform: none;
+}
+
+.wb-navgruppe__inhalt {
+  display: none;
+  gap: 2px;
+  padding-left: var(--wb-space-4);
+}
+
+.wb-navgruppe.ist-offen > .wb-navgruppe__inhalt {
+  display: grid;
+}
+
+.wb-navgruppe__inhalt a {
+  min-height: 40px;
+  font-size: var(--wb-text-sm, 0.9375rem);
+}
+
 /* ---------- Kopfleiste ---------- */
 
 /* min-width: 0 ist hier nicht kosmetisch, sondern trägt die ganze
@@ -413,6 +477,23 @@
     vertical-align: middle;
     width: 10px;
     height: 10px;
+  }
+  /* Nur Symbole: keine Überschriften, alle Einträge sichtbar, die Gruppen
+     durch eine feine Linie getrennt. */
+  .wb-navgruppe__kopf {
+    display: none;
+  }
+  .wb-navgruppe__inhalt,
+  .wb-navgruppe.ist-offen > .wb-navgruppe__inhalt {
+    display: grid;
+    padding-left: 0;
+  }
+  .wb-navgruppe + .wb-navgruppe {
+    border-top: 1px solid rgb(255 255 255 / 0.12);
+    padding-top: 2px;
+  }
+  .wb-navgruppe__inhalt a {
+    min-height: var(--wb-touch-min);
   }
   .wb-marke small,
   .wb-seitenleiste__titel,

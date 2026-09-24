@@ -40,13 +40,40 @@ export const VERTRAGSSTATUS_TEXT: Record<Vertragsstatus, string> = {
   beendet: "Beendet",
 };
 
+/**
+ * Mit wem: Kunde (wir leisten und verrechnen) oder Lieferant (wir zahlen,
+ * jemand anderer leistet bei uns). Leer heißt Kunde.
+ */
+export const RICHTUNGEN = ["kunde", "lieferant"] as const;
+export type Richtung = (typeof RICHTUNGEN)[number];
+
+export const KATEGORIEN = ["wartung", "pruefung", "leasing", "miete", "versicherung", "software", "kommunikation", "sonstiges"] as const;
+export type Kategorie = (typeof KATEGORIEN)[number];
+export const KATEGORIE_TEXT: Record<Kategorie, string> = {
+  wartung: "Wartung",
+  pruefung: "Prüfung",
+  leasing: "Leasing",
+  miete: "Miete",
+  versicherung: "Versicherung",
+  software: "Software",
+  kommunikation: "Telefon und Internet",
+  sonstiges: "Sonstiges",
+};
+
+export function istEigener(v: { richtung?: Richtung | "" }): boolean {
+  return v.richtung === "lieferant";
+}
+
 /** Die Felder, mit denen gerechnet wird. */
 export interface Vertragsdaten {
+  richtung?: Richtung | "";
   status: Vertragsstatus;
-  intervallMonate: number;
+  /** 0 oder leer: kein wiederkehrender Termin. */
+  intervallMonate?: number;
   naechsteWartung?: string;
   vorlaufTage?: number;
-  verrechnung: Verrechnungsart;
+  /** Nur bei Kundenverträgen von Belang. */
+  verrechnung?: Verrechnungsart | "";
   pauschale?: number;
   rhythmus?: Rhythmus;
   naechsteRechnung?: string;
@@ -174,6 +201,9 @@ export const KUENDIGUNG_VORLAUF_TAGE = 60;
  */
 export function hinweise(v: Vertragsdaten, stichtag: string): Hinweis[] {
   const l = laufzeit(v, stichtag);
+  // Eigene Verträge: jemand anderer kommt zu uns (Termin), verrechnet wird
+  // nichts, und den Preis prüft man an der Kündigungsfrist, nicht jährlich.
+  const eigen = istEigener(v);
   const heraus: Hinweis[] = [];
   if (v.status === "beendet" || l.abgelaufen) {
     if (v.status === "aktiv") {
@@ -189,7 +219,13 @@ export function hinweise(v: Vertragsdaten, stichtag: string): Hinweis[] {
     if (tage <= vorlauf) {
       heraus.push({
         art: "wartung",
-        text: tage < 0 ? "Wartung überfällig" : "Wartung fällig — Termin vereinbaren",
+        text: eigen
+          ? tage < 0
+            ? "Termin überfällig — beim Dienstleister nachfragen"
+            : "Termin steht an — mit dem Dienstleister abstimmen"
+          : tage < 0
+            ? "Wartung überfällig"
+            : "Wartung fällig — Termin vereinbaren",
         tag: v.naechsteWartung,
         tage,
         dringend: tage < 0,
@@ -197,7 +233,7 @@ export function hinweise(v: Vertragsdaten, stichtag: string): Hinweis[] {
     }
   }
 
-  if (v.verrechnung === "pauschale" && v.naechsteRechnung && vorEnde(v.naechsteRechnung)) {
+  if (!eigen && v.verrechnung === "pauschale" && v.naechsteRechnung && vorEnde(v.naechsteRechnung)) {
     const tage = tageBis(stichtag, v.naechsteRechnung);
     if (tage <= 0) {
       heraus.push({ art: "rechnung", text: "Pauschale verrechnen", tag: v.naechsteRechnung, tage, dringend: tage < -14 });
@@ -209,7 +245,9 @@ export function hinweise(v: Vertragsdaten, stichtag: string): Hinweis[] {
     if (tage >= 0 && tage <= KUENDIGUNG_VORLAUF_TAGE) {
       heraus.push({
         art: "kuendigung",
-        text: "Letzter Tag für Kündigung oder Preisanpassung — sonst verlängert er sich",
+        text: eigen
+          ? "Letzter Tag zum Kündigen oder Nachverhandeln — sonst verlängert er sich"
+          : "Letzter Tag für Kündigung oder Preisanpassung — sonst verlängert er sich",
         tag: l.letzterKuendigungstag,
         tage,
         dringend: tage <= 14,
@@ -217,7 +255,7 @@ export function hinweise(v: Vertragsdaten, stichtag: string): Hinweis[] {
     }
   }
 
-  if (v.status === "aktiv" && v.verrechnung === "pauschale") {
+  if (!eigen && v.status === "aktiv" && v.verrechnung === "pauschale") {
     const seit = v.preisStand || v.beginn;
     if (plusMonate(seit, PREIS_PRUEFEN_NACH_MONATEN) <= stichtag) {
       heraus.push({ art: "preis", text: "Pauschale seit über einem Jahr unverändert — Preis prüfen", tag: seit, tage: null, dringend: false });
@@ -237,7 +275,7 @@ export function hinweise(v: Vertragsdaten, stichtag: string): Hinweis[] {
  * späten Wartung nach hinten, und aus „jährlich" wird „alle 13 Monate".
  */
 export function folgewartung(v: Pick<Vertragsdaten, "naechsteWartung" | "intervallMonate">): string | null {
-  if (!v.naechsteWartung || v.intervallMonate <= 0) return null;
+  if (!v.naechsteWartung || !v.intervallMonate || v.intervallMonate <= 0) return null;
   return plusMonate(v.naechsteWartung, v.intervallMonate);
 }
 
@@ -256,6 +294,7 @@ export interface Pauschalzeitraum {
  * Zeitraums, wird nur bis zum Ende verrechnet — anteilig nach Tagen.
  */
 export function pauschalzeitraum(v: Vertragsdaten, stichtag: string): Pauschalzeitraum | null {
+  if (istEigener(v)) return null;
   if (v.verrechnung !== "pauschale" || !v.naechsteRechnung || !v.pauschale || !v.rhythmus) return null;
   const monate = RHYTHMUS_MONATE[v.rhythmus];
   const von = v.naechsteRechnung;

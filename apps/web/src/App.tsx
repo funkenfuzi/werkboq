@@ -5,7 +5,6 @@ import {
   istAngemeldet,
   Symbol,
   type NavEintrag,
-  type SymbolName,
 } from "@werkboq/core";
 import { Anmeldung } from "./seiten/Anmeldung";
 import { Start } from "./seiten/Start";
@@ -17,8 +16,11 @@ import { AuftragAkte } from "./seiten/AuftragAkte";
 import { AuftragBearbeiten } from "./seiten/AuftragBearbeiten";
 import { KeinZugriff, Unbekannt } from "./seiten/KeinZugriff";
 import { Einstellungen } from "./seiten/Einstellungen";
+import { Lieferanten } from "./seiten/Lieferanten";
+import { LieferantAkte } from "./seiten/LieferantAkte";
 import { OfflineHinweis } from "./komponenten/OfflineHinweis";
 import { Kopfleiste } from "./komponenten/Kopfleiste";
+import { Seitenleiste } from "./komponenten/Seitenleiste";
 
 /**
  * Hülle der Bürofassung.
@@ -27,18 +29,6 @@ import { Kopfleiste } from "./komponenten/Kopfleiste";
  * globaler Suche, breiter Arbeitsbereich. Für Monteure entsteht später eine
  * eigene Fassung — eine geschrumpfte Bürooberfläche ist keine Baustellen-App.
  */
-
-/** Symbole, die Module über ihr symbol-Feld anfordern können. */
-const MODULSYMBOLE: Record<string, SymbolName> = {
-  pruefung: "pruefung",
-  uhr: "uhr",
-  kalender: "kalender",
-  katalog: "katalog",
-  beleg: "beleg",
-  geld: "geld",
-  vertrag: "vertrag",
-  wiederholung: "wiederholung",
-};
 
 export function App() {
   if (!istAngemeldet()) return <Anmeldung />;
@@ -54,8 +44,26 @@ export function App() {
   // eine, die sagt, warum. Titel von der Hauptseite des Bereichs, damit
   // bei /belege/abc123 nicht „Beleg" steht, sondern etwas Verständliches.
   const gesperrt = alleEintraege.filter((n) => !erlaubt(n));
-  const bausteinNav = alleNavEintraege("baustein").filter((n) => erlaubt(n) && !n.versteckt);
-  const modulNav = alleNavEintraege("fachmodul").filter((n) => erlaubt(n) && !n.versteckt);
+  // Kunden und Aufträge sind Kern, keine Bausteine — sie stehen trotzdem in
+  // ihren Gruppen, damit Verträge neben Kunden und Planung neben Aufträgen
+  // steht.
+  const kern: NavEintrag[] = darf("technik")
+    ? [
+        { pfad: "/kunden", titel: "Kunden", symbol: "kunden", komponente: Kunden, gruppe: "kunden" },
+        { pfad: "/auftraege", titel: "Aufträge", symbol: "auftraege", komponente: Auftraege, gruppe: "auftraege" },
+      ]
+    : [];
+  // Lieferanten sieht, wer mit ihnen zu tun hat: Buchhaltung und Lager.
+  if (darf("buchhaltung") || darf("lager")) {
+    kern.push({ pfad: "/lieferanten", titel: "Lieferanten", symbol: "kiste", komponente: Lieferanten, gruppe: "betrieb" });
+  }
+  const leiste = [
+    ...kern,
+    ...alleNavEintraege("baustein").filter((n) => erlaubt(n) && !n.versteckt),
+    ...alleNavEintraege("fachmodul")
+      .filter((n) => erlaubt(n) && !n.versteckt)
+      .map((n) => ({ ...n, fachmodul: true })),
+  ];
 
   return (
     <BrowserRouter>
@@ -67,47 +75,21 @@ export function App() {
           </div>
 
           <div className="wb-seitenleiste__gruppe">
-            <NavLink to="/" end>
+            <NavLink to="/" end title="Start">
               <Symbol name="start" />
-              Start
+              <span>Start</span>
             </NavLink>
-            {darf("technik") && (
-              <NavLink to="/kunden">
-                <Symbol name="kunden" />
-                Kunden
-              </NavLink>
-            )}
-            {darf("technik") && (
-              <NavLink to="/auftraege">
-                <Symbol name="auftraege" />
-                Aufträge
-              </NavLink>
-            )}
-            {bausteinNav.map((n) => (
-              <NavLink key={n.pfad} to={n.pfad}>
-                <Symbol name={MODULSYMBOLE[n.symbol ?? ""] ?? "auftraege"} />
-                {n.titel}
-              </NavLink>
-            ))}
           </div>
 
-          {modulNav.length > 0 && (
-            <div className="wb-seitenleiste__gruppe">
-              <span className="wb-seitenleiste__titel">Fachmodule</span>
-              {modulNav.map((n) => (
-                <NavLink key={n.pfad} to={n.pfad}>
-                  <Symbol name={MODULSYMBOLE[n.symbol ?? ""] ?? "auftraege"} />
-                  {n.titel}
-                </NavLink>
-              ))}
-            </div>
-          )}
+          <div className="wb-seitenleiste__gruppe wb-seitenleiste__gruppen">
+            <Seitenleiste eintraege={leiste} />
+          </div>
 
           {darf("verwaltung") && (
             <div className="wb-seitenleiste__gruppe wb-seitenleiste__gruppe--unten">
-              <NavLink to="/einstellungen">
+              <NavLink to="/einstellungen" title="Einstellungen">
                 <Symbol name="einstellungen" />
-                Einstellungen
+                <span>Einstellungen</span>
               </NavLink>
             </div>
           )}
@@ -131,6 +113,8 @@ export function App() {
                 Pfadteil in React Router vor einem Platzhalter kommt. */}
             <Route path="/auftraege/:id/:reiter" element={<AuftragAkte />} />
             <Route path="/einstellungen" element={<Einstellungen />} />
+            <Route path="/lieferanten" element={<Lieferanten />} />
+            <Route path="/lieferanten/:id" element={<LieferantAkte />} />
             {alleRouten.map((n) => (
               <Route key={n.pfad} path={n.pfad} element={<n.komponente />} />
             ))}

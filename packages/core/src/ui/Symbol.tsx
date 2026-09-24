@@ -37,7 +37,11 @@ export type SymbolName =
   | "haken"
   | "kreuz"
   | "kamera"
-  | "bild";
+  | "bild"
+  | "fahrzeug"
+  | "gebaeude"
+  | "kiste"
+  | "pfeil";
 
 const PFADE: Record<SymbolName, string> = {
   start: "M3 10.5 12 3l9 7.5M5.5 9.5V20h13V9.5M9.5 20v-6h5v6",
@@ -72,6 +76,15 @@ const PFADE: Record<SymbolName, string> = {
     "M3.5 8.5h3l1.5-2.5h8l1.5 2.5h3v11h-17v-11ZM12 16.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z",
   bild: "M3.5 4.5h17v15h-17v-15ZM3.5 16l5-4.5 3.5 3 3.5-3.5 5 4.5M9 9.5a1.2 1.2 0 1 0 0-2.4 1.2 1.2 0 0 0 0 2.4Z",
   haken: "M4.5 12.5 9.5 17.5 19.5 6.5",
+  // Kastenwagen von der Seite — Fuhrpark, damit er nicht wie ein Auftrag aussieht.
+  fahrzeug:
+    "M5.5 16.5h-2v-8a1 1 0 0 1 1-1H14v9M9.5 16.5h5M14 10.5h3.5l3 3.5v2.5h-2M7.5 18.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM16.5 18.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z",
+  // Standorte und ihre Gebäude.
+  gebaeude: "M4.5 20.5v-15l7-2v17M11.5 7.5h8v13M3 20.5h18M7 8h1.5M7 11.5h1.5M7 15h1.5M14.5 11h2M14.5 14.5h2",
+  // Lieferanten: ein Paket.
+  kiste: "M3.5 7.5 12 3.5l8.5 4v9L12 20.5l-8.5-4v-9ZM3.5 7.5 12 11.5l8.5-4M12 11.5v9",
+  // Aufklappen in der Seitenleiste, zeigt nach unten; gedreht per CSS.
+  pfeil: "M6 9.5l6 6 6-6",
   kreuz: "M6 6l12 12M18 6 6 18",
 };
 

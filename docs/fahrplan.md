@@ -287,6 +287,48 @@ Pflicht". Ein Test in `schema-spiegel.test.ts` wacht darüber.
 Die Rechte dazu (nur Buchhaltung) und der Hinweis statt einer leeren Seite
 sind seit dem 23. September nachgezogen, siehe „Zweiter Durchgang Rechte".
 
+## Scheibe 10d – Menü, Standorte, Lieferanten (erledigt)
+
+Auf Julians Rückmeldung vom 24. September 2026 („wird unübersichtlich",
+„ein Kunde hat immer einen Standort", „auch eigene Verträge"):
+
+* **Seitenleiste in Gruppen**, aufklappbar: Kunden, Aufträge, Verrechnung,
+  Betrieb, Fachmodule. Die Gruppe der offenen Seite ist immer offen, was
+  jemand aufklappt, merkt sich der Browser. Eine Gruppe mit nur einem
+  Eintrag wird zum gewöhnlichen Eintrag. Unter 1000 px (nur Symbole) gibt
+  es keine Überschriften, die Gruppen trennt eine Linie. Nebenbei:
+  Fuhrpark und Personal hatten das Auftragssymbol, jetzt eigene.
+* **Jeder Kunde hat einen Standort** — außer er kauft nur Ware (neuer Haken
+  „Kauft nur Ware"). Den ersten legt der Server aus der Anschrift an (Hook
+  `kunden.pb.js`), auch für Kunden, die offline erfasst wurden; bestehende
+  Kunden zieht `npm run einrichten` einmal nach. Den letzten Standort und
+  einen mit Aufträgen kann man nicht löschen.
+* **Standorte anlegen, ändern, löschen** in der Kundenakte (war vorher nur
+  Anzeige) und darunter ein **Baum beliebiger Tiefe**: Gebäude, Geschoß,
+  Raum, Bereich, Verteiler, Anlage, Außenbereich (Collection
+  `standortteile`). „+" neben einem Teil legt darin etwas an und schlägt
+  die passende Art vor. Löschen nimmt alles darunter mit, nach Rückfrage
+  mit Anzahl.
+* **Auftrag mit Standort**: die Auftragsmaske hatte gar kein Standortfeld.
+  Jetzt gibt es eines, und bei genau einem Standort ist er vorbelegt.
+* **Lieferanten** als Stammdaten im Kern (Liste, Akte, Bearbeiten), unter
+  „Betrieb"; lesen jeder, ändern Buchhaltung oder Lager.
+* **Eigene Verträge** im Baustein Verträge: mit einem Lieferanten statt
+  einem Kunden, Art (Prüfung, Leasing, Versicherung …), Nummer beim
+  Partner, Kosten je Rhythmus, wiederkehrender Termin (auch keiner) und
+  dieselbe Laufzeit- und Kündigungslogik. Erinnert an Termin und
+  Kündigungsfrist, nie ans Verrechnen. „Termin erledigt" schreibt den
+  nächsten vom Fälligkeitstag fort. Nummernkreis EV-JJJJ-NNN. Auf der
+  Vertragsseite zwei Reiter, „Mit Kunden" und „Eigene".
+* Beim Kunden gab es **keinen Schalter „Unternehmer"**, obwohl Verzugszinsen
+  und Mahnspesen daran hängen — nachgetragen.
+* Behoben: Nach dem Anlegen eines Vertrags blieb die Maske stehen statt
+  des Vertrags (die Seite wechselte die Adresse, nicht den Zustand).
+
+Offen: Eingangsrechnungen (erfassen, freigeben, zahlen) — der Lieferant
+ist dafür jetzt da. Standortteile am Auftrag auswählen („Küche, EG") und
+im Prüfbericht verwenden.
+
 ## Vor der ersten echten Inbetriebnahme
 
 - `SICHERUNG_ZIEL` in der `.env` auf einen zweiten Datenträger setzen und

@@ -41,6 +41,7 @@ export const bausteinMaterial: WerkboqModul = {
       symbol: "katalog",
       komponente: Katalog,
       bereich: "lager",
+      gruppe: "betrieb",
     },
   ],
 

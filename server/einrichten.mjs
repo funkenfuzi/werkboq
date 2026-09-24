@@ -221,6 +221,9 @@ try {
   await betriebVorbereiten();
   await mitarbeiterNachziehen();
 
+  // Kunden ohne Standort bekommen einmal einen aus ihrer Anschrift
+  await standorteNachtragen();
+
   console.log("Einrichtung abgeschlossen.");
 } catch (e) {
   // Die PocketBase-Bibliothek wirft bei Fehlern ihren gesamten Quelltext aus.
@@ -520,6 +523,31 @@ async function mitarbeiterNachziehen() {
     });
     console.log(`mitarbeiter: ${name} angelegt`);
   }
+}
+
+/**
+ * Seit September 2026 hat jeder Kunde einen Standort — neue bekommen ihn
+ * vom Hook kunden.pb.js. Kunden aus der Zeit davor holt dieser Schritt
+ * nach, einmal: wer schon einen hat, wird nicht angefasst. Ausgenommen
+ * sind der eigene Betrieb und wer nur Ware kauft.
+ */
+async function standorteNachtragen() {
+  const kunden = await pb.collection("kunden").getFullList({ filter: "intern = false && nurWare = false" });
+  const mitStandort = new Set((await pb.collection("standorte").getFullList({ fields: "kunde" })).map((s) => s.kunde));
+  let n = 0;
+  for (const k of kunden) {
+    if (mitStandort.has(k.id)) continue;
+    await pb.collection("standorte").create({
+      kunde: k.id,
+      bezeichnung: k.strasse || k.ort || "Hauptstandort",
+      strasse: k.strasse ?? "",
+      plz: k.plz ?? "",
+      ort: k.ort ?? "",
+      land: k.land ?? "",
+    });
+    n++;
+  }
+  if (n) console.log(`standorte: ${n} Kunden ohne Standort bekamen einen aus ihrer Anschrift`);
 }
 
 function kuerzel(name) {

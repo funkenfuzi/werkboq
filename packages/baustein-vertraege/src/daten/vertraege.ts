@@ -10,6 +10,9 @@ import {
 } from "@werkboq/core";
 import {
   folgewartung,
+  istEigener,
+  type Kategorie,
+  type Richtung,
   kuendigungWirktZum,
   pauschalzeitraum,
   RHYTHMUS_TEXT,
@@ -21,19 +24,34 @@ import {
 
 export interface Vertrag extends Basisdatensatz, Vertragsdaten {
   nummer: string;
-  kunde: string;
+  /** Bei Kundenverträgen gesetzt. */
+  kunde?: string;
+  /** Bei eigenen Verträgen gesetzt. */
+  lieferant?: string;
+  kategorie?: Kategorie | "";
+  fremdnummer?: string;
   standort?: string;
   titel: string;
   leistungen?: string;
   notiz?: string;
-  expand?: { kunde?: { id: string; name: string } };
+  expand?: { kunde?: { id: string; name: string }; lieferant?: { id: string; name: string } };
+}
+
+/** Der Name der Gegenseite, gleich in welche Richtung. */
+export function partnerName(v: Vertrag): string {
+  return (istEigener(v) ? v.expand?.lieferant?.name : v.expand?.kunde?.name) ?? "—";
+}
+
+export function partnerPfad(v: Vertrag): string | null {
+  if (istEigener(v)) return v.lieferant ? `/lieferanten/${v.lieferant}` : null;
+  return v.kunde ? `/kunden/${v.kunde}` : null;
 }
 
 export type VertragEingabe = Omit<Vertrag, keyof Basisdatensatz | "expand">;
 
 export interface Vertragsereignis extends Basisdatensatz {
   vertrag: string;
-  art: "wartung" | "rechnung" | "kuendigung" | "preis";
+  art: "wartung" | "rechnung" | "kuendigung" | "preis" | "termin";
   faellig?: string;
   auftrag?: string;
   beleg?: string;
@@ -50,9 +68,14 @@ export function heute(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-export function leererVertrag(): VertragEingabe {
+export function leererVertrag(richtung: Richtung = "kunde"): VertragEingabe {
   const h = heute();
+  const eigen = richtung === "lieferant";
   return {
+    richtung,
+    lieferant: "",
+    kategorie: eigen ? "pruefung" : "wartung",
+    fremdnummer: "",
     nummer: "",
     kunde: "",
     standort: "",
@@ -63,7 +86,7 @@ export function leererVertrag(): VertragEingabe {
     intervallMonate: 12,
     naechsteWartung: "",
     vorlaufTage: 30,
-    verrechnung: "aufwand" as Verrechnungsart,
+    verrechnung: (eigen ? "" : "aufwand") as Verrechnungsart,
     pauschale: 0,
     rhythmus: "jahr" as Rhythmus,
     naechsteRechnung: h,
@@ -85,7 +108,7 @@ function tagesgenau<T extends Partial<Vertragsdaten>>(v: T): T {
 }
 
 export async function alleVertraege(): Promise<Vertrag[]> {
-  const liste = await pb().collection("vertraege").getFullList<Vertrag>({ sort: "nummer", expand: "kunde" });
+  const liste = await pb().collection("vertraege").getFullList<Vertrag>({ sort: "nummer", expand: "kunde,lieferant" });
   return liste.map(tagesgenau);
 }
 
@@ -96,8 +119,15 @@ export async function vertraegeZuKunde(kunde: string): Promise<Vertrag[]> {
   return liste.map(tagesgenau);
 }
 
+export async function vertraegeZuLieferant(lieferant: string): Promise<Vertrag[]> {
+  const liste = await pb()
+    .collection("vertraege")
+    .getFullList<Vertrag>({ filter: `lieferant = "${sicher(lieferant)}"`, sort: "nummer" });
+  return liste.map(tagesgenau);
+}
+
 export async function vertragLaden(id: string): Promise<Vertrag> {
-  return tagesgenau(await pb().collection("vertraege").getOne<Vertrag>(id, { expand: "kunde" }));
+  return tagesgenau(await pb().collection("vertraege").getOne<Vertrag>(id, { expand: "kunde,lieferant" }));
 }
 
 export async function ereignisse(vertrag: string): Promise<Vertragsereignis[]> {
@@ -106,9 +136,15 @@ export async function ereignisse(vertrag: string): Promise<Vertragsereignis[]> {
     .getFullList<Vertragsereignis>({ filter: `vertrag = "${sicher(vertrag)}"`, sort: "-created" });
 }
 
-/** WV-2026-001 — fortlaufend je Jahr. */
-export async function naechsteVertragsnummer(jahr = new Date().getFullYear()): Promise<string> {
-  const praefix = `WV-${jahr}-`;
+/**
+ * WV-2026-001 für Kundenverträge, EV-2026-001 für eigene — fortlaufend je
+ * Jahr und Richtung.
+ */
+export async function naechsteVertragsnummer(
+  jahr = new Date().getFullYear(),
+  richtung: Richtung = "kunde",
+): Promise<string> {
+  const praefix = `${richtung === "lieferant" ? "EV" : "WV"}-${jahr}-`;
   const letzte = await pb()
     .collection("vertraege")
     .getList<Vertrag>(1, 1, { filter: `nummer ~ "${praefix}"`, sort: "-nummer" })
@@ -121,7 +157,7 @@ function bereinigen(e: Partial<VertragEingabe>): Record<string, unknown> {
   const d: Record<string, unknown> = {};
   for (const [k, w] of Object.entries(e)) {
     if (w === undefined) continue;
-    d[k] = typeof w === "string" ? w.trim() || (["standort", "gekuendigtZum", "naechsteWartung", "naechsteRechnung"].includes(k) ? null : "") : w;
+    d[k] = typeof w === "string" ? w.trim() || (["standort", "kunde", "lieferant", "gekuendigtZum", "naechsteWartung", "naechsteRechnung"].includes(k) ? null : "") : w;
   }
   return d;
 }
@@ -138,7 +174,7 @@ export async function vertragSpeichern(vorher: Vertrag | null, e: VertragEingabe
         vertrag: vorher.id,
         art: "preis",
         faellig: heute(),
-        text: `Pauschale von ${(vorher.pauschale ?? 0) / 100} auf ${(e.pauschale ?? 0) / 100} geändert`,
+        text: `${istEigener(vorher) ? "Kosten" : "Pauschale"} von ${(vorher.pauschale ?? 0) / 100} auf ${(e.pauschale ?? 0) / 100} geändert`,
       });
     }
     return tagesgenau(neu);
@@ -156,6 +192,7 @@ export async function vertragSpeichern(vorher: Vertrag | null, e: VertragEingabe
  * Vertrag sagt es.
  */
 export async function wartungAnlegen(v: Vertrag): Promise<{ auftragId: string }> {
+  if (!v.kunde) throw new Error("Ein Wartungsauftrag braucht einen Kunden — das ist ein eigener Vertrag.");
   if (!v.naechsteWartung) throw new Error("Für diesen Vertrag ist keine nächste Wartung eingetragen.");
   const auftrag = await auftragAnlegen({
     ...LEERER_AUFTRAG,
@@ -192,11 +229,13 @@ export async function wartungAnlegen(v: Vertrag): Promise<{ auftragId: string }>
 export async function pauschaleVerrechnen(v: Vertrag): Promise<{ belegId: string; nummer: string }> {
   const anlegen = dienst("belegentwurf");
   if (!anlegen) throw new Error("Der Baustein Verrechnung ist nicht freigeschaltet.");
+  if (!v.kunde) throw new Error("Verrechnet wird nur an Kunden — das ist ein eigener Vertrag.");
+  const kunde = v.kunde;
   const z = pauschalzeitraum(v, heute());
   if (!z) throw new Error("Für diesen Vertrag ist keine Pauschale fällig.");
   const d = (t: string) => new Date(`${t}T00:00:00`).toLocaleDateString("de-AT");
   const beleg = await anlegen({
-    kunde: v.kunde,
+    kunde,
     kopftext: `Wartungsvertrag ${v.nummer} — ${v.titel}`,
     leistungVon: z.von,
     leistungBis: z.bis,
@@ -220,6 +259,25 @@ export async function pauschaleVerrechnen(v: Vertrag): Promise<{ belegId: string
   });
   await protokollieren("vertraege", v.id, "aendern", `Pauschale verrechnet: Entwurf ${beleg.nummer}`);
   return { belegId: beleg.id, nummer: beleg.nummer };
+}
+
+/**
+ * Eigener Vertrag: der Dienstleister war da (Feuerlöscher geprüft, Anlage
+ * gewartet). Der nächste Termin rückt vom Fälligkeitstag aus weiter — wie
+ * bei Kundenverträgen, damit aus „jährlich" nicht „alle 13 Monate" wird.
+ */
+export async function terminErledigt(v: Vertrag, notiz = ""): Promise<string | null> {
+  if (!v.naechsteWartung) throw new Error("Für diesen Vertrag ist kein Termin eingetragen.");
+  const folge = folgewartung(v);
+  await pb().collection("vertraege").update(v.id, { naechsteWartung: folge });
+  await pb().collection("vertragsereignisse").create({
+    vertrag: v.id,
+    art: "termin",
+    faellig: v.naechsteWartung,
+    text: `Termin vom ${tagText(v.naechsteWartung)} erledigt${notiz.trim() ? ` — ${notiz.trim()}` : ""}${folge ? `, nächster ${tagText(folge)}` : ""}`,
+  });
+  await protokollieren("vertraege", v.id, "aendern", `Termin erledigt, nächster ${folge ? tagText(folge) : "keiner"}`);
+  return folge;
 }
 
 /** Kündigung erfassen — sie wirkt zu dem Tag, den Laufzeit und Frist ergeben. */
