@@ -303,6 +303,8 @@ sind seit dem 23. September nachgezogen, siehe „Zweiter Durchgang Rechte".
 
 - QR-Rechnung (Swiss QR Code im Zahlteil) — seit Oktober 2022 der Standard.
   Eine Schweizer Rechnung aus Werkboq ist ohne ihn gültig, aber unüblich.
+  Seit 21. November 2025 nur mit strukturierten Adressen — dieselbe
+  Vorarbeit wie für die E-Rechnung (docs/e-rechnung.md, Lücken 1 und 2).
 
 ## Zweiter Durchgang Rechte
 
@@ -376,7 +378,10 @@ Balken Empfang lädt niemand ein halbes Megabyte, nur um eine Seite zu
 
 ## Offene Punkte
 
-- E-Rechnung: ebInterface/Peppol (AT), XRechnung/ZUGFeRD (DE).
+- E-Rechnung für DE, AT und CH: **vorgesehen, nicht eingebaut** (Julian,
+  24. September 2026). Rechtslage, Datenlücken und Reihenfolge stehen in
+  docs/e-rechnung.md. Dringend wird es mit Deutschland: Pflicht zur
+  Ausstellung an Unternehmer ab 2027 (über 800.000 € Umsatz) bzw. 2028 (alle).
 - Basiszinssätze veralten halbjährlich. Sie stehen je Land an einer Stelle
   (`werkzeug/laender.ts`, Feld `zinsStand` nennt Stand und Quelle); es braucht
   einen Vorgang, der sie zweimal im Jahr nachzieht.
