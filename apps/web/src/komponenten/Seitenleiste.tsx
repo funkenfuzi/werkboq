@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   aktiveGruppe,
@@ -68,7 +68,9 @@ function Eintrag({ n }: { n: NavEintrag }) {
 /**
  * Die Hauptgruppen der Seitenleiste, aufklappbar.
  *
- * Die Gruppe der geöffneten Seite ist immer offen. Auf schmalen Bildschirmen
+ * Die Gruppe der geöffneten Seite geht beim Hineinwechseln auf, lässt sich
+ * aber zuklappen (Julian, 24. September 2026) — dann trägt ihre Überschrift
+ * die Markierung, damit man sieht, wo man ist. Auf schmalen Bildschirmen
  * (nur Symbole) gibt es keine Überschriften — dort stehen alle Einträge
  * untereinander, siehe huelle.css.
  */
@@ -77,8 +79,20 @@ export function Seitenleiste({ eintraege }: { eintraege: (NavEintrag & { fachmod
   const [offen, setOffen] = useState<Navgruppe[]>(gemerkt);
   const bloecke: Navblock[] = navGruppieren(eintraege);
   const aktiv = aktiveGruppe(bloecke, ort.pathname);
+  // Ausdrücklich zugeklappt, obwohl man gerade darin ist. Gilt nur, bis man
+  // in eine andere Gruppe wechselt — kommt man zurück, ist sie wieder offen.
+  const [zu, setZu] = useState<Navgruppe | null>(null);
+  useEffect(() => {
+    setZu((z) => (z === aktiv ? z : null));
+  }, [aktiv]);
+
+  const istOffen = (g: Navgruppe) => (g === aktiv ? zu !== g : offen.includes(g));
 
   const umschalten = (g: Navgruppe) => {
+    if (g === aktiv) {
+      setZu(zu === g ? null : g);
+      return;
+    }
     const neu = offen.includes(g) ? offen.filter((x) => x !== g) : [...offen, g];
     setOffen(neu);
     merken(neu);
@@ -95,16 +109,14 @@ export function Seitenleiste({ eintraege }: { eintraege: (NavEintrag & { fachmod
             </div>
           );
         }
-        const istOffen = b.id === aktiv || offen.includes(b.id);
+        const auf = istOffen(b.id);
         return (
-          <div key={b.id} className={`wb-navgruppe${istOffen ? " ist-offen" : ""}${b.id === aktiv ? " ist-aktiv" : ""}`}>
+          <div key={b.id} className={`wb-navgruppe${auf ? " ist-offen" : ""}${b.id === aktiv ? " ist-aktiv" : ""}`}>
             <button
               type="button"
               className="wb-navgruppe__kopf"
-              aria-expanded={istOffen}
-              // Die Gruppe der aktuellen Seite lässt sich nicht zuklappen —
-              // der markierte Eintrag verschwände sonst.
-              onClick={() => b.id !== aktiv && umschalten(b.id)}
+              aria-expanded={auf}
+              onClick={() => umschalten(b.id)}
             >
               <Symbol name={GRUPPENSYMBOL[b.id]} />
               <span>{b.titel}</span>

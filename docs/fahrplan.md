@@ -293,8 +293,9 @@ Auf Julians Rückmeldung vom 24. September 2026 („wird unübersichtlich",
 „ein Kunde hat immer einen Standort", „auch eigene Verträge"):
 
 * **Seitenleiste in Gruppen**, aufklappbar: Kunden, Aufträge, Verrechnung,
-  Betrieb, Fachmodule. Die Gruppe der offenen Seite ist immer offen, was
-  jemand aufklappt, merkt sich der Browser. Eine Gruppe mit nur einem
+  Betrieb, Fachmodule. Die Gruppe der offenen Seite geht beim Hineinwechseln
+  auf, lässt sich aber zuklappen — dann trägt die Überschrift die
+  Markierung. Was jemand aufklappt, merkt sich der Browser. Eine Gruppe mit nur einem
   Eintrag wird zum gewöhnlichen Eintrag. Unter 1000 px (nur Symbole) gibt
   es keine Überschriften, die Gruppen trennt eine Linie. Nebenbei:
   Fuhrpark und Personal hatten das Auftragssymbol, jetzt eigene.

@@ -140,7 +140,13 @@
 
 .wb-navgruppe.ist-aktiv > .wb-navgruppe__kopf {
   color: #fff;
-  cursor: default;
+}
+
+/* Zugeklappt, obwohl die offene Seite darin liegt: die Überschrift trägt
+   die Markierung, die sonst der Eintrag trägt. */
+.wb-navgruppe.ist-aktiv:not(.ist-offen) > .wb-navgruppe__kopf {
+  background: rgb(255 255 255 / 0.12);
+  border-left-color: var(--wb-orange);
 }
 
 .wb-navgruppe__kopf > span:nth-of-type(1) {
